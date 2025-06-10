@@ -2,7 +2,7 @@ package com.habit.server;
 
 // 習慣化共有プログラムのサーバ側プログラム
 // クライアントからのHTTPリクエストを受けて、ルームやタスクの情報を管理します
-// サーバはメモリ上でルーム・タスク情報を保持します
+// サーバはSQLiteを用いてルーム・タスク情報を永続化します
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -10,6 +10,9 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+
+// JDBC based room management
+import com.habit.server.DatabaseRoomManager;
 
 public class HabitServer {
   public static void main(String[] args) throws Exception {
@@ -36,8 +39,9 @@ public class HabitServer {
     }
   }
 
-  // --- ルーム管理用（メモリ上でルームIDを保持）---
-  private static RoomManager roomManager = new RoomManager();
+  // --- ルーム管理用（SQLite でルームIDを保持）---
+  private static DatabaseRoomManager roomManager =
+      new DatabaseRoomManager("jdbc:sqlite:habit.db");
 
   // --- ルーム作成API ---
   static class CreateRoomHandler implements HttpHandler {
