@@ -1,24 +1,24 @@
 package com.habit.server;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 public class RoomManager {
-  private final Set<String> rooms = new HashSet<>();
+  private final Map<String, TaskManager> rooms = new HashMap<>();
 
   public synchronized boolean createRoom(String roomId) {
-    if (rooms.contains(roomId)) {
+    if (rooms.containsKey(roomId)) {
       return false;
     }
-    rooms.add(roomId);
+    rooms.put(roomId, new TaskManager());
     return true;
   }
 
-  public synchronized boolean joinRoom(String roomId) {
-    return rooms.contains(roomId);
+  public synchronized boolean roomExists(String roomId) {
+    return rooms.containsKey(roomId);
   }
 
-  public synchronized boolean roomExists(String roomId) {
-    return rooms.contains(roomId);
+  public synchronized TaskManager getTaskManager(String roomId) {
+    return rooms.get(roomId);
   }
 }

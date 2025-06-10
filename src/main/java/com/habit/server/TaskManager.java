@@ -1,21 +1,16 @@
 package com.habit.server;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class TaskManager {
-  private final Map<String, List<String>> roomTasks = new HashMap<>();
+  private List<String> tasks = new ArrayList<>();
 
-  public synchronized void addTask(String roomId, String task) {
-    roomTasks.putIfAbsent(roomId, new ArrayList<>());
-    roomTasks.get(roomId).add(task);
-  }
+  public synchronized void addTask(String task) { tasks.add(task); }
 
-  public synchronized List<String> getTasks(String roomId) {
-    return new ArrayList<>(
-        roomTasks.getOrDefault(roomId, Collections.emptyList()));
+  public synchronized List<String> getTasks() { return tasks; }
+
+  public synchronized boolean taskExists(String task) {
+    return tasks.contains(task);
   }
 }
