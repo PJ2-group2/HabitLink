@@ -19,3 +19,9 @@ mvn exec:java -Dexec.mainClass=com.habit.server.HabitServer
 mvn exec:java -Dexec.mainClass=com.habit.client.gui.HabitClientGUI
 ```
 
+
+## Run the Tests:
+
+```bash
+mvn test
+```
