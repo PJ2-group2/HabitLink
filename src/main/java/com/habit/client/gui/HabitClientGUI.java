@@ -1,3 +1,4 @@
+package com.habit.client.gui;
 // JavaFXのGUI雛形
 // このプログラムは、習慣化共有アプリのクライアント側です。
 // サーバとHTTP通信し、タスクやルームの情報をやりとりします。
