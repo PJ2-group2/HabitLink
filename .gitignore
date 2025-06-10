@@ -1,0 +1,6 @@
+msg
+.project
+.classpath
+.settings/*
+target/*
+.cache/*

@@ -1,3 +1,4 @@
+package com.habit.client;
 // Javaの標準HTTPクライアントを使ったサンプルクライアント
 // サーバにHTTPリクエストを送り、応答を表示します
 
