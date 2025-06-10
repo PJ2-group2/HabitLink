@@ -37,7 +37,7 @@ public class HabitServer {
   }
 
   // --- ルーム管理用（メモリ上でルームIDを保持）---
-  private static java.util.Set<String> rooms = new java.util.HashSet<>();
+  private static RoomManager roomManager = new RoomManager();
 
   // --- ルーム作成API ---
   static class CreateRoomHandler implements HttpHandler {
@@ -46,11 +46,11 @@ public class HabitServer {
       String response;
       if (query != null && query.startsWith("id=")) {
         String roomId = query.substring(3);
-        synchronized (rooms) {
-          if (rooms.contains(roomId)) {
+        synchronized (roomManager) {
+          if (roomManager.roomExists(roomId)) {
             response = "ルーム『" + roomId + "』は既に存在します。";
           } else {
-            rooms.add(roomId);
+            roomManager.createRoom(roomId);
             response = "ルーム『" + roomId + "』を作成しました。";
           }
         }
@@ -71,8 +71,8 @@ public class HabitServer {
       String response;
       if (query != null && query.startsWith("id=")) {
         String roomId = query.substring(3);
-        synchronized (rooms) {
-          if (rooms.contains(roomId)) {
+        synchronized (roomManager) {
+          if (roomManager.roomExists(roomId)) {
             response = "ルーム『" + roomId + "』に参加しました。";
           } else {
             response = "ルーム『" + roomId + "』は存在しません。";
@@ -87,10 +87,6 @@ public class HabitServer {
       os.close();
     }
   }
-
-  // --- ルームごとのタスク管理（メモリ上で保持）---
-  private static java.util.Map<String, java.util.List<String>> roomTasks =
-      new java.util.HashMap<>();
 
   // --- タスク追加API ---
   static class AddTaskHandler implements HttpHandler {
@@ -107,12 +103,12 @@ public class HabitServer {
             task = param.substring(5);
         }
         if (roomId != null && task != null) {
-          synchronized (roomTasks) {
-            if (!rooms.contains(roomId)) {
+          synchronized (roomManager) {
+            if (!roomManager.roomExists(roomId)) {
               response = "ルーム『" + roomId + "』は存在しません。";
             } else {
-              roomTasks.putIfAbsent(roomId, new java.util.ArrayList<>());
-              roomTasks.get(roomId).add(task);
+              var room = roomManager.getTaskManager(roomId);
+              room.addTask(task);
               response = "タスクを追加しました。";
             }
           }
@@ -136,15 +132,16 @@ public class HabitServer {
       String response;
       if (query != null && query.startsWith("id=")) {
         String roomId = query.substring(3);
-        synchronized (roomTasks) {
-          if (!rooms.contains(roomId)) {
+        synchronized (roomManager) {
+          if (!roomManager.roomExists(roomId)) {
             response = "ルーム『" + roomId + "』は存在しません。";
           } else {
-            java.util.List<String> tasks =
-                roomTasks.getOrDefault(roomId, new java.util.ArrayList<>());
-            response = String.join("\n", tasks);
-            if (response.isEmpty())
+            var room = roomManager.getTaskManager(roomId);
+            var tasks = room.getTasks();
+            if (tasks.isEmpty())
               response = "タスクはありません。";
+            else
+              response = String.join("\n", tasks);
           }
         }
       } else {
