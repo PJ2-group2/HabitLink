@@ -4,3 +4,4 @@ msg
 .settings/*
 target/*
 .cache/*
+habit.db
