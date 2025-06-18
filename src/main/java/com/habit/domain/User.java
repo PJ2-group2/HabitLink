@@ -42,6 +42,10 @@ public class User {
         this.hashedPassword = newPassword;
     }
 
+    public String getHashedPassword() {
+        return hashedPassword;
+    }
+
     public String getProfileIconPath() {
         return profileIconPath;
     }
