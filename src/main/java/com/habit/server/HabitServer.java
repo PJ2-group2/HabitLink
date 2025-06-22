@@ -15,6 +15,10 @@ import java.net.InetSocketAddress;
 import com.habit.server.DatabaseRoomManager;
 
 public class HabitServer {
+  // ユーザ認証用サービス
+  private static UserRepository userRepository = new UserRepository();
+  private static AuthService authService = new AuthService(userRepository);
+
   public static void main(String[] args) throws Exception {
     // サーバを8080番ポートで起動
     HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
@@ -24,6 +28,8 @@ public class HabitServer {
     server.createContext("/joinRoom", new JoinRoomHandler());     // ルーム参加
     server.createContext("/addTask", new AddTaskHandler());       // タスク追加
     server.createContext("/getTasks", new GetTasksHandler()); // タスク一覧取得
+    server.createContext("/login", new LoginHandler());           // ログイン
+    server.createContext("/register", new RegisterHandler());     // 新規登録
     server.setExecutor(null);
     server.start();
     System.out.println("サーバが起動しました: http://localhost:8080/hello");
@@ -150,6 +156,81 @@ public class HabitServer {
         }
       } else {
         response = "ルームIDが指定されていません。";
+      }
+      exchange.sendResponseHeaders(200, response.getBytes().length);
+      OutputStream os = exchange.getResponseBody();
+      os.write(response.getBytes());
+      os.close();
+    }
+  }
+  // --- ログインAPI ---
+  static class LoginHandler implements HttpHandler {
+    public void handle(HttpExchange exchange) throws IOException {
+      if (!"POST".equals(exchange.getRequestMethod())) {
+        String response = "POSTメソッドのみ対応";
+        exchange.sendResponseHeaders(405, response.getBytes().length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(response.getBytes());
+        os.close();
+        return;
+      }
+      String query = exchange.getRequestURI().getQuery();
+      String response;
+      String username = null, password = null;
+      if (query != null) {
+        String[] params = query.split("&");
+        for (String param : params) {
+          if (param.startsWith("username=")) username = param.substring(9);
+          if (param.startsWith("password=")) password = param.substring(9);
+        }
+      }
+      if (username != null && password != null) {
+        var user = authService.login(username, password);
+        if (user != null) {
+          response = "ログイン成功";
+        } else {
+          response = "ユーザ名またはパスワードが間違っています";
+        }
+      } else {
+        response = "パラメータが不正です";
+      }
+      exchange.sendResponseHeaders(200, response.getBytes().length);
+      OutputStream os = exchange.getResponseBody();
+      os.write(response.getBytes());
+      os.close();
+    }
+  }
+
+  // --- 新規登録API ---
+  static class RegisterHandler implements HttpHandler {
+    public void handle(HttpExchange exchange) throws IOException {
+      if (!"POST".equals(exchange.getRequestMethod())) {
+        String response = "POSTメソッドのみ対応";
+        exchange.sendResponseHeaders(405, response.getBytes().length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(response.getBytes());
+        os.close();
+        return;
+      }
+      String query = exchange.getRequestURI().getQuery();
+      String response;
+      String username = null, password = null;
+      if (query != null) {
+        String[] params = query.split("&");
+        for (String param : params) {
+          if (param.startsWith("username=")) username = param.substring(9);
+          if (param.startsWith("password=")) password = param.substring(9);
+        }
+      }
+      if (username != null && password != null) {
+        var user = authService.register(username, password);
+        if (user != null) {
+          response = "登録成功";
+        } else {
+          response = "登録失敗";
+        }
+      } else {
+        response = "パラメータが不正です";
       }
       exchange.sendResponseHeaders(200, response.getBytes().length);
       OutputStream os = exchange.getResponseBody();

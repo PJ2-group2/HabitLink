@@ -20,12 +20,71 @@ import java.net.URI;
 public class HabitClientGUI extends Application {
     @Override
     public void start(Stage primaryStage) {
-        // --- メインメニュー ---
-        // 個人ページ・チームページへのボタン
-        Button btnPersonal = new Button("個人ページ");
-        Button btnTeam = new Button("チームページ");
-        VBox root = new VBox(10, btnPersonal, btnTeam);
-        Scene mainScene = new Scene(root, 300, 200);
+        // --- ログイン画面 ---
+        Label loginTitle = new Label("ログイン / 新規登録");
+        javafx.scene.control.TextField usernameField = new javafx.scene.control.TextField();
+        usernameField.setPromptText("ユーザ名");
+        javafx.scene.control.PasswordField passwordField = new javafx.scene.control.PasswordField();
+        passwordField.setPromptText("パスワード");
+        Button btnSwitchMode = new Button("新規登録モードへ");
+        Button btnLoginOrRegister = new Button("ログイン");
+        Label loginStatusLabel = new Label("");
+        VBox loginRoot = new VBox(10, loginTitle, usernameField, passwordField, btnLoginOrRegister, btnSwitchMode, loginStatusLabel);
+        Scene loginScene = new Scene(loginRoot, 300, 220);
+
+        // --- メインメニュー（loginSceneより前に宣言しfinalで参照可能に） ---
+        final Button btnPersonal = new Button("個人ページ");
+        final Button btnTeam = new Button("チームページ");
+        final VBox root = new VBox(10, btnPersonal, btnTeam);
+        final Scene mainScene = new Scene(root, 300, 200);
+
+        // ログイン/新規登録モード切替用フラグ
+        final boolean[] isRegisterMode = {false};
+        btnSwitchMode.setOnAction(e -> {
+            isRegisterMode[0] = !isRegisterMode[0];
+            if (isRegisterMode[0]) {
+                btnLoginOrRegister.setText("新規登録");
+                btnSwitchMode.setText("ログインモードへ");
+                loginTitle.setText("新規登録");
+            } else {
+                btnLoginOrRegister.setText("ログイン");
+                btnSwitchMode.setText("新規登録モードへ");
+                loginTitle.setText("ログイン");
+            }
+            loginStatusLabel.setText("");
+        });
+
+        btnLoginOrRegister.setOnAction(e -> {
+            String username = usernameField.getText().trim();
+            String password = passwordField.getText().trim();
+            if (username.isEmpty() || password.isEmpty()) {
+                loginStatusLabel.setText("ユーザ名とパスワードを入力してください");
+                return;
+            }
+            try {
+                HttpClient client = HttpClient.newHttpClient();
+                String url = isRegisterMode[0]
+                    ? "http://localhost:8080/register?username=" + java.net.URLEncoder.encode(username, "UTF-8") + "&password=" + java.net.URLEncoder.encode(password, "UTF-8")
+                    : "http://localhost:8080/login?username=" + java.net.URLEncoder.encode(username, "UTF-8") + "&password=" + java.net.URLEncoder.encode(password, "UTF-8");
+                HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .POST(HttpRequest.BodyPublishers.noBody())
+                    .build();
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                String body = response.body();
+                if ((isRegisterMode[0] && body.contains("登録成功")) || (!isRegisterMode[0] && body.contains("ログイン成功"))) {
+                    // 認証成功時はメイン画面へ
+                    usernameField.clear();
+                    passwordField.clear();
+                    loginStatusLabel.setText("");
+                    primaryStage.setScene(mainScene);
+                } else {
+                    loginStatusLabel.setText(body);
+                }
+            } catch (Exception ex) {
+                loginStatusLabel.setText("サーバ接続エラー: " + ex.getMessage());
+            }
+        });
 
         // --- 個人ページ ---
         // 自分のタスクを管理する画面
@@ -209,7 +268,7 @@ public class HabitClientGUI extends Application {
         btnBack1.setOnAction(e -> primaryStage.setScene(mainScene));
 
         primaryStage.setTitle("習慣化共有クライアント");
-        primaryStage.setScene(mainScene);
+        primaryStage.setScene(loginScene);
         primaryStage.show();
     }
     public static void main(String[] args) {
