@@ -31,6 +31,7 @@ public class HabitServer {
     server.createContext("/login", new LoginHandler());           // ログイン
     server.createContext("/register", new RegisterHandler());     // 新規登録
     server.createContext("/createTeam", new CreateTeamHandler());   // チーム作成
+    server.createContext("/publicTeams", new PublicTeamsHandler()); // 公開チーム一覧
     server.setExecutor(null);
     server.start();
     System.out.println("サーバが起動しました: http://localhost:8080/hello");
@@ -242,22 +243,27 @@ public class HabitServer {
   // --- チーム作成API ---
   static class CreateTeamHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
-      String response = "";
-      int status = 200;
-      OutputStream os = null;
+      if (!"POST".equals(exchange.getRequestMethod())) {
+        String response = "POSTメソッドのみ対応";
+        exchange.sendResponseHeaders(405, response.getBytes().length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(response.getBytes());
+        os.close();
+        return;
+      }
+      // クライアントからのPOSTボディを取得
+      byte[] bodyBytes = exchange.getRequestBody().readAllBytes();
+      String bodyStr = (bodyBytes != null) ? new String(bodyBytes, java.nio.charset.StandardCharsets.UTF_8) : "";
+      String response;
+      if (bodyStr == null || bodyStr.trim().isEmpty()) {
+        response = "リクエストボディが空です";
+        exchange.sendResponseHeaders(400, response.getBytes().length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(response.getBytes());
+        os.close();
+        return;
+      }
       try {
-        if (!"POST".equals(exchange.getRequestMethod())) {
-          response = "POSTメソッドのみ対応";
-          status = 405;
-          return;
-        }
-        byte[] bodyBytes = exchange.getRequestBody().readAllBytes();
-        String bodyStr = (bodyBytes != null) ? new String(bodyBytes, java.nio.charset.StandardCharsets.UTF_8) : "";
-        if (bodyStr == null || bodyStr.trim().isEmpty()) {
-          response = "リクエストボディが空です";
-          status = 400;
-          return;
-        }
         // 超簡易パース: key=value&... 形式を想定
         String[] params = bodyStr.split("&");
         String teamName = "", passcode = "", editPerm = "", category = "", scope = "public";
@@ -281,19 +287,31 @@ public class HabitServer {
         RoomRepository repo = new RoomRepository();
         repo.save(room, passcode, maxMembers, editPerm, category, scope, members);
         response = "チーム作成成功";
-        status = 200;
       } catch (Exception ex) {
-        ex.printStackTrace(); // 例外内容を標準エラー出力に出す
         response = "チーム作成失敗: " + ex.getMessage();
-        status = 400;
-      } finally {
-        try {
-          exchange.sendResponseHeaders(status, response.getBytes().length);
-          os = exchange.getResponseBody();
-          os.write(response.getBytes());
-          os.close();
-        } catch (Exception ignore) {}
       }
+      exchange.sendResponseHeaders(200, response.getBytes().length);
+      OutputStream os = exchange.getResponseBody();
+      os.write(response.getBytes());
+      os.close();
+    }
+  }
+
+  // --- 公開チーム一覧取得API ---
+  static class PublicTeamsHandler implements HttpHandler {
+    public void handle(HttpExchange exchange) throws IOException {
+      String response;
+      try {
+        RoomRepository repo = new RoomRepository();
+        java.util.List<String> teamNames = repo.findAllPublicTeamNames();
+        response = String.join("\n", teamNames);
+      } catch (Exception ex) {
+        response = "エラー: " + ex.getMessage();
+      }
+      exchange.sendResponseHeaders(200, response.getBytes().length);
+      OutputStream os = exchange.getResponseBody();
+      os.write(response.getBytes());
+      os.close();
     }
   }
 }

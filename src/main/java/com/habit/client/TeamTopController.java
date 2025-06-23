@@ -41,4 +41,11 @@ public class TeamTopController {
             }
         });
     }
+
+    // チーム名を外部からセット
+    public void setTeamName(String name) {
+        if (teamNameLabel != null) {
+            teamNameLabel.setText(name);
+        }
+    }
 }

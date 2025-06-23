@@ -1,8 +1,6 @@
 package com.habit.server;
 
 import com.habit.domain.Room;
-import java.util.List;
-
 import java.sql.*;
 import java.util.List;
 
@@ -10,9 +8,9 @@ public class RoomRepository {
     private static final String DB_URL = "jdbc:sqlite:habit.db";
 
     public RoomRepository() {
-        // テーブル作成
         try (Connection conn = DriverManager.getConnection(DB_URL);
              Statement stmt = conn.createStatement()) {
+            // まずテーブルがなければ作成
             String sql = "CREATE TABLE IF NOT EXISTS rooms (" +
                     "roomId TEXT PRIMARY KEY," +
                     "roomName TEXT," +
@@ -28,6 +26,25 @@ public class RoomRepository {
                     "roomId TEXT," +
                     "memberId TEXT)";
             stmt.execute(sql2);
+            // roomsテーブルのカラム追加（既存DB用）
+            ResultSet rs = stmt.executeQuery("PRAGMA table_info(rooms)");
+            boolean hasRoomName = false;
+            boolean hasScope = false;
+            while (rs.next()) {
+                String col = rs.getString("name");
+                if ("roomName".equalsIgnoreCase(col)) {
+                    hasRoomName = true;
+                }
+                if ("scope".equalsIgnoreCase(col)) {
+                    hasScope = true;
+                }
+            }
+            if (!hasRoomName) {
+                stmt.execute("ALTER TABLE rooms ADD COLUMN roomName TEXT");
+            }
+            if (!hasScope) {
+                stmt.execute("ALTER TABLE rooms ADD COLUMN scope TEXT");
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -41,6 +58,23 @@ public class RoomRepository {
     public List<Room> findAllPublicRooms() {
         // 実装省略
         return null;
+    }
+
+    // 公開チーム名一覧
+    public List<String> findAllPublicTeamNames() {
+        List<String> names = new java.util.ArrayList<>();
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String sql = "SELECT roomName FROM rooms WHERE scope = 'public'";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                ResultSet rs = pstmt.executeQuery();
+                while (rs.next()) {
+                    names.add(rs.getString("roomName"));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return names;
     }
 
     // 新しいsave: 追加情報も保存
