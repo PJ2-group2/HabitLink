@@ -22,5 +22,20 @@ public class HomeController {
         // アイコン画像セット例
         characterView.setImage(new javafx.scene.image.Image(
             "https://raw.githubusercontent.com/google/material-design-icons/master/png/social/mood/materialicons/48dp/2x/baseline_mood_black_48dp.png", true));
+
+        // チーム選択でチームトップ画面へ遷移
+        teamListView.setOnMouseClicked(e -> {
+            String selected = teamListView.getSelectionModel().getSelectedItem();
+            if (selected != null) {
+                try {
+                    javafx.stage.Stage stage = (javafx.stage.Stage) teamListView.getScene().getWindow();
+                    javafx.scene.Parent root = javafx.fxml.FXMLLoader.load(getClass().getResource("/com/habit/client/gui/TeamTop.fxml"));
+                    stage.setScene(new javafx.scene.Scene(root));
+                    stage.setTitle("チームトップ");
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
     }
 }

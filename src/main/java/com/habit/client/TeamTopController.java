@@ -29,5 +29,16 @@ public class TeamTopController {
         teamCharView.setImage(new Image(
             "https://raw.githubusercontent.com/google/material-design-icons/master/png/social/mood/materialicons/48dp/2x/baseline_mood_black_48dp.png", true));
         // TableViewのカラムやデータは必要に応じて追加
+
+        btnBackHome.setOnAction(e -> {
+            try {
+                javafx.stage.Stage stage = (javafx.stage.Stage) btnBackHome.getScene().getWindow();
+                javafx.scene.Parent root = javafx.fxml.FXMLLoader.load(getClass().getResource("/com/habit/client/gui/Home.fxml"));
+                stage.setScene(new javafx.scene.Scene(root));
+                stage.setTitle("ホーム");
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
     }
 }
