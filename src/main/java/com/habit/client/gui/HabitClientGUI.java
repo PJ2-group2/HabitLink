@@ -38,6 +38,43 @@ public class HabitClientGUI extends Application {
         final VBox root = new VBox(10, btnPersonal, btnTeam);
         final Scene mainScene = new Scene(root, 300, 200);
 
+        // --- ホーム画面 ---
+        // 左：応援キャラクター、中央：チーム一覧、右：チーム作成・検索ボタン
+        javafx.scene.image.ImageView characterView = new javafx.scene.image.ImageView();
+        characterView.setFitWidth(80);
+        characterView.setFitHeight(120);
+        characterView.setImage(new javafx.scene.image.Image("https://raw.githubusercontent.com/google/material-design-icons/master/png/social/mood/materialicons/48dp/2x/baseline_mood_black_48dp.png", true));
+
+        javafx.scene.control.ListView<String> teamListView = new javafx.scene.control.ListView<>();
+        teamListView.getItems().addAll("チームA", "チームB", "チームC"); // 仮データ
+
+        Button btnToCreateTeam = new Button("チーム作成");
+        Button btnToSearchTeam = new Button("チーム検索");
+        VBox rightBox = new VBox(20, btnToCreateTeam, btnToSearchTeam);
+        rightBox.setMinWidth(120);
+
+        javafx.scene.layout.HBox homeRoot = new javafx.scene.layout.HBox(30,
+            characterView,
+            teamListView,
+            rightBox
+        );
+        homeRoot.setStyle("-fx-padding: 30;");
+        final Scene homeScene = new Scene(homeRoot, 600, 350);
+
+        // --- チーム作成ページ（枠のみ） ---
+        Label createTeamLabel = new Label("チーム作成ページ（準備中）");
+        Button btnBackHome1 = new Button("ホームに戻る");
+        VBox createTeamRoot = new VBox(30, createTeamLabel, btnBackHome1);
+        createTeamRoot.setStyle("-fx-padding: 30;");
+        final Scene createTeamScene = new Scene(createTeamRoot, 400, 200);
+
+        // --- チーム検索ページ（枠のみ） ---
+        Label searchTeamLabel = new Label("チーム検索ページ（準備中）");
+        Button btnBackHome2 = new Button("ホームに戻る");
+        VBox searchTeamRoot = new VBox(30, searchTeamLabel, btnBackHome2);
+        searchTeamRoot.setStyle("-fx-padding: 30;");
+        final Scene searchTeamScene = new Scene(searchTeamRoot, 400, 200);
+
         // ログイン/新規登録モード切替用フラグ
         final boolean[] isRegisterMode = {false};
         btnSwitchMode.setOnAction(e -> {
@@ -77,7 +114,7 @@ public class HabitClientGUI extends Application {
                     usernameField.clear();
                     passwordField.clear();
                     loginStatusLabel.setText("");
-                    primaryStage.setScene(mainScene);
+                    primaryStage.setScene(homeScene);
                 } else {
                     loginStatusLabel.setText(body);
                 }
@@ -266,6 +303,12 @@ public class HabitClientGUI extends Application {
         btnPersonal.setOnAction(e -> primaryStage.setScene(personalScene));
         btnTeam.setOnAction(e -> primaryStage.setScene(teamScene));
         btnBack1.setOnAction(e -> primaryStage.setScene(mainScene));
+
+        // ホーム画面からチーム作成・検索ページへの遷移
+        btnToCreateTeam.setOnAction(e -> primaryStage.setScene(createTeamScene));
+        btnToSearchTeam.setOnAction(e -> primaryStage.setScene(searchTeamScene));
+        btnBackHome1.setOnAction(e -> primaryStage.setScene(homeScene));
+        btnBackHome2.setOnAction(e -> primaryStage.setScene(homeScene));
 
         primaryStage.setTitle("習慣化共有クライアント");
         primaryStage.setScene(loginScene);
