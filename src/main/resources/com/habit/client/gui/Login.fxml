@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.habit.client.LoginController" spacing="10" alignment="CENTER" prefWidth="300" prefHeight="220">
+    <Label text="ログイン / 新規登録" />
+    <TextField fx:id="usernameField" promptText="ユーザ名"/>
+    <PasswordField fx:id="passwordField" promptText="パスワード"/>
+    <Button fx:id="btnLogin" text="ログイン" onAction="#handleLoginButtonAction"/>
+    <Button fx:id="btnSwitchMode" text="新規登録モードへ"/>
+    <Label fx:id="loginStatusLabel" text=""/>
+</VBox>
