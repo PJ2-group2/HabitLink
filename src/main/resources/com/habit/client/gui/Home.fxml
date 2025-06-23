@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.image.ImageView?>
+
+<BorderPane xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.habit.client.HomeController" prefWidth="600" prefHeight="350">
+    <left>
+        <VBox alignment="CENTER">
+            <ImageView fx:id="characterView" fitWidth="80" fitHeight="120"/>
+        </VBox>
+    </left>
+    <center>
+        <ListView fx:id="teamListView" prefWidth="200"/>
+    </center>
+    <right>
+        <VBox alignment="CENTER" spacing="20" minWidth="120">
+            <Button fx:id="btnToCreateTeam" text="チーム作成"/>
+            <Button fx:id="btnToSearchTeam" text="チーム検索"/>
+        </VBox>
+    </right>
+</BorderPane>

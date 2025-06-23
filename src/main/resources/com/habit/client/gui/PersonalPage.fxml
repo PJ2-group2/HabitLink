@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.habit.client.PersonalPageController" spacing="10" alignment="CENTER" prefWidth="350" prefHeight="350">
+    <Label text="個人ページ（タスク管理）" />
+    <ListView fx:id="taskList"/>
+    <TextField fx:id="taskInput" promptText="新しいタスクを入力"/>
+    <Button fx:id="btnAddTask" text="タスク追加"/>
+    <Button fx:id="btnCompleteTask" text="選択タスク完了"/>
+    <Button fx:id="btnBack" text="戻る"/>
+</VBox>

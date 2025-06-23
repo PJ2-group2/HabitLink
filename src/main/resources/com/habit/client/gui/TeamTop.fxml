@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.image.ImageView?>
+
+<BorderPane xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.habit.client.TeamTopController" prefWidth="900" prefHeight="600">
+    <top>
+        <HBox spacing="20" alignment="CENTER">
+            <Button fx:id="btnBackHome" text="ホームに戻る"/>
+            <Label fx:id="teamNameLabel" text="チーム名" style="-fx-font-size: 22px; -fx-font-weight: bold;"/>
+            <Button fx:id="btnToPersonal" text="個人画面へ"/>
+        </HBox>
+    </top>
+    <center>
+        <TableView fx:id="taskTable" prefHeight="180"/>
+    </center>
+    <bottom>
+        <HBox spacing="20">
+            <VBox>
+                <Label text="本日のタスク一覧"/>
+                <ListView fx:id="todayTaskList" prefHeight="60"/>
+            </VBox>
+            <VBox>
+                <Label text="チームチャット"/>
+                <ListView fx:id="chatList" prefHeight="60"/>
+            </VBox>
+        </HBox>
+    </bottom>
+    <left>
+        <VBox alignment="BOTTOM_LEFT">
+            <ImageView fx:id="teamCharView" fitWidth="60" fitHeight="90"/>
+        </VBox>
+    </left>
+</BorderPane>

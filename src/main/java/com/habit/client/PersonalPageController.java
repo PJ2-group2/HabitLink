@@ -1,23 +1,31 @@
 package com.habit.client;
 
 public class PersonalPageController {
+    @javafx.fxml.FXML
+    private javafx.scene.control.ListView<String> taskList;
+    @javafx.fxml.FXML
+    private javafx.scene.control.TextField taskInput;
+    @javafx.fxml.FXML
+    private javafx.scene.control.Button btnAddTask;
+    @javafx.fxml.FXML
+    private javafx.scene.control.Button btnCompleteTask;
+    @javafx.fxml.FXML
+    private javafx.scene.control.Button btnBack;
+
+    @javafx.fxml.FXML
     public void initialize() {
-        // FXML初期化処理
-    }
-
-    public void loadDailyTasks(java.time.LocalDate date) {
-        // 日次タスク読み込み
-    }
-
-    public void handleTaskCompletionChange(Object taskItem) {
-        // タスク完了状態変更処理
-    }
-
-    public void updateCharacterDisplay() {
-        // キャラクター表示更新
-    }
-
-    public void setupNavigationButtons() {
-        // 画面遷移ボタン設定
+        btnAddTask.setOnAction(e -> {
+            String task = taskInput.getText().trim();
+            if (!task.isEmpty()) {
+                taskList.getItems().add(task);
+                taskInput.clear();
+            }
+        });
+        btnCompleteTask.setOnAction(e -> {
+            int idx = taskList.getSelectionModel().getSelectedIndex();
+            if (idx >= 0) {
+                taskList.getItems().remove(idx);
+            }
+        });
     }
 }
