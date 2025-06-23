@@ -37,5 +37,17 @@ public class HomeController {
                 }
             }
         });
+
+        // チーム作成画面への遷移
+        btnToCreateTeam.setOnAction(e -> {
+            try {
+                javafx.stage.Stage stage = (javafx.stage.Stage) btnToCreateTeam.getScene().getWindow();
+                javafx.scene.Parent root = javafx.fxml.FXMLLoader.load(getClass().getResource("/com/habit/client/gui/CreateTeam.fxml"));
+                stage.setScene(new javafx.scene.Scene(root));
+                stage.setTitle("チーム作成");
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
     }
 }
