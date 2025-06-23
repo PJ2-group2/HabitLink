@@ -12,7 +12,7 @@ public class RoomRepository {
              Statement stmt = conn.createStatement()) {
             // まずテーブルがなければ作成
             String sql = "CREATE TABLE IF NOT EXISTS rooms (" +
-                    "roomId TEXT PRIMARY KEY," +
+                    "id TEXT PRIMARY KEY," +
                     "roomName TEXT," +
                     "passcode TEXT," +
                     "maxMembers INTEGER," +
@@ -30,6 +30,11 @@ public class RoomRepository {
             ResultSet rs = stmt.executeQuery("PRAGMA table_info(rooms)");
             boolean hasRoomName = false;
             boolean hasScope = false;
+            boolean hasPasscode = false;
+            boolean hasMaxMembers = false;
+            boolean hasEditPermission = false;
+            boolean hasCategory = false;
+            boolean hasCreatorId = false;
             while (rs.next()) {
                 String col = rs.getString("name");
                 if ("roomName".equalsIgnoreCase(col)) {
@@ -38,12 +43,42 @@ public class RoomRepository {
                 if ("scope".equalsIgnoreCase(col)) {
                     hasScope = true;
                 }
+                if ("passcode".equalsIgnoreCase(col)) {
+                    hasPasscode = true;
+                }
+                if ("maxMembers".equalsIgnoreCase(col)) {
+                    hasMaxMembers = true;
+                }
+                if ("editPermission".equalsIgnoreCase(col)) {
+                    hasEditPermission = true;
+                }
+                if ("category".equalsIgnoreCase(col)) {
+                    hasCategory = true;
+                }
+                if ("creatorId".equalsIgnoreCase(col)) {
+                    hasCreatorId = true;
+                }
             }
             if (!hasRoomName) {
                 stmt.execute("ALTER TABLE rooms ADD COLUMN roomName TEXT");
             }
             if (!hasScope) {
                 stmt.execute("ALTER TABLE rooms ADD COLUMN scope TEXT");
+            }
+            if (!hasPasscode) {
+                stmt.execute("ALTER TABLE rooms ADD COLUMN passcode TEXT");
+            }
+            if (!hasMaxMembers) {
+                stmt.execute("ALTER TABLE rooms ADD COLUMN maxMembers INTEGER");
+            }
+            if (!hasEditPermission) {
+                stmt.execute("ALTER TABLE rooms ADD COLUMN editPermission TEXT");
+            }
+            if (!hasCategory) {
+                stmt.execute("ALTER TABLE rooms ADD COLUMN category TEXT");
+            }
+            if (!hasCreatorId) {
+                stmt.execute("ALTER TABLE rooms ADD COLUMN creatorId TEXT");
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -80,7 +115,7 @@ public class RoomRepository {
     // 新しいsave: 追加情報も保存
     public void save(Room room, String passcode, int maxMembers, String editPerm, String category, String scope, List<String> members) {
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
-            String sql = "INSERT OR REPLACE INTO rooms (roomId, roomName, passcode, maxMembers, editPermission, category, scope, creatorId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            String sql = "INSERT OR REPLACE INTO rooms (id, roomName, passcode, maxMembers, editPermission, category, scope, creatorId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setString(1, room.getRoomId());
                 pstmt.setString(2, room.getRoomName());
