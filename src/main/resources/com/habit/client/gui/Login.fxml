@@ -5,7 +5,7 @@
 
 <VBox xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.habit.client.LoginController" spacing="10" alignment="CENTER" prefWidth="300" prefHeight="220">
-    <Label text="HabitLink" style="-fx-font-size: 24px; -fx-font-family: 'Arial Black'; -fx-text-fill:rgb(151, 250, 255);" />
+    <Label text="HabitLink" style="-fx-font-size: 24px; -fx-font-family: 'Arial Black'; -fx-text-fill:rgb(100, 170, 250); -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 5, 0.5, 2, 2);" />
     <Label text="ログイン / 新規登録" />
     <TextField fx:id="usernameField" promptText="ユーザ名"/>
     <PasswordField fx:id="passwordField" promptText="パスワード"/>
