@@ -72,5 +72,17 @@ public class HomeController {
                 ex.printStackTrace();
             }
         });
+
+        // チーム検索画面への遷移
+        btnToSearchTeam.setOnAction(e -> {
+            try {
+                javafx.stage.Stage stage = (javafx.stage.Stage) btnToSearchTeam.getScene().getWindow();
+                javafx.scene.Parent root = javafx.fxml.FXMLLoader.load(getClass().getResource("/com/habit/client/gui/SearchTeam.fxml"));
+                stage.setScene(new javafx.scene.Scene(root));
+                stage.setTitle("チーム検索");
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
     }
 }

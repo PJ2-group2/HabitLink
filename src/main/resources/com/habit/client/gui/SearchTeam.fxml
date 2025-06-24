@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.habit.client.SearchTeamController" spacing="15" alignment="CENTER" prefWidth="400" prefHeight="250">
+    <Label text="チーム検索（合言葉）" style="-fx-font-size: 18px;"/>
+    <HBox spacing="10" alignment="CENTER">
+        <TextField fx:id="passcodeField" promptText="合言葉を入力"/>
+        <Button fx:id="btnSearch" text="検索"/>
+    </HBox>
+    <Label fx:id="resultLabel" text="" style="-fx-text-fill: green;"/>
+    <HBox spacing="10" alignment="CENTER">
+        <Button fx:id="btnJoin" text="参加" disable="true"/>
+        <Button fx:id="btnBackHome" text="ホームに戻る"/>
+    </HBox>
+</VBox>

@@ -112,6 +112,59 @@ public class RoomRepository {
         return names;
     }
 
+    // 合言葉でチーム名を検索
+    public String findTeamNameByPasscode(String passcode) {
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String sql = "SELECT roomName FROM rooms WHERE passcode = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, passcode);
+                ResultSet rs = pstmt.executeQuery();
+                if (rs.next()) {
+                    return rs.getString("roomName");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    // チーム名でメンバー追加
+    public boolean addMemberByTeamName(String teamName, String memberId) {
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            // まずroomId取得
+            String sql = "SELECT id FROM rooms WHERE roomName = ?";
+            String roomId = null;
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, teamName);
+                ResultSet rs = pstmt.executeQuery();
+                if (rs.next()) {
+                    roomId = rs.getString("id");
+                }
+            }
+            if (roomId == null) return false;
+            // 既にメンバーかチェック
+            String checkSql = "SELECT 1 FROM room_members WHERE roomId = ? AND memberId = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(checkSql)) {
+                pstmt.setString(1, roomId);
+                pstmt.setString(2, memberId);
+                ResultSet rs = pstmt.executeQuery();
+                if (rs.next()) return true; // 既にメンバー
+            }
+            // 追加
+            String insSql = "INSERT INTO room_members (roomId, memberId) VALUES (?, ?)";
+            try (PreparedStatement pstmt = conn.prepareStatement(insSql)) {
+                pstmt.setString(1, roomId);
+                pstmt.setString(2, memberId);
+                pstmt.executeUpdate();
+            }
+            return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
     // 新しいsave: 追加情報も保存
     public void save(Room room, String passcode, int maxMembers, String editPerm, String category, String scope, List<String> members) {
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
