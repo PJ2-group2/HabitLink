@@ -78,9 +78,15 @@ public class CreateTeamController {
                 sb.append("&members=").append(java.net.URLEncoder.encode(String.join(",", members), "UTF-8"));
 
                 java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
-                java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                java.net.http.HttpRequest.Builder reqBuilder = java.net.http.HttpRequest.newBuilder()
                     .uri(java.net.URI.create("http://localhost:8080/createTeam"))
-                    .header("Content-Type", "application/x-www-form-urlencoded")
+                    .header("Content-Type", "application/x-www-form-urlencoded");
+                // セッションIDをヘッダに付与
+                String sessionId = LoginController.getSessionId();
+                if (sessionId != null && !sessionId.isEmpty()) {
+                    reqBuilder.header("SESSION_ID", sessionId);
+                }
+                java.net.http.HttpRequest request = reqBuilder
                     .POST(java.net.http.HttpRequest.BodyPublishers.ofString(sb.toString()))
                     .build();
                 java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
