@@ -216,9 +216,9 @@ public class HabitServer {
         }
       }
       if (username != null && password != null) {
-        var user = authService.login(username, password);
-        if (user != null) {
-          response = "ログイン成功";
+        String sessionId = authService.loginAndCreateSession(username, password);
+        if (sessionId != null) {
+          response = "ログイン成功\nSESSION_ID:" + sessionId;
         } else {
           response = "ユーザ名またはパスワードが間違っています";
         }

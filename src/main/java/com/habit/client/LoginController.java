@@ -24,6 +24,14 @@ public class LoginController {
     /** 新規登録モードかどうかのフラグ */
     private boolean isRegisterMode = false;
 
+    /** サーバから返却されたセッションID（認証済みユーザー用） */
+    private static String sessionId = null;
+
+    /** 現在のセッションIDを取得 */
+    public static String getSessionId() {
+        return sessionId;
+    }
+
     /**
      * コントローラー初期化処理。
      * モード切替ボタン押下時の動作を設定する。
@@ -67,6 +75,11 @@ public class LoginController {
             java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
             String body = response.body();
             if ((isRegisterMode && body.contains("登録成功")) || (!isRegisterMode && body.contains("ログイン成功"))) {
+                // セッションIDを取得して保存
+                if (!isRegisterMode && body.contains("SESSION_ID:")) {
+                    int idx = body.indexOf("SESSION_ID:");
+                    sessionId = body.substring(idx + "SESSION_ID:".length()).trim();
+                }
                 // 認証成功時はホーム画面へ遷移
                 javafx.application.Platform.runLater(() -> {
                     try {
