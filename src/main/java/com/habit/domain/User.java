@@ -7,8 +7,6 @@ public class User {
     private String username;
     private String hashedPassword;
     private int sabotagePoints;
-    private String profileIconPath;
-    private String bio;
 
     public User(String userId, String username, String hashedPassword) {
         this.userId = userId;
@@ -44,21 +42,5 @@ public class User {
 
     public String getHashedPassword() {
         return hashedPassword;
-    }
-
-    public String getProfileIconPath() {
-        return profileIconPath;
-    }
-
-    public void setProfileIconPath(String profileIconPath) {
-        this.profileIconPath = profileIconPath;
-    }
-
-    public String getBio() {
-        return bio;
-    }
-
-    public void setBio(String bio) {
-        this.bio = bio;
     }
 }

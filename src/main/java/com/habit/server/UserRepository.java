@@ -64,8 +64,6 @@ public class UserRepository {
                 pstmt.setString(2, user.getUsername());
                 pstmt.setString(3, user.getHashedPassword());
                 pstmt.setInt(4, user.getSabotagePoints());
-                pstmt.setString(5, user.getProfileIconPath());
-                pstmt.setString(6, user.getBio());
                 pstmt.executeUpdate();
             }
         } catch (SQLException e) {
@@ -93,8 +91,6 @@ public class UserRepository {
                 rs.getString("hashedPassword")
         );
         user.addSabotagePoints(rs.getInt("sabotagePoints") - user.getSabotagePoints());
-        user.setProfileIconPath(rs.getString("profileIconPath"));
-        user.setBio(rs.getString("bio"));
         return user;
     }
 }
