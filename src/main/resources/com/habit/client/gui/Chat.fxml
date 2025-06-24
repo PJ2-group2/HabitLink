@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<AnchorPane xmlns:fx="http://javafx.com/fxml" fx:controller="com.habit.client.ChatController">
+    <ListView fx:id="chatList" layoutX="20" layoutY="20" prefWidth="360" prefHeight="300"/>
+    <TextField fx:id="chatInput" layoutX="20" layoutY="330" prefWidth="280"/>
+    <Button fx:id="btnSend" text="送信" layoutX="310" layoutY="330" prefWidth="70"/>
+    <Button fx:id="btnBackToTeamTop" text="チームトップへ戻る" layoutX="20" layoutY="370" prefWidth="120"/>
+</AnchorPane>
