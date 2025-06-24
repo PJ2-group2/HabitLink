@@ -52,6 +52,17 @@ public class TeamTopController {
             }
         });
 
+        btnToPersonal.setOnAction(e -> {
+            try {
+                javafx.stage.Stage stage = (javafx.stage.Stage) btnToPersonal.getScene().getWindow();
+                javafx.scene.Parent root = javafx.fxml.FXMLLoader.load(getClass().getResource("/com/habit/client/gui/PersonalPage.fxml"));
+                stage.setScene(new javafx.scene.Scene(root));
+                stage.setTitle("個人ページ");
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+
         btnToChat.setOnAction(e -> {
             try {
                 javafx.stage.Stage stage = (javafx.stage.Stage) btnToChat.getScene().getWindow();
