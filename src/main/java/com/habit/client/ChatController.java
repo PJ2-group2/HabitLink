@@ -68,7 +68,8 @@ public class ChatController {
                 JSONArray arr = new JSONArray(response.toString());
                 for (int i = 0; i < arr.length(); i++) {
                     JSONObject obj = arr.getJSONObject(i);
-                    String sender = obj.optString("senderId", "unknown");
+                    String username = obj.optString("username", null);
+                    String sender = username != null && !username.isEmpty() ? username : obj.optString("senderId", "unknown");
                     String content = obj.optString("content", "");
                     messages.add(sender + ": " + content);
                 }

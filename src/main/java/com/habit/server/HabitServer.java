@@ -447,12 +447,27 @@ public class HabitServer {
         response = "パラメータが不正です";
         exchange.sendResponseHeaders(400, response.getBytes().length);
       } else {
+        // ユーザ名を取得
+        String username = senderId;
+        try {
+          // senderIdはユーザID。userRepositoryからfindByIdでUserを取得し、getUsername()でユーザ名を取得
+          com.habit.domain.User user = userRepository.findById(senderId);
+          if (user != null) {
+            String uname = user.getUsername();
+            if (uname != null && !uname.trim().isEmpty()) {
+              username = uname;
+            }
+          }
+        } catch (Exception ex) {
+          ex.printStackTrace();
+        }
         // チャット履歴をメモリに保存（JSON形式で）
-        String json = String.format("{\"senderId\":\"%s\",\"content\":\"%s\"}", senderId.replace("\"","\\\""), content.replace("\"","\\\""));
+        String json = String.format("{\"senderId\":\"%s\",\"username\":\"%s\",\"content\":\"%s\"}",
+          senderId.replace("\"","\\\""), username.replace("\"","\\\""), content.replace("\"","\\\""));
         synchronized (chatLogMap) {
           chatLogMap.computeIfAbsent(roomId, k -> new java.util.ArrayList<>()).add(json);
         }
-        System.out.println("[チャット] roomId=" + roomId + ", senderId=" + senderId + ", content=" + content);
+        System.out.println("[チャット] roomId=" + roomId + ", senderId=" + senderId + ", username=" + username + ", content=" + content);
         response = "チャット送信成功";
         exchange.sendResponseHeaders(200, response.getBytes().length);
       }
