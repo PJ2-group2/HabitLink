@@ -3,6 +3,9 @@ package com.habit.domain;
 import java.time.DayOfWeek;
 import java.util.List;
 
+/**
+ * タスク情報を管理するクラス。
+ */
 public class Task {
     private String taskId;
     private String taskName;

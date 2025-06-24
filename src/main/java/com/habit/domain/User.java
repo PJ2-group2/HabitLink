@@ -2,6 +2,9 @@ package com.habit.domain;
 
 import java.util.Objects;
 
+/**
+ * ユーザー情報を管理するクラス。
+ */
 public class User {
     private String userId;
     private String username;

@@ -14,6 +14,11 @@ import java.net.InetSocketAddress;
 // JDBC based room management
 import com.habit.server.DatabaseRoomManager;
 
+/**
+ * 習慣化共有アプリのサーバ本体クラス。
+ * HTTPリクエストを受けてルーム・タスク・ユーザ管理など各種APIを提供する。
+ * SQLiteによる永続化や、チャット・チーム機能も実装。
+ */
 public class HabitServer {
   // ユーザ認証用サービス
   private static UserRepository userRepository = new UserRepository();
@@ -41,6 +46,10 @@ public class HabitServer {
     System.out.println("サーバが起動しました: http://localhost:8080/hello");
   }
   // --- 動作確認用API ---
+  /**
+   * 動作確認用API
+   * /hello にアクセスするとサーバが動作中か確認できる
+   */
   static class HelloHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
       String response = "Hello, HTTP! サーバは動作中です。";
@@ -56,6 +65,10 @@ public class HabitServer {
       new DatabaseRoomManager("jdbc:sqlite:habit.db");
 
   // --- ルーム作成API ---
+  /**
+   * ルーム作成API
+   * /createRoom?id=xxx で新しいルームを作成する
+   */
   static class CreateRoomHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
       String query = exchange.getRequestURI().getQuery();
@@ -81,6 +94,10 @@ public class HabitServer {
   }
 
   // --- ルーム参加API ---
+  /**
+   * ルーム参加API
+   * /joinRoom?id=xxx で指定ルームに参加する
+   */
   static class JoinRoomHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
       String query = exchange.getRequestURI().getQuery();
@@ -105,6 +122,10 @@ public class HabitServer {
   }
 
   // --- タスク追加API ---
+  /**
+   * タスク追加API
+   * /addTask?id=xxx&task=yyy で指定ルームにタスクを追加する
+   */
   static class AddTaskHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
       String query = exchange.getRequestURI().getQuery();
@@ -142,6 +163,10 @@ public class HabitServer {
   }
 
   // --- タスク一覧取得API ---
+  /**
+   * タスク一覧取得API
+   * /getTasks?id=xxx で指定ルームのタスク一覧を取得する
+   */
   static class GetTasksHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
       String query = exchange.getRequestURI().getQuery();
