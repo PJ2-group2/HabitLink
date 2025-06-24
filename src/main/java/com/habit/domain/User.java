@@ -5,11 +5,17 @@ import java.util.Objects;
 /**
  * ユーザー情報を管理するクラス。
  */
+/**
+ * ユーザー情報を管理するクラス。
+ * 参加済みチーム情報も保持する。
+ */
 public class User {
     private String userId;
     private String username;
     private String hashedPassword;
     private int sabotagePoints;
+    /** 参加済みチームIDのリスト */
+    private java.util.ArrayList<String> joinedTeamIds = new java.util.ArrayList<>();
 
     public User(String userId, String username, String hashedPassword) {
         this.userId = userId;
@@ -45,5 +51,17 @@ public class User {
 
     public String getHashedPassword() {
         return hashedPassword;
+    }
+
+    /** 参加済みチームID一覧を取得 */
+    public java.util.ArrayList<String> getJoinedTeamIds() {
+        return joinedTeamIds;
+    }
+
+    /** チームIDを追加 */
+    public void addJoinedTeamId(String teamId) {
+        if (!joinedTeamIds.contains(teamId)) {
+            joinedTeamIds.add(teamId);
+        }
     }
 }
