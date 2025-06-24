@@ -32,6 +32,8 @@ public class HabitServer {
     server.createContext("/register", new RegisterHandler());     // 新規登録
     server.createContext("/createTeam", new CreateTeamHandler());   // チーム作成
     server.createContext("/publicTeams", new PublicTeamsHandler()); // 公開チーム一覧
+    server.createContext("/findTeamByPasscode", new FindTeamByPasscodeHandler()); // 合言葉検索
+    server.createContext("/joinTeam", new JoinTeamHandler()); // チーム参加
     server.setExecutor(null);
     server.start();
     System.out.println("サーバが起動しました: http://localhost:8080/hello");
@@ -307,6 +309,60 @@ public class HabitServer {
         response = String.join("\n", teamNames);
       } catch (Exception ex) {
         response = "エラー: " + ex.getMessage();
+      }
+      exchange.sendResponseHeaders(200, response.getBytes().length);
+      OutputStream os = exchange.getResponseBody();
+      os.write(response.getBytes());
+      os.close();
+    }
+  }
+
+  // --- 合言葉でチーム検索API ---
+  static class FindTeamByPasscodeHandler implements HttpHandler {
+    public void handle(HttpExchange exchange) throws IOException {
+      String response;
+      String query = exchange.getRequestURI().getQuery();
+      String passcode = null;
+      if (query != null && query.startsWith("passcode=")) {
+        passcode = java.net.URLDecoder.decode(query.substring(9), "UTF-8");
+      }
+      if (passcode == null || passcode.isEmpty()) {
+        response = "合言葉が指定されていません";
+      } else {
+        RoomRepository repo = new RoomRepository();
+        String teamName = repo.findTeamNameByPasscode(passcode);
+        if (teamName != null) {
+          response = teamName;
+        } else {
+          response = "該当チームなし";
+        }
+      }
+      exchange.sendResponseHeaders(200, response.getBytes().length);
+      OutputStream os = exchange.getResponseBody();
+      os.write(response.getBytes());
+      os.close();
+    }
+  }
+
+  // --- チーム参加API（メンバー追加） ---
+  static class JoinTeamHandler implements HttpHandler {
+    public void handle(HttpExchange exchange) throws IOException {
+      String response;
+      String query = exchange.getRequestURI().getQuery();
+      String teamName = null, memberId = null;
+      if (query != null) {
+        String[] params = query.split("&");
+        for (String param : params) {
+          if (param.startsWith("teamName=")) teamName = java.net.URLDecoder.decode(param.substring(9), "UTF-8");
+          if (param.startsWith("memberId=")) memberId = java.net.URLDecoder.decode(param.substring(9), "UTF-8");
+        }
+      }
+      if (teamName == null || memberId == null || teamName.isEmpty() || memberId.isEmpty()) {
+        response = "パラメータが不正です";
+      } else {
+        RoomRepository repo = new RoomRepository();
+        boolean ok = repo.addMemberByTeamName(teamName, memberId);
+        response = ok ? "参加成功" : "参加失敗";
       }
       exchange.sendResponseHeaders(200, response.getBytes().length);
       OutputStream os = exchange.getResponseBody();
