@@ -1,4 +1,4 @@
-package com.habit.client.dao;
+package com.habit.server;
 
 import java.util.List;
 import com.habit.client.model.ChatMessage;
