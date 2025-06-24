@@ -4,11 +4,8 @@
 <?import javafx.scene.layout.*?>
 
 <VBox xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.habit.client.PersonalPageController" spacing="10" alignment="CENTER" prefWidth="350" prefHeight="350">
-    <Label text="個人ページ（タスク管理）" />
-    <ListView fx:id="taskList"/>
-    <TextField fx:id="taskInput" promptText="新しいタスクを入力"/>
-    <Button fx:id="btnAddTask" text="タスク追加"/>
-    <Button fx:id="btnCompleteTask" text="選択タスク完了"/>
-    <Button fx:id="btnBack" text="戻る"/>
+      fx:controller="com.habit.client.PersonalPageController" spacing="20" alignment="CENTER" prefWidth="900" prefHeight="700">
+    <Label text="個人ページ（タスク管理）" style="-fx-font-size: 24px;" />
+    <TilePane fx:id="taskTilePane" hgap="30" vgap="30" prefColumns="2" alignment="CENTER" prefTileWidth="350" prefTileHeight="180" maxWidth="800" />
+    <Button fx:id="btnBackToTeam" text="チームトップページに戻る" style="-fx-font-size: 16px;" />
 </VBox>
