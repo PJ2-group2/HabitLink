@@ -5,3 +5,4 @@ msg
 target/*
 .cache/*
 habit.db
+pom.xml
