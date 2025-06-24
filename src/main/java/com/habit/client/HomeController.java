@@ -17,20 +17,33 @@ public class HomeController {
 
     @FXML
     public void initialize() {
-        // 公開チーム一覧をサーバから取得
+        // 現在ログインユーザのjoinedTeamIdsにあるチームのみ表示
         try {
             java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
-            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
-                .uri(java.net.URI.create("http://localhost:8080/publicTeams"))
-                .GET()
-                .build();
+            java.net.http.HttpRequest.Builder reqBuilder = java.net.http.HttpRequest.newBuilder()
+                .uri(java.net.URI.create("http://localhost:8080/getUserInfo"))
+                .GET();
+            // セッションIDをヘッダに付与
+            String sessionId = LoginController.getSessionId();
+            if (sessionId != null && !sessionId.isEmpty()) {
+                reqBuilder.header("SESSION_ID", sessionId);
+            }
+            java.net.http.HttpRequest request = reqBuilder.build();
             java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
             String body = response.body();
             teamListView.getItems().clear();
             if (body != null && !body.trim().isEmpty()) {
-                String[] teams = body.split("\\n");
-                for (String t : teams) {
-                    if (!t.trim().isEmpty()) teamListView.getItems().add(t.trim());
+                // サーバから "joinedTeamIds=teamA,teamB,teamC" のような形式で返す想定
+                String[] lines = body.split("\\n");
+                for (String line : lines) {
+                    if (line.startsWith("joinedTeamIds=")) {
+                        String joined = line.substring("joinedTeamIds=".length());
+                        if (!joined.isEmpty()) {
+                            for (String t : joined.split(",")) {
+                                if (!t.trim().isEmpty()) teamListView.getItems().add(t.trim());
+                            }
+                        }
+                    }
                 }
             }
         } catch (Exception ex) {

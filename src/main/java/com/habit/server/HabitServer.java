@@ -41,6 +41,7 @@ public class HabitServer {
     server.createContext("/joinTeam", new JoinTeamHandler()); // チーム参加
     server.createContext("/sendChatMessage", new SendChatMessageHandler()); // チャット送信
     server.createContext("/getChatLog", new GetChatLogHandler()); // チャット履歴取得
+    server.createContext("/getUserInfo", new GetUserInfoHandler()); // ユーザ情報取得API追加
     server.setExecutor(null);
     server.start();
     System.out.println("サーバが起動しました: http://localhost:8080/hello");
@@ -263,8 +264,27 @@ public class HabitServer {
       }
       if (username != null && password != null) {
         var user = authService.register(username, password);
+        String sessionId = null;
         if (user != null) {
-          response = "登録成功";
+          // 登録直後にセッションIDを発行
+          sessionId = java.util.UUID.randomUUID().toString();
+          // AuthServiceのセッションマップに追加
+          // （registerではセッション管理しないため、ここで直接追加）
+          java.lang.reflect.Field sessionMapField = null;
+          try {
+            sessionMapField = authService.getClass().getDeclaredField("sessionMap");
+            sessionMapField.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            java.util.Map<String, String> sessionMap = (java.util.Map<String, String>) sessionMapField.get(authService);
+            sessionMap.put(sessionId, user.getUserId());
+          } catch (Exception e) {
+            e.printStackTrace();
+          }
+          System.out.println("新規登録ユーザ情報: userId=" + user.getUserId() +
+            ", username=" + user.getUsername() +
+            ", sabotagePoints=" + user.getSabotagePoints() +
+            ", joinedTeamIds=" + user.getJoinedTeamIds());
+          response = "登録成功\nSESSION_ID:" + sessionId;
         } else {
           response = "登録失敗";
         }
@@ -533,6 +553,30 @@ public class HabitServer {
         response = "チャット送信成功";
         exchange.sendResponseHeaders(200, response.getBytes().length);
       }
+      OutputStream os = exchange.getResponseBody();
+      os.write(response.getBytes());
+      os.close();
+    }
+  }
+  /**
+   * 現在ログイン中ユーザの情報を返すAPI
+   * joinedTeamIds=... の形式で返す
+   */
+  static class GetUserInfoHandler implements HttpHandler {
+    public void handle(HttpExchange exchange) throws IOException {
+      String sessionId = null;
+      var headers = exchange.getRequestHeaders();
+      if (headers.containsKey("SESSION_ID")) {
+        sessionId = headers.getFirst("SESSION_ID");
+      }
+      String response = "joinedTeamIds=";
+      if (sessionId != null) {
+        var user = authService.getUserBySession(sessionId);
+        if (user != null) {
+          response = "joinedTeamIds=" + String.join(",", user.getJoinedTeamIds());
+        }
+      }
+      exchange.sendResponseHeaders(200, response.getBytes().length);
       OutputStream os = exchange.getResponseBody();
       os.write(response.getBytes());
       os.close();
