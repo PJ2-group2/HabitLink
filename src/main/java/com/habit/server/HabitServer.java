@@ -323,6 +323,35 @@ public class HabitServer {
         room.setRoomName(teamName);
         RoomRepository repo = new RoomRepository();
         repo.save(room, passcode, maxMembers, editPerm, category, scope, members);
+
+        // セッションIDから現在のユーザを取得し、チームIDを追加・DB更新
+        String sessionId = null;
+        // ヘッダまたはクエリからSESSION_IDを取得（例: "SESSION_ID"ヘッダを想定）
+        var headers = exchange.getRequestHeaders();
+        if (headers.containsKey("SESSION_ID")) {
+            sessionId = headers.getFirst("SESSION_ID");
+        }
+        if (sessionId == null) {
+            // クエリパラメータからも試行
+            String query = exchange.getRequestURI().getQuery();
+            if (query != null && query.contains("SESSION_ID=")) {
+                for (String param : query.split("&")) {
+                    if (param.startsWith("SESSION_ID=")) {
+                        sessionId = param.substring("SESSION_ID=".length());
+                        break;
+                    }
+                }
+            }
+        }
+        if (sessionId != null) {
+            var user = authService.getUserBySession(sessionId);
+            if (user != null) {
+                user.addJoinedTeamId(teamName);
+                System.out.println("save直前 joinedTeamIds=" + user.getJoinedTeamIds());
+                userRepository.save(user);
+            }
+        }
+
         response = "チーム作成成功";
       } catch (Exception ex) {
         response = "チーム作成失敗: " + ex.getMessage();
