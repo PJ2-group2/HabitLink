@@ -263,27 +263,15 @@ public class HabitServer {
         }
       }
       if (username != null && password != null) {
-        var user = authService.register(username, password);
-        String sessionId = null;
-        if (user != null) {
-          // 登録直後にセッションIDを発行
-          sessionId = java.util.UUID.randomUUID().toString();
-          // AuthServiceのセッションマップに追加
-          // （registerではセッション管理しないため、ここで直接追加）
-          java.lang.reflect.Field sessionMapField = null;
-          try {
-            sessionMapField = authService.getClass().getDeclaredField("sessionMap");
-            sessionMapField.setAccessible(true);
-            @SuppressWarnings("unchecked")
-            java.util.Map<String, String> sessionMap = (java.util.Map<String, String>) sessionMapField.get(authService);
-            sessionMap.put(sessionId, user.getUserId());
-          } catch (Exception e) {
-            e.printStackTrace();
+        String sessionId = authService.registerAndCreateSession(username, password);
+        if (sessionId != null) {
+          var user = authService.getUserBySession(sessionId);
+          if (user != null) {
+            System.out.println("新規登録ユーザ情報: userId=" + user.getUserId() +
+              ", username=" + user.getUsername() +
+              ", sabotagePoints=" + user.getSabotagePoints() +
+              ", joinedTeamIds=" + user.getJoinedTeamIds());
           }
-          System.out.println("新規登録ユーザ情報: userId=" + user.getUserId() +
-            ", username=" + user.getUsername() +
-            ", sabotagePoints=" + user.getSabotagePoints() +
-            ", joinedTeamIds=" + user.getJoinedTeamIds());
           response = "登録成功\nSESSION_ID:" + sessionId;
         } else {
           response = "登録失敗";
@@ -367,11 +355,21 @@ public class HabitServer {
             var user = authService.getUserBySession(sessionId);
             if (user != null) {
                 user.addJoinedTeamId(teamName);
+                System.out.println("joinedTeamIds更新: userId=" + user.getUserId() +
+                  ", username=" + user.getUsername() +
+                  ", joinedTeamIds=" + user.getJoinedTeamIds());
                 System.out.println("save直前 joinedTeamIds=" + user.getJoinedTeamIds());
                 userRepository.save(user);
             }
         }
 
+        System.out.println("チーム作成: teamName=" + teamName +
+          ", passcode=" + passcode +
+          ", maxMembers=" + maxMembers +
+          ", editPermission=" + editPerm +
+          ", category=" + category +
+          ", scope=" + scope +
+          ", members=" + members);
         response = "チーム作成成功";
       } catch (Exception ex) {
         response = "チーム作成失敗: " + ex.getMessage();

@@ -76,7 +76,7 @@ public class LoginController {
             String body = response.body();
             if ((isRegisterMode && body.contains("登録成功")) || (!isRegisterMode && body.contains("ログイン成功"))) {
                 // セッションIDを取得して保存
-                if (!isRegisterMode && body.contains("SESSION_ID:")) {
+                if (body.contains("SESSION_ID:")) {
                     int idx = body.indexOf("SESSION_ID:");
                     sessionId = body.substring(idx + "SESSION_ID:".length()).trim();
                 }
