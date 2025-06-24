@@ -34,6 +34,8 @@ public class HabitServer {
     server.createContext("/publicTeams", new PublicTeamsHandler()); // 公開チーム一覧
     server.createContext("/findTeamByPasscode", new FindTeamByPasscodeHandler()); // 合言葉検索
     server.createContext("/joinTeam", new JoinTeamHandler()); // チーム参加
+    server.createContext("/sendChatMessage", new SendChatMessageHandler()); // チャット送信
+    server.createContext("/getChatLog", new GetChatLogHandler()); // チャット履歴取得
     server.setExecutor(null);
     server.start();
     System.out.println("サーバが起動しました: http://localhost:8080/hello");
@@ -365,6 +367,95 @@ public class HabitServer {
         response = ok ? "参加成功" : "参加失敗";
       }
       exchange.sendResponseHeaders(200, response.getBytes().length);
+      OutputStream os = exchange.getResponseBody();
+      os.write(response.getBytes());
+      os.close();
+    }
+  }
+
+  // --- チャット履歴取得API ---
+  static class GetChatLogHandler implements HttpHandler {
+    // メモリ上にチャット履歴を保持（roomIdごと）
+    private static final java.util.Map<String, java.util.List<String>> chatLogMap = SendChatMessageHandler.chatLogMap;
+
+    public void handle(HttpExchange exchange) throws IOException {
+      String query = exchange.getRequestURI().getQuery();
+      String roomId = null;
+      int limit = 50;
+      if (query != null) {
+        String[] params = query.split("&");
+        for (String param : params) {
+          if (param.startsWith("roomId=")) roomId = java.net.URLDecoder.decode(param.substring(7), "UTF-8");
+          if (param.startsWith("limit=")) try { limit = Integer.parseInt(param.substring(6)); } catch (Exception ignored) {}
+        }
+      }
+      String response;
+      if (roomId == null) {
+        response = "[]";
+      } else {
+        java.util.List<String> log = chatLogMap.getOrDefault(roomId, new java.util.ArrayList<>());
+        // 最新limit件だけ返す
+        java.util.List<String> limited = log.size() > limit ? log.subList(log.size() - limit, log.size()) : log;
+        // JSON配列形式で返す
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < limited.size(); i++) {
+          sb.append(limited.get(i));
+          if (i < limited.size() - 1) sb.append(",");
+        }
+        sb.append("]");
+        response = sb.toString();
+      }
+      exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+      exchange.sendResponseHeaders(200, response.getBytes().length);
+      OutputStream os = exchange.getResponseBody();
+      os.write(response.getBytes());
+      os.close();
+    }
+  }
+
+  // --- チャット送信API ---
+  static class SendChatMessageHandler implements HttpHandler {
+    // メモリ上にチャット履歴を保持（roomIdごと）
+    static final java.util.Map<String, java.util.List<String>> chatLogMap = new java.util.HashMap<>();
+    public void handle(HttpExchange exchange) throws IOException {
+      if (!"POST".equals(exchange.getRequestMethod())) {
+        String response = "POSTメソッドのみ対応";
+        exchange.sendResponseHeaders(405, response.getBytes().length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(response.getBytes());
+        os.close();
+        return;
+      }
+      // POSTボディを取得
+      byte[] bodyBytes = exchange.getRequestBody().readAllBytes();
+      String bodyStr = (bodyBytes != null) ? new String(bodyBytes, java.nio.charset.StandardCharsets.UTF_8) : "";
+      String response;
+      String roomId = null, senderId = null, content = null;
+      if (bodyStr != null && !bodyStr.isEmpty()) {
+        String[] params = bodyStr.split("&");
+        for (String param : params) {
+          String[] kv = param.split("=", 2);
+          if (kv.length < 2) continue;
+          switch (kv[0]) {
+            case "roomId": roomId = java.net.URLDecoder.decode(kv[1], "UTF-8"); break;
+            case "senderId": senderId = java.net.URLDecoder.decode(kv[1], "UTF-8"); break;
+            case "content": content = java.net.URLDecoder.decode(kv[1], "UTF-8"); break;
+          }
+        }
+      }
+      if (roomId == null || senderId == null || content == null) {
+        response = "パラメータが不正です";
+        exchange.sendResponseHeaders(400, response.getBytes().length);
+      } else {
+        // チャット履歴をメモリに保存（JSON形式で）
+        String json = String.format("{\"senderId\":\"%s\",\"content\":\"%s\"}", senderId.replace("\"","\\\""), content.replace("\"","\\\""));
+        synchronized (chatLogMap) {
+          chatLogMap.computeIfAbsent(roomId, k -> new java.util.ArrayList<>()).add(json);
+        }
+        System.out.println("[チャット] roomId=" + roomId + ", senderId=" + senderId + ", content=" + content);
+        response = "チャット送信成功";
+        exchange.sendResponseHeaders(200, response.getBytes().length);
+      }
       OutputStream os = exchange.getResponseBody();
       os.write(response.getBytes());
       os.close();
