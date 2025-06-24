@@ -3,6 +3,9 @@ package com.habit.domain;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * チャットルームやチームの情報を管理するクラス。
+ */
 public class Room {
     private String roomId;
     private String roomName;

@@ -2,6 +2,9 @@ package com.habit.domain;
 
 import java.time.LocalDateTime;
 
+/**
+ * チャットや通知などのメッセージ情報を表すクラス。
+ */
 public class Message {
     private String messageId;
     private String senderId;

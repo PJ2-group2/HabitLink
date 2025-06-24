@@ -1,19 +1,33 @@
 package com.habit.client;
 
+/**
+ * ログイン画面のコントローラークラス。
+ * ログイン・新規登録の切り替えや、サーバーとの認証処理を担当する。
+ */
 public class LoginController {
+    /** ユーザー名入力フィールド */
     @javafx.fxml.FXML
     private javafx.scene.control.TextField usernameField;
+    /** パスワード入力フィールド */
     @javafx.fxml.FXML
     private javafx.scene.control.PasswordField passwordField;
+    /** ログイン/新規登録ボタン */
     @javafx.fxml.FXML
     private javafx.scene.control.Button btnLogin;
+    /** モード切替ボタン */
     @javafx.fxml.FXML
     private javafx.scene.control.Button btnSwitchMode;
+    /** ステータスメッセージ表示用ラベル */
     @javafx.fxml.FXML
     private javafx.scene.control.Label loginStatusLabel;
 
+    /** 新規登録モードかどうかのフラグ */
     private boolean isRegisterMode = false;
 
+    /**
+     * コントローラー初期化処理。
+     * モード切替ボタン押下時の動作を設定する。
+     */
     @javafx.fxml.FXML
     public void initialize() {
         btnSwitchMode.setOnAction(e -> {
@@ -29,6 +43,10 @@ public class LoginController {
         });
     }
 
+    /**
+     * ログイン/新規登録ボタン押下時の処理。
+     * サーバーへ認証リクエストを送り、結果に応じて画面遷移やエラーメッセージ表示を行う。
+     */
     @javafx.fxml.FXML
     public void handleLoginButtonAction(javafx.event.ActionEvent event) {
         String username = usernameField.getText().trim();
@@ -49,7 +67,7 @@ public class LoginController {
             java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
             String body = response.body();
             if ((isRegisterMode && body.contains("登録成功")) || (!isRegisterMode && body.contains("ログイン成功"))) {
-                // 画面遷移（ホーム画面へ）
+                // 認証成功時はホーム画面へ遷移
                 javafx.application.Platform.runLater(() -> {
                     try {
                         javafx.stage.Stage stage = (javafx.stage.Stage) btnLogin.getScene().getWindow();
@@ -61,9 +79,11 @@ public class LoginController {
                     }
                 });
             } else {
+                // サーバーからのメッセージを表示
                 loginStatusLabel.setText(body);
             }
         } catch (Exception ex) {
+            // サーバー接続エラー時の処理
             loginStatusLabel.setText("サーバ接続エラー: " + ex.getMessage());
         }
     }

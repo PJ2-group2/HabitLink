@@ -3,6 +3,9 @@ package com.habit.domain;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+/**
+ * ユーザーごとのタスク達成状況を管理するクラス。
+ */
 public class UserTaskStatus {
     private String userId;
     private String taskId;
