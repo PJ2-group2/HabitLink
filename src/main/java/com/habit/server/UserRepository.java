@@ -16,6 +16,7 @@ public class UserRepository {
                     "username TEXT UNIQUE," +
                     "hashedPassword TEXT," +
                     "sabotagePoints INTEGER," +
+                    "joinedTeamIds TEXT," + // 追加: チームIDをカンマ区切りで保存
                     "profileIconPath TEXT," +
                     "bio TEXT)";
             stmt.execute(sql);
@@ -58,12 +59,16 @@ public class UserRepository {
 
     public void save(User user) {
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
-            String sql = "INSERT OR REPLACE INTO users (userId, username, hashedPassword, sabotagePoints, profileIconPath, bio) VALUES (?, ?, ?, ?, ?, ?)";
+            String sql = "INSERT OR REPLACE INTO users (userId, username, hashedPassword, sabotagePoints, joinedTeamIds, profileIconPath, bio) VALUES (?, ?, ?, ?, ?, ?, ?)";
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setString(1, user.getUserId());
                 pstmt.setString(2, user.getUsername());
                 pstmt.setString(3, user.getHashedPassword());
                 pstmt.setInt(4, user.getSabotagePoints());
+                // joinedTeamIdsをカンマ区切りで保存
+                pstmt.setString(5, String.join(",", user.getJoinedTeamIds()));
+                pstmt.setString(6, null); // profileIconPath未使用
+                pstmt.setString(7, null); // bio未使用
                 pstmt.executeUpdate();
             }
         } catch (SQLException e) {
@@ -91,6 +96,13 @@ public class UserRepository {
                 rs.getString("hashedPassword")
         );
         user.addSabotagePoints(rs.getInt("sabotagePoints") - user.getSabotagePoints());
+        // joinedTeamIdsを復元
+        String joined = rs.getString("joinedTeamIds");
+        if (joined != null && !joined.isEmpty()) {
+            for (String tid : joined.split(",")) {
+                user.addJoinedTeamId(tid);
+            }
+        }
         return user;
     }
 }

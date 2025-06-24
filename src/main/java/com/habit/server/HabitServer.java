@@ -218,6 +218,14 @@ public class HabitServer {
       if (username != null && password != null) {
         String sessionId = authService.loginAndCreateSession(username, password);
         if (sessionId != null) {
+          // セッションIDからユーザー情報を取得し、コンソールに表示
+          var user = authService.getUserBySession(sessionId);
+          if (user != null) {
+            System.out.println("ログインユーザ情報: userId=" + user.getUserId() +
+              ", username=" + user.getUsername() +
+              ", sabotagePoints=" + user.getSabotagePoints() +
+              ", joinedTeamIds=" + user.getJoinedTeamIds());
+          }
           response = "ログイン成功\nSESSION_ID:" + sessionId;
         } else {
           response = "ユーザ名またはパスワードが間違っています";
