@@ -33,14 +33,30 @@ public class HomeController {
             String body = response.body();
             teamListView.getItems().clear();
             if (body != null && !body.trim().isEmpty()) {
-                // サーバから "joinedTeamIds=teamA,teamB,teamC" のような形式で返す想定
+                // サーバから "joinedTeamIds=... \n joinedTeamNames=..." の形式で返す
                 String[] lines = body.split("\\n");
+                String[] teamNames = null;
                 for (String line : lines) {
-                    if (line.startsWith("joinedTeamIds=")) {
-                        String joined = line.substring("joinedTeamIds=".length());
+                    if (line.startsWith("joinedTeamNames=")) {
+                        String joined = line.substring("joinedTeamNames=".length());
                         if (!joined.isEmpty()) {
-                            for (String t : joined.split(",")) {
-                                if (!t.trim().isEmpty()) teamListView.getItems().add(t.trim());
+                            teamNames = joined.split(",");
+                        }
+                    }
+                }
+                if (teamNames != null) {
+                    for (String name : teamNames) {
+                        if (!name.trim().isEmpty()) teamListView.getItems().add(name.trim());
+                    }
+                } else {
+                    // 後方互換: joinedTeamIdsのみの場合
+                    for (String line : lines) {
+                        if (line.startsWith("joinedTeamIds=")) {
+                            String joined = line.substring("joinedTeamIds=".length());
+                            if (!joined.isEmpty()) {
+                                for (String t : joined.split(",")) {
+                                    if (!t.trim().isEmpty()) teamListView.getItems().add(t.trim());
+                                }
                             }
                         }
                     }

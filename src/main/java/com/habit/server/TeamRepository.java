@@ -129,6 +129,23 @@ public class TeamRepository {
         return null;
     }
 
+    // teamIDからチーム名を取得
+    public String findTeamNameById(String teamID) {
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String sql = "SELECT teamName FROM teams WHERE id = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, teamID);
+                ResultSet rs = pstmt.executeQuery();
+                if (rs.next()) {
+                    return rs.getString("teamName");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     // チーム名でメンバー追加
     public boolean addMemberByTeamName(String teamName, String memberId) {
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
