@@ -27,8 +27,17 @@ public class DatabaseTeamManager {
             st.executeUpdate(
                     "CREATE TABLE IF NOT EXISTS teams (id TEXT PRIMARY KEY)");
             st.executeUpdate(
-                    "CREATE TABLE IF NOT EXISTS tasks (team_id TEXT, task TEXT, " +
-                            "FOREIGN KEY(team_id) REFERENCES teams(id))");
+                    "CREATE TABLE IF NOT EXISTS tasks (" +
+                    "taskId TEXT PRIMARY KEY," +
+                    "taskName TEXT," +
+                    "description TEXT," +
+                    "estimatedMinutes INTEGER," +
+                    "repeatDays TEXT," +
+                    "isTeamTask INTEGER," +
+                    "teamID TEXT," +
+                    "dueTime TEXT," +
+                    "cycleType TEXT," +
+                    "FOREIGN KEY(teamID) REFERENCES teams(id))");
         }
     }
 

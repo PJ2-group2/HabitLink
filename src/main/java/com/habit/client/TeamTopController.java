@@ -23,6 +23,8 @@ public class TeamTopController {
     @FXML
     private TableView<?> taskTable;
     @FXML
+    private Button btnCreateTask;
+    @FXML
     private ListView<String> todayTaskList;
     @FXML
     private ListView<String> chatList;
@@ -31,7 +33,14 @@ public class TeamTopController {
 
     private final String serverUrl = "http://localhost:8080/sendChatMessage";
     private final String chatLogUrl = "http://localhost:8080/getChatLog";
-    private final String teamID = "team1"; // 実際は動的に設定
+    private String teamID = "team1"; // 実際は動的に設定
+
+    public void setTeamID(String teamID) {
+        this.teamID = teamID;
+    }
+    public String getTeamID() {
+        return teamID;
+    }
 
     @FXML
     public void initialize() {
@@ -76,6 +85,21 @@ public class TeamTopController {
 
         // チャットログの初期読み込み
         loadChatLog();
+        // タスク作成ボタン
+        btnCreateTask.setOnAction(e -> {
+            try {
+                javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/TaskCreate.fxml"));
+                javafx.scene.Parent root = loader.load();
+                // コントローラにteamIDを渡す
+                TaskCreateController controller = loader.getController();
+                controller.setTeamID(teamID);
+                javafx.stage.Stage stage = (javafx.stage.Stage) btnCreateTask.getScene().getWindow();
+                stage.setScene(new javafx.scene.Scene(root));
+                stage.setTitle("タスク作成");
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
     }
 
     // サーバーからチャットログを取得して最新3件を表示
