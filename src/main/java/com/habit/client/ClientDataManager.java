@@ -2,7 +2,7 @@ package com.habit.client;
 
 import com.habit.domain.User;
 import com.habit.domain.Task;
-import com.habit.domain.Room;
+import com.habit.domain.Team;
 import com.habit.domain.Message;
 import java.time.LocalDate;
 import java.util.HashMap;
@@ -12,7 +12,7 @@ import java.util.Map;
 public class ClientDataManager {
     private User currentUser;
     private Map<LocalDate, List<Task>> dailyTasks = new HashMap<>();
-    private Map<String, Room> cachedRooms = new HashMap<>();
+    private Map<String, Team> cachedTeams = new HashMap<>();
     private Map<String, List<Message>> cachedChatHistories = new HashMap<>();
 
     public void setCurrentUser(User user) {
@@ -31,19 +31,19 @@ public class ClientDataManager {
         // 実装省略
     }
 
-    public void cacheRoom(Room room) {
-        cachedRooms.put(room.getRoomId(), room);
+    public void cacheTeam(Team team) {
+        cachedTeams.put(team.getTeamID(), team);
     }
 
-    public Room getCachedRoom(String roomId) {
-        return cachedRooms.get(roomId);
+    public Team getCachedTeam(String teamID) {
+        return cachedTeams.get(teamID);
     }
 
-    public void addMessageToHistory(String roomId, Message message) {
-        cachedChatHistories.computeIfAbsent(roomId, k -> new java.util.ArrayList<>()).add(message);
+    public void addMessageToHistory(String teamID, Message message) {
+        cachedChatHistories.computeIfAbsent(teamID, k -> new java.util.ArrayList<>()).add(message);
     }
 
-    public List<Message> getChatHistory(String roomId) {
-        return cachedChatHistories.get(roomId);
+    public List<Message> getChatHistory(String teamID) {
+        return cachedChatHistories.get(teamID);
     }
 }

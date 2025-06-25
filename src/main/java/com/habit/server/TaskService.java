@@ -9,12 +9,12 @@ import java.util.Map;
 public class TaskService {
     private TaskRepository taskRepository;
     private UserRepository userRepository;
-    private RoomRepository roomRepository;
+    private TeamRepository teamRepository;
 
-    public TaskService(TaskRepository taskRepository, UserRepository userRepository, RoomRepository roomRepository) {
+    public TaskService(TaskRepository taskRepository, UserRepository userRepository, TeamRepository teamRepository) {
         this.taskRepository = taskRepository;
         this.userRepository = userRepository;
-        this.roomRepository = roomRepository;
+        this.teamRepository = teamRepository;
     }
 
     public void updateTaskCompletion(String userId, String taskId, LocalDate date, boolean isDone) {
@@ -27,21 +27,21 @@ public class TaskService {
         taskRepository.saveUserTaskStatus(status);
     }
 
-    public Map<String, Integer> getRoomTaskProgress(String roomId) {
+    public Map<String, Integer> getTeamTaskProgress(String teamID) {
         // 実装省略
         return null;
     }
 
-    public void applyPenalty(String userId, String roomId, Task task) {
+    public void applyPenalty(String userId, String teamID, Task task) {
         // 実装省略
     }
 
-    public int calculateSabotagePoints(String userId, String roomId) {
+    public int calculateSabotagePoints(String userId, String teamID) {
         // 実装省略
         return 0;
     }
 
-    public List<Task> getTeamTasks(String roomId) {
-        return taskRepository.findTeamTasksByRoomId(roomId);
+    public List<Task> getTeamTasks(String teamID) {
+        return taskRepository.findTeamTasksByteamID(teamID);
     }
 }

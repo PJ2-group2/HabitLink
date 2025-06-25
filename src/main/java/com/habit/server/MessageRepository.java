@@ -9,7 +9,7 @@ public class MessageRepository {
         // 実装省略
     }
 
-    public List<Message> findMessagesByRoomId(String roomId, int limit) {
+    public List<Message> findMessagesByteamID(String teamID, int limit) {
         // 実装省略
         return null;
     }

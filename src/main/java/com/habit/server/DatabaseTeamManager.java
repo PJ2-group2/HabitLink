@@ -8,12 +8,12 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 /**
- * Room manager that stores rooms and tasks in SQLite.
+ * Team manager that stores teams and tasks in SQLite.
  */
-public class DatabaseRoomManager {
+public class DatabaseTeamManager {
     private final Connection connection;
 
-    public DatabaseRoomManager(String url) {
+    public DatabaseTeamManager(String url) {
         try {
             connection = DriverManager.getConnection(url);
             initSchema();
@@ -25,17 +25,17 @@ public class DatabaseRoomManager {
     private void initSchema() throws SQLException {
         try (Statement st = connection.createStatement()) {
             st.executeUpdate(
-                    "CREATE TABLE IF NOT EXISTS rooms (id TEXT PRIMARY KEY)");
+                    "CREATE TABLE IF NOT EXISTS teams (id TEXT PRIMARY KEY)");
             st.executeUpdate(
-                    "CREATE TABLE IF NOT EXISTS tasks (room_id TEXT, task TEXT, " +
-                            "FOREIGN KEY(room_id) REFERENCES rooms(id))");
+                    "CREATE TABLE IF NOT EXISTS tasks (team_id TEXT, task TEXT, " +
+                            "FOREIGN KEY(team_id) REFERENCES teams(id))");
         }
     }
 
-    public synchronized boolean createRoom(String roomId) {
-        String sql = "INSERT INTO rooms(id) VALUES(?)";
+    public synchronized boolean createTeam(String teamID) {
+        String sql = "INSERT INTO teams(id) VALUES(?)";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, roomId);
+            ps.setString(1, teamID);
             ps.executeUpdate();
             return true;
         } catch (SQLException e) {
@@ -44,10 +44,10 @@ public class DatabaseRoomManager {
         }
     }
 
-    public synchronized boolean roomExists(String roomId) {
-        String sql = "SELECT 1 FROM rooms WHERE id=? LIMIT 1";
+    public synchronized boolean teamExists(String teamID) {
+        String sql = "SELECT 1 FROM teams WHERE id=? LIMIT 1";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, roomId);
+            ps.setString(1, teamID);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
             }
@@ -56,8 +56,8 @@ public class DatabaseRoomManager {
         }
     }
 
-    public synchronized TaskManager getTaskManager(String roomId) {
-        return new DatabaseTaskManager(connection, roomId);
+    public synchronized TaskManager getTaskManager(String teamID) {
+        return new DatabaseTaskManager(connection, teamID);
     }
 
     public void close() {

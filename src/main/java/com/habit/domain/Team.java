@@ -4,18 +4,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * チャットルームやチームの情報を管理するクラス。
+ * チャットチームやチームの情報を管理するクラス。
  */
-public class Room {
-    private String roomId;
-    private String roomName;
+public class Team {
+    private String teamID;
+    private String teamName;
     private String creatorId;
-    private RoomMode mode;
+    private TeamMode mode;
     private List<String> memberIds;
     private List<Task> teamTasks;
 
-    public Room(String roomId, String creatorId, RoomMode mode) {
-        this.roomId = roomId;
+    public Team(String teamID, String creatorId, TeamMode mode) {
+        this.teamID = teamID;
         this.creatorId = creatorId;
         this.mode = mode;
         this.memberIds = new ArrayList<>();
@@ -37,25 +37,25 @@ public class Room {
     }
 
     public void addTeamTask(Task task) {
-        if (mode == RoomMode.FIXED_TASK_MODE) {
+        if (mode == TeamMode.FIXED_TASK_MODE) {
             teamTasks.add(task);
         }
     }
 
-    public RoomMode getMode() {
+    public TeamMode getMode() {
         return mode;
     }
 
-    public String getRoomId() {
-        return roomId;
+    public String getTeamID() {
+        return teamID;
     }
 
-    public String getRoomName() {
-        return roomName;
+    public String getteamName() {
+        return teamName;
     }
 
-    public void setRoomName(String roomName) {
-        this.roomName = roomName;
+    public void setteamName(String teamName) {
+        this.teamName = teamName;
     }
 
     public String getCreatorId() {

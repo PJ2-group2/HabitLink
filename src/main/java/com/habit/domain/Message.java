@@ -8,15 +8,15 @@ import java.time.LocalDateTime;
 public class Message {
     private String messageId;
     private String senderId;
-    private String roomId;
+    private String teamID;
     private String content;
     private LocalDateTime timestamp;
     private MessageType type;
 
-    public Message(String messageId, String senderId, String roomId, String content, MessageType type) {
+    public Message(String messageId, String senderId, String teamID, String content, MessageType type) {
         this.messageId = messageId;
         this.senderId = senderId;
-        this.roomId = roomId;
+        this.teamID = teamID;
         this.content = content;
         this.type = type;
         this.timestamp = LocalDateTime.now();
@@ -38,8 +38,8 @@ public class Message {
         return messageId;
     }
 
-    public String getRoomId() {
-        return roomId;
+    public String getTeamID() {
+        return teamID;
     }
 
     public MessageType getType() {

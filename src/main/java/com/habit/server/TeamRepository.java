@@ -1,19 +1,19 @@
 package com.habit.server;
 
-import com.habit.domain.Room;
+import com.habit.domain.Team;
 import java.sql.*;
 import java.util.List;
 
-public class RoomRepository {
+public class TeamRepository {
     private static final String DB_URL = "jdbc:sqlite:habit.db";
 
-    public RoomRepository() {
+    public TeamRepository() {
         try (Connection conn = DriverManager.getConnection(DB_URL);
              Statement stmt = conn.createStatement()) {
             // まずテーブルがなければ作成
-            String sql = "CREATE TABLE IF NOT EXISTS rooms (" +
+            String sql = "CREATE TABLE IF NOT EXISTS teams (" +
                     "id TEXT PRIMARY KEY," +
-                    "roomName TEXT," +
+                    "teamName TEXT," +
                     "passcode TEXT," +
                     "maxMembers INTEGER," +
                     "editPermission TEXT," +
@@ -22,13 +22,13 @@ public class RoomRepository {
                     "creatorId TEXT" +
                     ")";
             stmt.execute(sql);
-            String sql2 = "CREATE TABLE IF NOT EXISTS room_members (" +
-                    "roomId TEXT," +
+            String sql2 = "CREATE TABLE IF NOT EXISTS team_members (" +
+                    "teamID TEXT," +
                     "memberId TEXT)";
             stmt.execute(sql2);
-            // roomsテーブルのカラム追加（既存DB用）
-            ResultSet rs = stmt.executeQuery("PRAGMA table_info(rooms)");
-            boolean hasRoomName = false;
+            // teamsテーブルのカラム追加（既存DB用）
+            ResultSet rs = stmt.executeQuery("PRAGMA table_info(teams)");
+            boolean hasteamName = false;
             boolean hasScope = false;
             boolean hasPasscode = false;
             boolean hasMaxMembers = false;
@@ -37,8 +37,8 @@ public class RoomRepository {
             boolean hasCreatorId = false;
             while (rs.next()) {
                 String col = rs.getString("name");
-                if ("roomName".equalsIgnoreCase(col)) {
-                    hasRoomName = true;
+                if ("teamName".equalsIgnoreCase(col)) {
+                    hasteamName = true;
                 }
                 if ("scope".equalsIgnoreCase(col)) {
                     hasScope = true;
@@ -59,38 +59,38 @@ public class RoomRepository {
                     hasCreatorId = true;
                 }
             }
-            if (!hasRoomName) {
-                stmt.execute("ALTER TABLE rooms ADD COLUMN roomName TEXT");
+            if (!hasteamName) {
+                stmt.execute("ALTER TABLE teams ADD COLUMN teamName TEXT");
             }
             if (!hasScope) {
-                stmt.execute("ALTER TABLE rooms ADD COLUMN scope TEXT");
+                stmt.execute("ALTER TABLE teams ADD COLUMN scope TEXT");
             }
             if (!hasPasscode) {
-                stmt.execute("ALTER TABLE rooms ADD COLUMN passcode TEXT");
+                stmt.execute("ALTER TABLE teams ADD COLUMN passcode TEXT");
             }
             if (!hasMaxMembers) {
-                stmt.execute("ALTER TABLE rooms ADD COLUMN maxMembers INTEGER");
+                stmt.execute("ALTER TABLE teams ADD COLUMN maxMembers INTEGER");
             }
             if (!hasEditPermission) {
-                stmt.execute("ALTER TABLE rooms ADD COLUMN editPermission TEXT");
+                stmt.execute("ALTER TABLE teams ADD COLUMN editPermission TEXT");
             }
             if (!hasCategory) {
-                stmt.execute("ALTER TABLE rooms ADD COLUMN category TEXT");
+                stmt.execute("ALTER TABLE teams ADD COLUMN category TEXT");
             }
             if (!hasCreatorId) {
-                stmt.execute("ALTER TABLE rooms ADD COLUMN creatorId TEXT");
+                stmt.execute("ALTER TABLE teams ADD COLUMN creatorId TEXT");
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-    public Room findById(String roomId) {
+    public Team findById(String teamID) {
         // 実装省略
         return null;
     }
 
-    public List<Room> findAllPublicRooms() {
+    public List<Team> findAllPublicTeams() {
         // 実装省略
         return null;
     }
@@ -99,11 +99,11 @@ public class RoomRepository {
     public List<String> findAllPublicTeamNames() {
         List<String> names = new java.util.ArrayList<>();
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
-            String sql = "SELECT roomName FROM rooms WHERE scope = 'public'";
+            String sql = "SELECT teamName FROM teams WHERE scope = 'public'";
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 ResultSet rs = pstmt.executeQuery();
                 while (rs.next()) {
-                    names.add(rs.getString("roomName"));
+                    names.add(rs.getString("teamName"));
                 }
             }
         } catch (SQLException e) {
@@ -115,12 +115,12 @@ public class RoomRepository {
     // 合言葉でチーム名を検索
     public String findTeamNameByPasscode(String passcode) {
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
-            String sql = "SELECT roomName FROM rooms WHERE passcode = ?";
+            String sql = "SELECT teamName FROM teams WHERE passcode = ?";
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setString(1, passcode);
                 ResultSet rs = pstmt.executeQuery();
                 if (rs.next()) {
-                    return rs.getString("roomName");
+                    return rs.getString("teamName");
                 }
             }
         } catch (SQLException e) {
@@ -132,29 +132,29 @@ public class RoomRepository {
     // チーム名でメンバー追加
     public boolean addMemberByTeamName(String teamName, String memberId) {
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
-            // まずroomId取得
-            String sql = "SELECT id FROM rooms WHERE roomName = ?";
-            String roomId = null;
+            // まずteamID取得
+            String sql = "SELECT id FROM teams WHERE teamName = ?";
+            String teamID = null;
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setString(1, teamName);
                 ResultSet rs = pstmt.executeQuery();
                 if (rs.next()) {
-                    roomId = rs.getString("id");
+                    teamID = rs.getString("id");
                 }
             }
-            if (roomId == null) return false;
+            if (teamID == null) return false;
             // 既にメンバーかチェック
-            String checkSql = "SELECT 1 FROM room_members WHERE roomId = ? AND memberId = ?";
+            String checkSql = "SELECT 1 FROM team_members WHERE teamID = ? AND memberId = ?";
             try (PreparedStatement pstmt = conn.prepareStatement(checkSql)) {
-                pstmt.setString(1, roomId);
+                pstmt.setString(1, teamID);
                 pstmt.setString(2, memberId);
                 ResultSet rs = pstmt.executeQuery();
                 if (rs.next()) return true; // 既にメンバー
             }
             // 追加
-            String insSql = "INSERT INTO room_members (roomId, memberId) VALUES (?, ?)";
+            String insSql = "INSERT INTO team_members (teamID, memberId) VALUES (?, ?)";
             try (PreparedStatement pstmt = conn.prepareStatement(insSql)) {
-                pstmt.setString(1, roomId);
+                pstmt.setString(1, teamID);
                 pstmt.setString(2, memberId);
                 pstmt.executeUpdate();
             }
@@ -166,30 +166,30 @@ public class RoomRepository {
     }
 
     // 新しいsave: 追加情報も保存
-    public void save(Room room, String passcode, int maxMembers, String editPerm, String category, String scope, List<String> members) {
+    public void save(Team team, String passcode, int maxMembers, String editPerm, String category, String scope, List<String> members) {
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
-            String sql = "INSERT OR REPLACE INTO rooms (id, roomName, passcode, maxMembers, editPermission, category, scope, creatorId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            String sql = "INSERT OR REPLACE INTO teams (id, teamName, passcode, maxMembers, editPermission, category, scope, creatorId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                pstmt.setString(1, room.getRoomId());
-                pstmt.setString(2, room.getRoomName());
+                pstmt.setString(1, team.getTeamID());
+                pstmt.setString(2, team.getteamName());
                 pstmt.setString(3, passcode);
                 pstmt.setInt(4, maxMembers);
                 pstmt.setString(5, editPerm);
                 pstmt.setString(6, category);
                 pstmt.setString(7, scope);
-                pstmt.setString(8, room.getCreatorId());
+                pstmt.setString(8, team.getCreatorId());
                 pstmt.executeUpdate();
             }
             // メンバー保存
-            String delSql = "DELETE FROM room_members WHERE roomId = ?";
+            String delSql = "DELETE FROM team_members WHERE teamID = ?";
             try (PreparedStatement pstmt = conn.prepareStatement(delSql)) {
-                pstmt.setString(1, room.getRoomId());
+                pstmt.setString(1, team.getTeamID());
                 pstmt.executeUpdate();
             }
-            String insSql = "INSERT INTO room_members (roomId, memberId) VALUES (?, ?)";
+            String insSql = "INSERT INTO team_members (teamID, memberId) VALUES (?, ?)";
             try (PreparedStatement pstmt = conn.prepareStatement(insSql)) {
                 for (String member : members) {
-                    pstmt.setString(1, room.getRoomId());
+                    pstmt.setString(1, team.getTeamID());
                     pstmt.setString(2, member);
                     pstmt.executeUpdate();
                 }
@@ -199,15 +199,15 @@ public class RoomRepository {
         }
     }
 
-    public void save(Room room) {
+    public void save(Team team) {
         // 実装省略
     }
 
-    public void addMember(String roomId, String userId) {
+    public void addMember(String teamID, String userId) {
         // 実装省略
     }
 
-    public void removeMember(String roomId, String userId) {
+    public void removeMember(String teamID, String userId) {
         // 実装省略
     }
 }

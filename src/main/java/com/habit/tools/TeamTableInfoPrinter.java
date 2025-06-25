@@ -5,13 +5,13 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
-public class RoomTableInfoPrinter {
+public class TeamTableInfoPrinter {
     public static void main(String[] args) {
         String url = "jdbc:sqlite:habit.db";
         try (Connection conn = DriverManager.getConnection(url);
              Statement stmt = conn.createStatement()) {
-            ResultSet rs = stmt.executeQuery("PRAGMA table_info(rooms)");
-            System.out.println("roomsテーブルのカラム一覧:");
+            ResultSet rs = stmt.executeQuery("PRAGMA table_info(teams)");
+            System.out.println("teamsテーブルのカラム一覧:");
             while (rs.next()) {
                 System.out.println(
                     "cid: " + rs.getInt("cid") +
