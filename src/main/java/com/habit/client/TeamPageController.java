@@ -5,20 +5,20 @@ public class TeamPageController {
         // FXML初期化処理
     }
 
-    public void loadPublicRooms() {
-        // 公開ルーム一覧読み込み
+    public void loadPublicTeams() {
+        // 公開チーム一覧読み込み
     }
 
-    public void handleCreateRoomButtonAction() {
-        // ルーム作成処理
+    public void handleCreateTeamButtonAction() {
+        // チーム作成処理
     }
 
-    public void handleJoinRoomButtonAction() {
-        // ルーム入室処理
+    public void handleJoinTeamButtonAction() {
+        // チーム入室処理
     }
 
-    public void displayRoomDetails(Object room) {
-        // ルーム詳細表示
+    public void displayTeamDetails(Object team) {
+        // チーム詳細表示
     }
 
     public void updateTeamTaskProgress(java.util.Map<String, Integer> progressData) {

@@ -20,7 +20,7 @@ public class ChatController {
 
     private final String serverUrl = "http://localhost:8080/sendChatMessage";
     private final String chatLogUrl = "http://localhost:8080/getChatLog";
-    private final String roomId = "team1"; // 実際は動的に設定
+    private final String teamID = "team1"; // 実際は動的に設定
     private final String userId = "user1"; // 実際はログインユーザーID
 
     @FXML
@@ -50,7 +50,7 @@ public class ChatController {
     private void loadChatLog() {
         new Thread(() -> {
             try {
-                URL url = new URL(chatLogUrl + "?roomId=" + URLEncoder.encode(roomId, "UTF-8") + "&limit=50");
+                URL url = new URL(chatLogUrl + "?teamID=" + URLEncoder.encode(teamID, "UTF-8") + "&limit=50");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
                 conn.setConnectTimeout(3000);
@@ -93,7 +93,7 @@ public class ChatController {
                 conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
 
                 String params = "senderId=" + URLEncoder.encode(userId, "UTF-8")
-                        + "&roomId=" + URLEncoder.encode(roomId, "UTF-8")
+                        + "&teamID=" + URLEncoder.encode(teamID, "UTF-8")
                         + "&content=" + URLEncoder.encode(message, "UTF-8");
 
                 try (OutputStream os = conn.getOutputStream()) {

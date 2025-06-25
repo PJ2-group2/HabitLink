@@ -1,8 +1,8 @@
 package com.habit.server;
 
 // 習慣化共有プログラムのサーバ側プログラム
-// クライアントからのHTTPリクエストを受けて、ルームやタスクの情報を管理します
-// サーバはSQLiteを用いてルーム・タスク情報を永続化します
+// クライアントからのHTTPリクエストを受けて、チームやタスクの情報を管理します
+// サーバはSQLiteを用いてチーム・タスク情報を永続化します
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -11,12 +11,12 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 
-// JDBC based room management
-import com.habit.server.DatabaseRoomManager;
+// JDBC based team management
+import com.habit.server.DatabaseTeamManager;
 
 /**
  * 習慣化共有アプリのサーバ本体クラス。
- * HTTPリクエストを受けてルーム・タスク・ユーザ管理など各種APIを提供する。
+ * HTTPリクエストを受けてチーム・タスク・ユーザ管理など各種APIを提供する。
  * SQLiteによる永続化や、チャット・チーム機能も実装。
  */
 public class HabitServer {
@@ -29,8 +29,6 @@ public class HabitServer {
     HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
     // 各APIエンドポイントを登録
     server.createContext("/hello", new HelloHandler());           // 動作確認用
-    server.createContext("/createRoom", new CreateRoomHandler()); // ルーム作成
-    server.createContext("/joinRoom", new JoinRoomHandler());     // ルーム参加
     server.createContext("/addTask", new AddTaskHandler());       // タスク追加
     server.createContext("/getTasks", new GetTasksHandler()); // タスク一覧取得
     server.createContext("/login", new LoginHandler());           // ログイン
@@ -38,7 +36,6 @@ public class HabitServer {
     server.createContext("/createTeam", new CreateTeamHandler());   // チーム作成
     server.createContext("/publicTeams", new PublicTeamsHandler()); // 公開チーム一覧
     server.createContext("/findTeamByPasscode", new FindTeamByPasscodeHandler()); // 合言葉検索
-    server.createContext("/joinTeam", new JoinTeamHandler()); // チーム参加
     server.createContext("/sendChatMessage", new SendChatMessageHandler()); // チャット送信
     server.createContext("/getChatLog", new GetChatLogHandler()); // チャット履歴取得
     server.createContext("/getUserInfo", new GetUserInfoHandler()); // ユーザ情報取得API追加
@@ -61,71 +58,26 @@ public class HabitServer {
     }
   }
 
-  // --- ルーム管理用（SQLite でルームIDを保持）---
-  private static DatabaseRoomManager roomManager =
-      new DatabaseRoomManager("jdbc:sqlite:habit.db");
+  // --- チーム管理用（SQLite でチームIDを保持）---
+  private static DatabaseTeamManager teamManager =
+      new DatabaseTeamManager("jdbc:sqlite:habit.db");
 
-  // --- ルーム作成API ---
+  // --- チーム作成API ---
   /**
-   * ルーム作成API
-   * /createRoom?id=xxx で新しいルームを作成する
+   * チーム作成API
+   * /createTeam?id=xxx で新しいチームを作成する
    */
-  static class CreateRoomHandler implements HttpHandler {
-    public void handle(HttpExchange exchange) throws IOException {
-      String query = exchange.getRequestURI().getQuery();
-      String response;
-      if (query != null && query.startsWith("id=")) {
-        String roomId = query.substring(3);
-        synchronized (roomManager) {
-          if (roomManager.roomExists(roomId)) {
-            response = "ルーム『" + roomId + "』は既に存在します。";
-          } else {
-            roomManager.createRoom(roomId);
-            response = "ルーム『" + roomId + "』を作成しました。";
-          }
-        }
-      } else {
-        response = "ルームIDが指定されていません。";
-      }
-      exchange.sendResponseHeaders(200, response.getBytes().length);
-      OutputStream os = exchange.getResponseBody();
-      os.write(response.getBytes());
-      os.close();
-    }
-  }
 
-  // --- ルーム参加API ---
+  // --- チーム参加API ---
   /**
-   * ルーム参加API
-   * /joinRoom?id=xxx で指定ルームに参加する
+   * チーム参加API
+   * /joinTeam?id=xxx で指定チームに参加する
    */
-  static class JoinRoomHandler implements HttpHandler {
-    public void handle(HttpExchange exchange) throws IOException {
-      String query = exchange.getRequestURI().getQuery();
-      String response;
-      if (query != null && query.startsWith("id=")) {
-        String roomId = query.substring(3);
-        synchronized (roomManager) {
-          if (roomManager.roomExists(roomId)) {
-            response = "ルーム『" + roomId + "』に参加しました。";
-          } else {
-            response = "ルーム『" + roomId + "』は存在しません。";
-          }
-        }
-      } else {
-        response = "ルームIDが指定されていません。";
-      }
-      exchange.sendResponseHeaders(200, response.getBytes().length);
-      OutputStream os = exchange.getResponseBody();
-      os.write(response.getBytes());
-      os.close();
-    }
-  }
 
   // --- タスク追加API ---
   /**
    * タスク追加API
-   * /addTask?id=xxx&task=yyy で指定ルームにタスクを追加する
+   * /addTask?id=xxx&task=yyy で指定チームにタスクを追加する
    */
   static class AddTaskHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
@@ -133,20 +85,20 @@ public class HabitServer {
       String response;
       if (query != null && query.contains("id=") && query.contains("task=")) {
         String[] params = query.split("&");
-        String roomId = null, task = null;
+        String teamID = null, task = null;
         for (String param : params) {
           if (param.startsWith("id="))
-            roomId = param.substring(3);
+            teamID = param.substring(3);
           if (param.startsWith("task="))
             task = param.substring(5);
         }
-        if (roomId != null && task != null) {
-          synchronized (roomManager) {
-            if (!roomManager.roomExists(roomId)) {
-              response = "ルーム『" + roomId + "』は存在しません。";
+        if (teamID != null && task != null) {
+          synchronized (teamManager) {
+            if (!teamManager.teamExists(teamID)) {
+              response = "チーム『" + teamID + "』は存在しません。";
             } else {
-              var room = roomManager.getTaskManager(roomId);
-              room.addTask(task);
+              var team = teamManager.getTaskManager(teamID);
+              team.addTask(task);
               response = "タスクを追加しました。";
             }
           }
@@ -166,20 +118,20 @@ public class HabitServer {
   // --- タスク一覧取得API ---
   /**
    * タスク一覧取得API
-   * /getTasks?id=xxx で指定ルームのタスク一覧を取得する
+   * /getTasks?id=xxx で指定チームのタスク一覧を取得する
    */
   static class GetTasksHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
       String query = exchange.getRequestURI().getQuery();
       String response;
       if (query != null && query.startsWith("id=")) {
-        String roomId = query.substring(3);
-        synchronized (roomManager) {
-          if (!roomManager.roomExists(roomId)) {
-            response = "ルーム『" + roomId + "』は存在しません。";
+        String teamID = query.substring(3);
+        synchronized (teamManager) {
+          if (!teamManager.teamExists(teamID)) {
+            response = "チーム『" + teamID + "』は存在しません。";
           } else {
-            var room = roomManager.getTaskManager(roomId);
-            var tasks = room.getTasks();
+            var team = teamManager.getTaskManager(teamID);
+            var tasks = team.getTasks();
             if (tasks.isEmpty())
               response = "タスクはありません。";
             else
@@ -187,7 +139,7 @@ public class HabitServer {
           }
         }
       } else {
-        response = "ルームIDが指定されていません。";
+        response = "チームIDが指定されていません。";
       }
       exchange.sendResponseHeaders(200, response.getBytes().length);
       OutputStream os = exchange.getResponseBody();
@@ -327,10 +279,10 @@ public class HabitServer {
             case "members": for (String m : kv[1].split(",")) if (!m.isEmpty()) members.add(m); break;
           }
         }
-        com.habit.domain.Room room = new com.habit.domain.Room(teamName, "creator", com.habit.domain.RoomMode.FIXED_TASK_MODE);
-        room.setRoomName(teamName);
-        RoomRepository repo = new RoomRepository();
-        repo.save(room, passcode, maxMembers, editPerm, category, scope, members);
+        com.habit.domain.Team team = new com.habit.domain.Team(teamName, "creator", com.habit.domain.TeamMode.FIXED_TASK_MODE);
+        team.setteamName(teamName);
+        TeamRepository repo = new TeamRepository();
+        repo.save(team, passcode, maxMembers, editPerm, category, scope, members);
 
         // セッションIDから現在のユーザを取得し、チームIDを追加・DB更新
         String sessionId = null;
@@ -386,7 +338,7 @@ public class HabitServer {
     public void handle(HttpExchange exchange) throws IOException {
       String response;
       try {
-        RoomRepository repo = new RoomRepository();
+        TeamRepository repo = new TeamRepository();
         java.util.List<String> teamNames = repo.findAllPublicTeamNames();
         response = String.join("\n", teamNames);
       } catch (Exception ex) {
@@ -411,7 +363,7 @@ public class HabitServer {
       if (passcode == null || passcode.isEmpty()) {
         response = "合言葉が指定されていません";
       } else {
-        RoomRepository repo = new RoomRepository();
+        TeamRepository repo = new TeamRepository();
         String teamName = repo.findTeamNameByPasscode(passcode);
         if (teamName != null) {
           response = teamName;
@@ -442,7 +394,7 @@ public class HabitServer {
       if (teamName == null || memberId == null || teamName.isEmpty() || memberId.isEmpty()) {
         response = "パラメータが不正です";
       } else {
-        RoomRepository repo = new RoomRepository();
+        TeamRepository repo = new TeamRepository();
         boolean ok = repo.addMemberByTeamName(teamName, memberId);
         response = ok ? "参加成功" : "参加失敗";
       }
@@ -455,25 +407,25 @@ public class HabitServer {
 
   // --- チャット履歴取得API ---
   static class GetChatLogHandler implements HttpHandler {
-    // メモリ上にチャット履歴を保持（roomIdごと）
+    // メモリ上にチャット履歴を保持（teamIDごと）
     private static final java.util.Map<String, java.util.List<String>> chatLogMap = SendChatMessageHandler.chatLogMap;
 
     public void handle(HttpExchange exchange) throws IOException {
       String query = exchange.getRequestURI().getQuery();
-      String roomId = null;
+      String teamID = null;
       int limit = 50;
       if (query != null) {
         String[] params = query.split("&");
         for (String param : params) {
-          if (param.startsWith("roomId=")) roomId = java.net.URLDecoder.decode(param.substring(7), "UTF-8");
+          if (param.startsWith("teamID=")) teamID = java.net.URLDecoder.decode(param.substring(7), "UTF-8");
           if (param.startsWith("limit=")) try { limit = Integer.parseInt(param.substring(6)); } catch (Exception ignored) {}
         }
       }
       String response;
-      if (roomId == null) {
+      if (teamID == null) {
         response = "[]";
       } else {
-        java.util.List<String> log = chatLogMap.getOrDefault(roomId, new java.util.ArrayList<>());
+        java.util.List<String> log = chatLogMap.getOrDefault(teamID, new java.util.ArrayList<>());
         // 最新limit件だけ返す
         java.util.List<String> limited = log.size() > limit ? log.subList(log.size() - limit, log.size()) : log;
         // JSON配列形式で返す
@@ -495,7 +447,7 @@ public class HabitServer {
 
   // --- チャット送信API ---
   static class SendChatMessageHandler implements HttpHandler {
-    // メモリ上にチャット履歴を保持（roomIdごと）
+    // メモリ上にチャット履歴を保持（teamIDごと）
     static final java.util.Map<String, java.util.List<String>> chatLogMap = new java.util.HashMap<>();
     public void handle(HttpExchange exchange) throws IOException {
       if (!"POST".equals(exchange.getRequestMethod())) {
@@ -510,20 +462,20 @@ public class HabitServer {
       byte[] bodyBytes = exchange.getRequestBody().readAllBytes();
       String bodyStr = (bodyBytes != null) ? new String(bodyBytes, java.nio.charset.StandardCharsets.UTF_8) : "";
       String response;
-      String roomId = null, senderId = null, content = null;
+      String teamID = null, senderId = null, content = null;
       if (bodyStr != null && !bodyStr.isEmpty()) {
         String[] params = bodyStr.split("&");
         for (String param : params) {
           String[] kv = param.split("=", 2);
           if (kv.length < 2) continue;
           switch (kv[0]) {
-            case "roomId": roomId = java.net.URLDecoder.decode(kv[1], "UTF-8"); break;
+            case "teamID": teamID = java.net.URLDecoder.decode(kv[1], "UTF-8"); break;
             case "senderId": senderId = java.net.URLDecoder.decode(kv[1], "UTF-8"); break;
             case "content": content = java.net.URLDecoder.decode(kv[1], "UTF-8"); break;
           }
         }
       }
-      if (roomId == null || senderId == null || content == null) {
+      if (teamID == null || senderId == null || content == null) {
         response = "パラメータが不正です";
         exchange.sendResponseHeaders(400, response.getBytes().length);
       } else {
@@ -545,9 +497,9 @@ public class HabitServer {
         String json = String.format("{\"senderId\":\"%s\",\"username\":\"%s\",\"content\":\"%s\"}",
           senderId.replace("\"","\\\""), username.replace("\"","\\\""), content.replace("\"","\\\""));
         synchronized (chatLogMap) {
-          chatLogMap.computeIfAbsent(roomId, k -> new java.util.ArrayList<>()).add(json);
+          chatLogMap.computeIfAbsent(teamID, k -> new java.util.ArrayList<>()).add(json);
         }
-        System.out.println("[チャット] roomId=" + roomId + ", senderId=" + senderId + ", username=" + username + ", content=" + content);
+        System.out.println("[チャット] teamID=" + teamID + ", senderId=" + senderId + ", username=" + username + ", content=" + content);
         response = "チャット送信成功";
         exchange.sendResponseHeaders(200, response.getBytes().length);
       }

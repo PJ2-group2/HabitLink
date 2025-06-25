@@ -1,9 +1,9 @@
 package com.habit.domain;
 
 /**
- * ルームのモード種別を表す列挙型。
+ * チームのモード種別を表す列挙型。
  */
-public enum RoomMode {
+public enum TeamMode {
     FREE_TASK_MODE,
     FIXED_TASK_MODE
 }
