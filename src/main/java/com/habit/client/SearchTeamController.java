@@ -74,6 +74,8 @@ public class SearchTeamController {
                     Parent root = loader.load();
                     TeamTopController controller = loader.getController();
                     controller.setTeamName(foundTeamName);
+                    // passcodeをteamIDとして渡す（本来はサーバからIDを取得するのが理想だが、現状はpasscodeで代用）
+                    controller.setTeamID(passcodeField.getText().trim());
                     stage.setScene(new Scene(root));
                     stage.setTitle("チームトップ");
                 } else {

@@ -93,9 +93,23 @@ public class CreateTeamController {
                 String body = response.body();
                 if (body.contains("チーム作成成功")) {
                     javafx.stage.Stage stage = (javafx.stage.Stage) btnCreateTeam.getScene().getWindow();
-                    javafx.scene.Parent root = javafx.fxml.FXMLLoader.load(getClass().getResource("/com/habit/client/gui/TeamTop.fxml"));
+                    javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/TeamTop.fxml"));
+                    javafx.scene.Parent root = loader.load();
+                    TeamTopController controller = loader.getController();
+                    controller.setTeamID(passcode);
+                    controller.setTeamName(teamName);
                     stage.setScene(new javafx.scene.Scene(root));
                     stage.setTitle("チームトップ");
+
+                    // チーム作成後すぐタスク作成画面に遷移する場合はこちら
+                    /*
+                    javafx.fxml.FXMLLoader taskLoader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/TaskCreate.fxml"));
+                    javafx.scene.Parent taskRoot = taskLoader.load();
+                    TaskCreateController taskController = taskLoader.getController();
+                    taskController.setTeamID(passcode);
+                    stage.setScene(new javafx.scene.Scene(taskRoot));
+                    stage.setTitle("タスク作成");
+                    */
                 } else {
                     new Alert(Alert.AlertType.ERROR, body).showAndWait();
                 }

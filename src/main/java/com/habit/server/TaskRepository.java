@@ -20,9 +20,46 @@ public class TaskRepository {
                     "estimatedMinutes INTEGER," +
                     "repeatDays TEXT," + // カンマ区切り
                     "isTeamTask INTEGER," +
-                    "teamID TEXT" +
+                    "teamID TEXT," +
+                    "dueTime TEXT," +
+                    "cycleType TEXT" +
                     ")";
             stmt.execute(sql);
+
+            // 既存DB用: カラム追加
+            ResultSet rs = stmt.executeQuery("PRAGMA table_info(tasks)");
+            boolean hasTaskId = false;
+            boolean hasDueTime = false;
+            boolean hasCycleType = false;
+            while (rs.next()) {
+                String col = rs.getString("name");
+                if ("taskId".equalsIgnoreCase(col)) hasTaskId = true;
+                if ("dueTime".equalsIgnoreCase(col)) hasDueTime = true;
+                if ("cycleType".equalsIgnoreCase(col)) hasCycleType = true;
+            }
+            if (!hasTaskId) {
+                stmt.execute("ALTER TABLE tasks ADD COLUMN taskId TEXT");
+            }
+            if (!hasDueTime) {
+                stmt.execute("ALTER TABLE tasks ADD COLUMN dueTime TEXT");
+            }
+            if (!hasCycleType) {
+                stmt.execute("ALTER TABLE tasks ADD COLUMN cycleType TEXT");
+            }
+            // カラム名「task」が存在し「taskName」がない場合はリネーム
+            ResultSet rs2 = stmt.executeQuery("PRAGMA table_info(tasks)");
+            boolean hasTask = false;
+            boolean hasTaskName = false;
+            while (rs2.next()) {
+                String col = rs2.getString("name");
+                if ("task".equalsIgnoreCase(col)) hasTask = true;
+                if ("taskName".equalsIgnoreCase(col)) hasTaskName = true;
+            }
+            if (hasTask && !hasTaskName) {
+                // SQLiteは直接カラム名変更できないため、手動で対応が必要
+                System.out.println("注意: tasksテーブルのカラム 'task' を 'taskName' にリネームしてください。");
+            }
+
             // ユーザーごとのタスク達成状況
             String sql2 = "CREATE TABLE IF NOT EXISTS user_task_statuses (" +
                     "userId TEXT," +
@@ -124,6 +161,7 @@ public class TaskRepository {
                     if (repeatDaysStr != null && !repeatDaysStr.isEmpty()) {
                         for (String day : repeatDaysStr.split(",")) {
                             repeatDays.add(java.time.DayOfWeek.valueOf(day));
+                            // タスク保存
                         }
                     }
                     Task task = new Task(
@@ -132,7 +170,9 @@ public class TaskRepository {
                             rs.getString("description"),
                             rs.getInt("estimatedMinutes"),
                             repeatDays,
-                            rs.getInt("isTeamTask") == 1
+                            rs.getInt("isTeamTask") == 1,
+                            rs.getString("dueTime") != null ? java.time.LocalTime.parse(rs.getString("dueTime")) : null,
+                            rs.getString("cycleType")
                     );
                     list.add(task);
                 }
@@ -141,5 +181,30 @@ public class TaskRepository {
             e.printStackTrace();
         }
         return list;
+    }
+    // タスク保存
+    public void saveTask(Task task, String teamID) {
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String sql = "INSERT OR REPLACE INTO tasks (taskId, taskName, description, estimatedMinutes, repeatDays, isTeamTask, teamID, dueTime, cycleType) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, task.getTaskId());
+                pstmt.setString(2, task.getTaskName());
+                pstmt.setString(3, task.getDescription());
+                pstmt.setInt(4, task.getEstimatedMinutes());
+                // repeatDaysはカンマ区切り
+                String repeatDaysStr = "";
+                if (task.getRepeatDays() != null && !task.getRepeatDays().isEmpty()) {
+                    repeatDaysStr = String.join(",", task.getRepeatDays().stream().map(java.time.DayOfWeek::name).toArray(String[]::new));
+                }
+                pstmt.setString(5, repeatDaysStr);
+                pstmt.setInt(6, task.isTeamTask() ? 1 : 0);
+                pstmt.setString(7, teamID);
+                pstmt.setString(8, task.getDueTime() != null ? task.getDueTime().toString() : null);
+                pstmt.setString(9, task.getCycleType());
+                pstmt.executeUpdate();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }
