@@ -24,5 +24,6 @@
             <ChoiceBox fx:id="cycleTypeChoice"/>
         </HBox>
         <Button fx:id="btnCreate" text="作成" maxWidth="120" onAction="#handleBtnCreate"/>
+        <Button fx:id="btnCancel" text="やめる" maxWidth="120" onAction="#handleBtnCancel"/>
     </VBox>
 </AnchorPane>
