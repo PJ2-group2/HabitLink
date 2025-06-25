@@ -20,6 +20,7 @@ public class TaskCreateController {
     @FXML private TextField dueTimeField;
     @FXML private ChoiceBox<String> cycleTypeChoice;
     @FXML private Button btnCreate;
+    @FXML private Button btnCancel;
 
     @FXML
     private void initialize() {
@@ -97,6 +98,23 @@ public class TaskCreateController {
         // チームトップ画面に戻る
         try {
             javafx.stage.Stage stage = (Stage) btnCreate.getScene().getWindow();
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/TeamTop.fxml"));
+            javafx.scene.Parent root = loader.load();
+            // チームIDを再セット
+            TeamTopController controller = loader.getController();
+            controller.setTeamID(teamID);
+            stage.setScene(new javafx.scene.Scene(root));
+            stage.setTitle("チームトップ");
+            stage.show();
+        } catch (Exception e) {
+            showAlert("画面遷移に失敗しました: " + e.getMessage());
+        }
+    }
+
+    @FXML
+    private void handleBtnCancel() {
+        try {
+            Stage stage = (Stage) btnCancel.getScene().getWindow();
             javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/TeamTop.fxml"));
             javafx.scene.Parent root = loader.load();
             // チームIDを再セット
