@@ -14,8 +14,9 @@ public class Team {
     private List<String> memberIds;
     private List<Task> teamTasks;
 
-    public Team(String teamID, String creatorId, TeamMode mode) {
+    public Team(String teamID, String teamName, String creatorId, TeamMode mode) {
         this.teamID = teamID;
+        this.teamName = teamName;
         this.creatorId = creatorId;
         this.mode = mode;
         this.memberIds = new ArrayList<>();

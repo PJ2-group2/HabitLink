@@ -263,6 +263,7 @@ public class HabitServer {
       try {
         // 超簡易パース: key=value&... 形式を想定
         String[] params = bodyStr.split("&");
+        String teamID = java.util.UUID.randomUUID().toString();
         String teamName = "", passcode = "", editPerm = "", category = "", scope = "public";
         int maxMembers = 5;
         java.util.List<String> members = new java.util.ArrayList<>();
@@ -279,11 +280,11 @@ public class HabitServer {
             case "members": for (String m : kv[1].split(",")) if (!m.isEmpty()) members.add(m); break;
           }
         }
-        com.habit.domain.Team team = new com.habit.domain.Team(teamName, "creator", com.habit.domain.TeamMode.FIXED_TASK_MODE);
+        com.habit.domain.Team team = new com.habit.domain.Team(teamID, teamName, "creator", com.habit.domain.TeamMode.FIXED_TASK_MODE);
         team.setteamName(teamName);
         TeamRepository repo = new TeamRepository();
         repo.save(team, passcode, maxMembers, editPerm, category, scope, members);
-
+        
         // セッションIDから現在のユーザを取得し、チームIDを追加・DB更新
         String sessionId = null;
         // ヘッダまたはクエリからSESSION_IDを取得（例: "SESSION_ID"ヘッダを想定）
@@ -306,7 +307,7 @@ public class HabitServer {
         if (sessionId != null) {
             var user = authService.getUserBySession(sessionId);
             if (user != null) {
-                user.addJoinedTeamId(teamName);
+                user.addJoinedTeamId(teamID);
                 System.out.println("joinedTeamIds更新: userId=" + user.getUserId() +
                   ", username=" + user.getUsername() +
                   ", joinedTeamIds=" + user.getJoinedTeamIds());
@@ -314,8 +315,9 @@ public class HabitServer {
                 userRepository.save(user);
             }
         }
-
-        System.out.println("チーム作成: teamName=" + teamName +
+        
+        System.out.println("チーム作成: teamID=" + teamID +
+          ", teamName=" + teamName +
           ", passcode=" + passcode +
           ", maxMembers=" + maxMembers +
           ", editPermission=" + editPerm +
@@ -523,7 +525,17 @@ public class HabitServer {
       if (sessionId != null) {
         var user = authService.getUserBySession(sessionId);
         if (user != null) {
-          response = "joinedTeamIds=" + String.join(",", user.getJoinedTeamIds());
+          java.util.List<String> teamIds = user.getJoinedTeamIds();
+          response = "joinedTeamIds=" + String.join(",", teamIds);
+          // チーム名も取得
+          TeamRepository repo = new TeamRepository();
+          java.util.List<String> teamNames = new java.util.ArrayList<>();
+          for (String id : teamIds) {
+            String name = repo.findTeamNameById(id);
+            if (name == null) name = id; // 名前がなければIDをそのまま
+            teamNames.add(name);
+          }
+          response += "\njoinedTeamNames=" + String.join(",", teamNames);
         }
       }
       exchange.sendResponseHeaders(200, response.getBytes().length);
