@@ -526,7 +526,8 @@ public class HabitServer {
         var user = authService.getUserBySession(sessionId);
         if (user != null) {
           java.util.List<String> teamIds = user.getJoinedTeamIds();
-          response = "joinedTeamIds=" + String.join(",", teamIds);
+          response = "userId=" + user.getUserId();
+          response += "\njoinedTeamIds=" + String.join(",", teamIds);
           // チーム名も取得
           TeamRepository repo = new TeamRepository();
           java.util.List<String> teamNames = new java.util.ArrayList<>();

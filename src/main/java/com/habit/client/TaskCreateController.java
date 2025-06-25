@@ -56,9 +56,9 @@ public class TaskCreateController {
             showAlert("所要時間は数字で入力してください");
             return;
         }
-        LocalTime dueTime = null;
+        java.time.LocalTime dueTime = null;
         try {
-            dueTime = LocalTime.parse(dueTimeStr);
+            dueTime = java.time.LocalTime.parse(dueTimeStr);
         } catch (Exception e) {
             showAlert("期限時刻はHH:mm形式で入力してください");
             return;
@@ -94,6 +94,46 @@ public class TaskCreateController {
             ", teamID=" + teamID
         );
         new com.habit.server.TaskRepository().saveTask(task, teamID);
+
+        // --- ここからUserTaskStatus保存処理 ---
+        try {
+            String sessionId = com.habit.client.LoginController.getSessionId();
+            if (sessionId != null && !sessionId.isEmpty()) {
+                java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+                java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create("http://localhost:8080/getUserInfo"))
+                    .header("SESSION_ID", sessionId)
+                    .GET()
+                    .build();
+                java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+                String body = response.body();
+                // サーバから "userId=..." の形式で返ることを想定
+                String userId = null;
+                if (body != null) {
+                    for (String line : body.split("\\n")) {
+                        if (line.startsWith("userId=")) {
+                            userId = line.substring("userId=".length()).trim();
+                        }
+                    }
+                }
+                if (userId != null && !userId.isEmpty()) {
+                    com.habit.domain.UserTaskStatus status = new com.habit.domain.UserTaskStatus(
+                        userId,
+                        task.getTaskId(),
+                        java.time.LocalDate.now(),
+                        false
+                    );
+                    // DB保存
+                    new com.habit.server.UserTaskStatusRepository().save(status);
+                    System.out.println("UserTaskStatus保存: userId=" + userId + ", taskId=" + task.getTaskId());
+                } else {
+                    System.out.println("ユーザーID取得失敗: " + body);
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("UserTaskStatus保存時エラー: " + e.getMessage());
+        }
+        // --- ここまでUserTaskStatus保存処理 ---
 
         // チームトップ画面に戻る
         try {
