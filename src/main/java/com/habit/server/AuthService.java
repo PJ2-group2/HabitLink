@@ -41,7 +41,7 @@ public class AuthService {
      * 新規登録し、セッションIDを発行して返す
      */
     public String registerAndCreateSession(String username, String password) {
-        User user = new User(username, username, password);
+        User user = new User(java.util.UUID.randomUUID().toString(), username, password);
         userRepository.save(user);
         String sessionId = UUID.randomUUID().toString();
         sessionMap.put(sessionId, user.getUserId());
