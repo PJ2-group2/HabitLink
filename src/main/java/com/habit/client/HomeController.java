@@ -15,6 +15,9 @@ public class HomeController {
     @FXML
     private Button btnToSearchTeam;
 
+    // チーム名→IDのマップ
+    private java.util.Map<String, String> teamNameToIdMap = new java.util.HashMap<>();
+
     @FXML
     public void initialize() {
         // 現在ログインユーザのjoinedTeamIdsにあるチームのみ表示
@@ -36,6 +39,7 @@ public class HomeController {
                 // サーバから "joinedTeamIds=... \n joinedTeamNames=..." の形式で返す
                 String[] lines = body.split("\\n");
                 String[] teamNames = null;
+                String[] teamIds = null;
                 for (String line : lines) {
                     if (line.startsWith("joinedTeamNames=")) {
                         String joined = line.substring("joinedTeamNames=".length());
@@ -43,21 +47,33 @@ public class HomeController {
                             teamNames = joined.split(",");
                         }
                     }
-                }
-                if (teamNames != null) {
-                    for (String name : teamNames) {
-                        if (!name.trim().isEmpty()) teamListView.getItems().add(name.trim());
+                    if (line.startsWith("joinedTeamIds=")) {
+                        String joined = line.substring("joinedTeamIds=".length());
+                        if (!joined.isEmpty()) {
+                            teamIds = joined.split(",");
+                        }
                     }
-                } else {
-                    // 後方互換: joinedTeamIdsのみの場合
-                    for (String line : lines) {
-                        if (line.startsWith("joinedTeamIds=")) {
-                            String joined = line.substring("joinedTeamIds=".length());
-                            if (!joined.isEmpty()) {
-                                for (String t : joined.split(",")) {
-                                    if (!t.trim().isEmpty()) teamListView.getItems().add(t.trim());
-                                }
-                            }
+                }
+                if (teamNames != null && teamIds != null && teamNames.length == teamIds.length) {
+                    for (int i = 0; i < teamNames.length; i++) {
+                        String name = teamNames[i].trim();
+                        String id = teamIds[i].trim();
+                        if (!name.isEmpty() && !id.isEmpty()) {
+                            teamListView.getItems().add(name);
+                            teamNameToIdMap.put(name, id);
+                        }
+                    }
+                } else if (teamNames != null) {
+                    for (String name : teamNames) {
+                        if (!name.trim().isEmpty()) {
+                            teamListView.getItems().add(name.trim());
+                        }
+                    }
+                } else if (teamIds != null) {
+                    for (String id : teamIds) {
+                        if (!id.trim().isEmpty()) {
+                            teamListView.getItems().add(id.trim());
+                            teamNameToIdMap.put(id.trim(), id.trim());
                         }
                     }
                 }
@@ -82,6 +98,11 @@ public class HomeController {
                     javafx.scene.Parent root = loader.load();
                     com.habit.client.TeamTopController controller = loader.getController();
                     controller.setTeamName(selected);
+                    // チーム名からIDを取得して渡す
+                    String teamId = teamNameToIdMap.get(selected);
+                    if (teamId != null) {
+                        controller.setTeamID(teamId);
+                    }
                     stage.setScene(new javafx.scene.Scene(root));
                     stage.setTitle("チームトップ");
                 } catch (Exception ex) {
