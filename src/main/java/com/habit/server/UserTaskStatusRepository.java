@@ -1,0 +1,138 @@
+package com.habit.server;
+
+import com.habit.domain.UserTaskStatus;
+import java.util.*;
+import java.time.LocalDate;
+import java.sql.*;
+
+/**
+ * UserTaskStatusのDB連携用リポジトリ
+ */
+public class UserTaskStatusRepository {
+    private static final String DB_URL = "jdbc:sqlite:habit.db";
+
+    public UserTaskStatusRepository() {
+        // テーブル作成（なければ）
+        try (Connection conn = DriverManager.getConnection(DB_URL);
+             Statement stmt = conn.createStatement()) {
+            String sql = "CREATE TABLE IF NOT EXISTS user_task_statuses (" +
+                    "userId TEXT," +
+                    "taskId TEXT," +
+                    "date TEXT," +
+                    "isDone INTEGER," +
+                    "completionTimestamp TEXT," +
+                    "PRIMARY KEY(userId, taskId, date)" +
+                    ")";
+            stmt.execute(sql);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // ユーザIDで検索
+    public List<UserTaskStatus> findByUserId(String userId) {
+        List<UserTaskStatus> result = new ArrayList<>();
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String sql = "SELECT * FROM user_task_statuses WHERE userId = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, userId);
+                ResultSet rs = pstmt.executeQuery();
+                while (rs.next()) {
+                    UserTaskStatus status = mapRowToStatus(rs);
+                    result.add(status);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    // タスクIDで検索
+    public List<UserTaskStatus> findByTaskId(String taskId) {
+        List<UserTaskStatus> result = new ArrayList<>();
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String sql = "SELECT * FROM user_task_statuses WHERE taskId = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, taskId);
+                ResultSet rs = pstmt.executeQuery();
+                while (rs.next()) {
+                    UserTaskStatus status = mapRowToStatus(rs);
+                    result.add(status);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    // ユーザID・タスクID・日付で検索
+    public Optional<UserTaskStatus> findByUserIdAndTaskIdAndDate(String userId, String taskId, LocalDate date) {
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String sql = "SELECT * FROM user_task_statuses WHERE userId = ? AND taskId = ? AND date = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, userId);
+                pstmt.setString(2, taskId);
+                pstmt.setString(3, date.toString());
+                ResultSet rs = pstmt.executeQuery();
+                if (rs.next()) {
+                    return Optional.of(mapRowToStatus(rs));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return Optional.empty();
+    }
+
+    // 保存・更新
+    public void save(UserTaskStatus status) {
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String sql = "INSERT OR REPLACE INTO user_task_statuses (userId, taskId, date, isDone, completionTimestamp) VALUES (?, ?, ?, ?, ?)";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, status.getUserId());
+                pstmt.setString(2, status.getTaskId());
+                pstmt.setString(3, status.getDate().toString());
+                pstmt.setInt(4, status.isDone() ? 1 : 0);
+                pstmt.setString(5, status.getCompletionTimestamp() != null ? status.getCompletionTimestamp().toString() : null);
+                pstmt.executeUpdate();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // 全件取得
+    public List<UserTaskStatus> findAll() {
+        List<UserTaskStatus> result = new ArrayList<>();
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String sql = "SELECT * FROM user_task_statuses";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                ResultSet rs = pstmt.executeQuery();
+                while (rs.next()) {
+                    UserTaskStatus status = mapRowToStatus(rs);
+                    result.add(status);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    // ResultSetからUserTaskStatusを生成
+    private UserTaskStatus mapRowToStatus(ResultSet rs) throws SQLException {
+        UserTaskStatus status = new UserTaskStatus(
+                rs.getString("userId"),
+                rs.getString("taskId"),
+                LocalDate.parse(rs.getString("date")),
+                rs.getInt("isDone") == 1
+        );
+        String ts = rs.getString("completionTimestamp");
+        if (ts != null) {
+            status.setDone(true); // completionTimestampはsetDoneで自動設定
+        }
+        return status;
+    }
+}
