@@ -12,8 +12,13 @@ import javafx.scene.Parent;
 import java.time.*;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+import com.habit.client.ClientDataManager;
+import com.habit.server.UserTaskStatusRepository;
+import com.habit.domain.UserTaskStatus;
 
 public class PersonalPageController {
+    private String userId;
+
     @FXML
     private TilePane taskTilePane;
     @FXML
@@ -42,6 +47,10 @@ public class PersonalPageController {
     // セッションIDのsetter
     public void setSessionID(String sessionID) {
         this.sessionID = sessionID;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 
     @FXML
@@ -73,7 +82,25 @@ public class PersonalPageController {
             String remainStr = (dueTime != null) ? "残り: " + getRemainingTimeString(dueTime) : "";
             tileBtn.setText(name + (remainStr.isEmpty() ? "" : "\n" + remainStr));
             tileBtn.setOnAction(ev -> {
-                // ここでタスク詳細画面などに遷移可能
+                // タスク完了処理
+                try {
+                    if (userId == null || userId.isEmpty()) {
+                        System.err.println("エラー: userIdが未設定です。タスク完了処理を中止します。");
+                        return;
+                    }
+                    String taskId = task.getTaskId();
+                    LocalDate date = LocalDate.now();
+                    UserTaskStatusRepository repo = new UserTaskStatusRepository();
+                    Optional<UserTaskStatus> optStatus = repo.findByUserIdAndTaskIdAndDate(userId, taskId, date);
+                    UserTaskStatus status = optStatus.orElseGet(() ->
+                        new UserTaskStatus(userId, taskId, date, false)
+                    );
+                    status.setDone(true);
+                    repo.save(status);
+                    System.out.println("タスク完了: userId=" + userId + ", taskId=" + taskId + ", 完了時刻=" + status.getCompletionTimestamp());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
                 System.out.println("タスク選択: " + name);
             });
             taskTilePane.getChildren().add(tileBtn);
