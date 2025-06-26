@@ -125,29 +125,40 @@ public class HabitServer {
    */
   static class GetTasksHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
-      String query = exchange.getRequestURI().getQuery();
       String response;
-      if (query != null && query.startsWith("id=")) {
-        String teamID = query.substring(3);
-        synchronized (teamManager) {
-          if (!teamManager.teamExists(teamID)) {
-            response = "チーム『" + teamID + "』は存在しません。";
-          } else {
-            var team = teamManager.getTaskManager(teamID);
-            var tasks = team.getTasks();
-            if (tasks.isEmpty())
-              response = "タスクはありません。";
-            else
-              response = String.join("\n", tasks);
+      try {
+        String query = exchange.getRequestURI().getQuery();
+        if (query != null && query.startsWith("id=")) {
+          String teamID = query.substring(3);
+          synchronized (teamManager) {
+            if (!teamManager.teamExists(teamID)) {
+              response = "チーム『" + teamID + "』は存在しません。";
+            } else {
+              var team = teamManager.getTaskManager(teamID);
+              var tasks = team.getTasks();
+              if (tasks.isEmpty())
+                response = "タスクはありません。";
+              else
+                response = String.join("\n", tasks);
+            }
           }
+        } else {
+          response = "チームIDが指定されていません。";
         }
-      } else {
-        response = "チームIDが指定されていません。";
+        exchange.getResponseHeaders().set("Content-Type", "text/plain; charset=UTF-8");
+        exchange.sendResponseHeaders(200, response.getBytes("UTF-8").length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(response.getBytes("UTF-8"));
+        os.close();
+      } catch (Exception e) {
+        String err = "サーバーエラー: " + e.getMessage();
+        exchange.getResponseHeaders().set("Content-Type", "text/plain; charset=UTF-8");
+        exchange.sendResponseHeaders(500, err.getBytes("UTF-8").length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(err.getBytes("UTF-8"));
+        os.close();
+        e.printStackTrace();
       }
-      exchange.sendResponseHeaders(200, response.getBytes().length);
-      OutputStream os = exchange.getResponseBody();
-      os.write(response.getBytes());
-      os.close();
     }
   }
   // --- ログインAPI ---
