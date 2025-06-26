@@ -9,6 +9,9 @@ import java.util.*;
 import org.json.*;
 
 public class ChatController {
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
     @FXML
     private ListView<String> chatList;
     @FXML
@@ -21,7 +24,7 @@ public class ChatController {
     private final String serverUrl = "http://localhost:8080/sendChatMessage";
     private final String chatLogUrl = "http://localhost:8080/getChatLog";
     private final String teamID = "team1"; // 実際は動的に設定
-    private final String userId = "user1"; // 実際はログインユーザーID
+    private String userId; // 遷移元からセットする
 
     @FXML
     public void initialize() {

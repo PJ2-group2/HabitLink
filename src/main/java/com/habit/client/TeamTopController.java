@@ -178,8 +178,11 @@ public class TeamTopController {
 
         btnToChat.setOnAction(e -> {
             try {
+                javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/Chat.fxml"));
+                javafx.scene.Parent root = loader.load();
+                ChatController controller = loader.getController();
+                controller.setUserId(userId); // userIdを渡す
                 javafx.stage.Stage stage = (javafx.stage.Stage) btnToChat.getScene().getWindow();
-                javafx.scene.Parent root = javafx.fxml.FXMLLoader.load(getClass().getResource("/com/habit/client/gui/Chat.fxml"));
                 stage.setScene(new javafx.scene.Scene(root));
                 stage.setTitle("チームチャット");
             } catch (Exception ex) {
