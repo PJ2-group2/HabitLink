@@ -44,8 +44,63 @@ public class TeamTopController {
 
     @FXML
     public void initialize() {
-        // 仮データ削除
-        todayTaskList.getItems().addAll("タスク1", "タスク2", "タスク3");
+        // チームタスク・ユーザタスク取得＆フィルタ処理
+        new Thread(() -> {
+            try {
+                // 1. チームのタスク一覧取得
+                URL url = new URL("http://localhost:8080/getTasks?id=" + URLEncoder.encode(teamID, "UTF-8"));
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(3000);
+                conn.setReadTimeout(3000);
+                List<String> teamTasks = new ArrayList<>();
+                try (BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"))) {
+                    String line;
+                    while ((line = in.readLine()) != null) {
+                        if (!line.trim().isEmpty()) {
+                            teamTasks.add(line.trim());
+                        }
+                    }
+                }
+
+                // 2. ユーザのタスクID一覧取得
+                String sessionId = LoginController.getSessionId();
+                URL url2 = new URL("http://localhost:8080/getUserTaskIds");
+                HttpURLConnection conn2 = (HttpURLConnection) url2.openConnection();
+                conn2.setRequestMethod("GET");
+                conn2.setRequestProperty("SESSION_ID", sessionId);
+                conn2.setConnectTimeout(3000);
+                conn2.setReadTimeout(3000);
+                Set<String> userTaskIds = new HashSet<>();
+                try (BufferedReader in2 = new BufferedReader(new InputStreamReader(conn2.getInputStream(), "UTF-8"))) {
+                    String response2 = in2.readLine();
+                    if (response2 != null && response2.startsWith("taskIds=")) {
+                        String[] ids = response2.substring(8).split(",");
+                        for (String id : ids) {
+                            if (!id.trim().isEmpty()) {
+                                userTaskIds.add(id.trim());
+                            }
+                        }
+                    }
+                }
+
+                // 3. 両方に含まれるタスクのみ抽出
+                List<String> filteredTasks = new ArrayList<>();
+                for (String task : teamTasks) {
+                    if (userTaskIds.contains(task)) {
+                        filteredTasks.add(task);
+                    }
+                }
+
+                // 4. UIスレッドで表示
+                Platform.runLater(() -> {
+                    todayTaskList.getItems().setAll(filteredTasks);
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+
         teamCharView.setImage(new Image(
             "https://raw.githubusercontent.com/google/material-design-icons/master/png/social/mood/materialicons/48dp/2x/baseline_mood_black_48dp.png", true));
         // TableViewのカラムやデータは必要に応じて追加

@@ -10,6 +10,7 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.util.List;
 
 // JDBC based team management
 import com.habit.server.DatabaseTeamManager;
@@ -40,6 +41,7 @@ public class HabitServer {
     server.createContext("/sendChatMessage", new SendChatMessageHandler()); // チャット送信
     server.createContext("/getChatLog", new GetChatLogHandler()); // チャット履歴取得
     server.createContext("/getJoinedTeamInfo", new GetJoinedTeamInfoHandler()); // 参加チーム取得
+    server.createContext("/getUserTaskIds", new GetUserTaskIdsHandler()); // UserTaskStatusからTaskId取得
     server.setExecutor(null);
     server.start();
     System.out.println("サーバが起動しました: http://localhost:8080/hello");
@@ -569,4 +571,37 @@ public class HabitServer {
       os.close();
     }
   }
+    /**
+     * セッションIDからUserを検索し、そのuserIdからUserTaskStatus中の該当TaskId一覧を返すAPI。
+     * /getUserTaskIds エンドポイント
+     * SESSION_IDヘッダ必須
+     */
+    static class GetUserTaskIdsHandler implements HttpHandler {
+      public void handle(HttpExchange exchange) throws IOException {
+        String sessionId = null;
+        var headers = exchange.getRequestHeaders();
+        if (headers.containsKey("SESSION_ID")) {
+          sessionId = headers.getFirst("SESSION_ID");
+        }
+        String response = "taskIds=";
+        if (sessionId != null) {
+          var user = authService.getUserBySession(sessionId);
+          if (user != null) {
+            String userId = user.getUserId();
+            UserTaskStatusRepository repo = new UserTaskStatusRepository();
+            List<com.habit.domain.UserTaskStatus> statusList = repo.findByUserId(userId);
+            // TaskIdのみ抽出し重複排除
+            java.util.Set<String> taskIds = new java.util.HashSet<>();
+            for (com.habit.domain.UserTaskStatus status : statusList) {
+              taskIds.add(status.getTaskId());
+            }
+            response = "taskIds=" + String.join(",", taskIds);
+          }
+        }
+        exchange.sendResponseHeaders(200, response.getBytes().length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(response.getBytes());
+        os.close();
+      }
+    }
 }
