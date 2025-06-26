@@ -44,6 +44,7 @@ public class HabitServer {
     server.createContext("/getChatLog", new GetChatLogHandler()); // チャット履歴取得
     server.createContext("/getJoinedTeamInfo", new GetJoinedTeamInfoHandler()); // 参加チーム取得
     server.createContext("/getUserTaskIds", new GetUserTaskIdsHandler()); // UserTaskStatusからTaskId取得
+    server.createContext("/getTeamName", new GetTeamNameHandler()); // チーム名取得
     server.setExecutor(null);
     server.start();
     System.out.println("サーバが起動しました: http://localhost:8080/hello");
@@ -627,5 +628,30 @@ public class HabitServer {
         os.write(response.getBytes());
         os.close();
       }
+    }
+    /**
+     * /getTeamName?teamID=xxx でチーム名を返すAPI
+     */
+    static class GetTeamNameHandler implements HttpHandler {
+        public void handle(HttpExchange exchange) throws IOException {
+            String query = exchange.getRequestURI().getQuery();
+            String teamID = null;
+            if (query != null && query.startsWith("teamID=")) {
+                teamID = java.net.URLDecoder.decode(query.substring(7), "UTF-8");
+            }
+            String response;
+            if (teamID == null || teamID.isEmpty()) {
+                response = "";
+            } else {
+                TeamRepository repo = new TeamRepository();
+                String name = repo.findTeamNameById(teamID);
+                response = (name != null) ? name : "";
+            }
+            exchange.getResponseHeaders().set("Content-Type", "text/plain; charset=UTF-8");
+            exchange.sendResponseHeaders(200, response.getBytes("UTF-8").length);
+            OutputStream os = exchange.getResponseBody();
+            os.write(response.getBytes("UTF-8"));
+            os.close();
+        }
     }
 }
