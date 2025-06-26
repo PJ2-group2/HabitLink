@@ -3,40 +3,23 @@ package com.habit.client;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.TilePane;
-import javafx.scene.layout.VBox;
-import javafx.scene.text.Text;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import java.time.*;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
-import com.habit.client.ClientDataManager;
 import com.habit.server.UserTaskStatusRepository;
 import com.habit.domain.UserTaskStatus;
 
 public class PersonalPageController {
-    private String userId;
-
     @FXML
     private TilePane taskTilePane;
     @FXML
     private Button btnBackToTeam;
 
-    // セッションID保持用
-    private String sessionID;
-
-    // チームID保持用
-    private String teamID;
-
     // タスク一覧（Task型で受け取る）
     private List<com.habit.domain.Task> tasks = new ArrayList<>();
-
-    // チームIDのsetter
-    public void setTeamID(String teamID) {
-        this.teamID = teamID;
-    }
 
     // チームトップからタスク一覧を受け取る用
     public void setUserTasks(List<com.habit.domain.Task> tasks) {
@@ -44,13 +27,19 @@ public class PersonalPageController {
         updateTaskTiles();
     }
 
-    // セッションIDのsetter
-    public void setSessionID(String sessionID) {
-        this.sessionID = sessionID;
-    }
+    // 遷移元からセットする
+    private String userId;
+    private String teamID;
+    private String teamName = "チーム名未取得";
 
     public void setUserId(String userId) {
         this.userId = userId;
+    }
+    public void setTeamID(String teamID) {
+        this.teamID = teamID;
+    }
+    public void setTeamName(String teamName) {
+        this.teamName = teamName;
     }
 
     @FXML
@@ -62,7 +51,9 @@ public class PersonalPageController {
                 Parent root = loader.load();
                 TeamTopController controller = loader.getController();
                 // 保持しているteamIDを渡す
+                controller.setUserId(userId);
                 controller.setTeamID(teamID);
+                controller.setTeamName(teamName);
                 Stage stage = (Stage) btnBackToTeam.getScene().getWindow();
                 stage.setScene(new Scene(root));
                 stage.setTitle("チームトップページ");

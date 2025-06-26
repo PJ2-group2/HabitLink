@@ -4,7 +4,6 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.Image;
-import javafx.event.ActionEvent;
 import javafx.application.Platform;
 import java.net.*;
 import java.io.*;
@@ -14,17 +13,6 @@ import org.json.*;
 public class TeamTopController {
     @FXML
     private Label teamNameLabel;
-
-    // ユーザーID保持用
-    private String userId;
-    // チャットID保持用
-    private String chatId;
-
-    // userIdのsetter
-    public void setUserId(String userId) {
-        this.userId = userId;
-        System.out.println("TeamTopController: userIdを受け取りました: " + userId);
-    }
     @FXML
     private Button btnBackHome;
     @FXML
@@ -47,7 +35,15 @@ public class TeamTopController {
 
     private final String serverUrl = "http://localhost:8080/sendChatMessage";
     private final String chatLogUrl = "http://localhost:8080/getChatLog";
-    private String teamID = "team1"; // 実際は動的に設定
+
+    // 遷移元からセットする
+    private String userId;
+    private String teamID;
+    private String teamName = "チーム名未取得";
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
 
     public void setTeamID(String teamID) {
         this.teamID = teamID;
@@ -56,15 +52,16 @@ public class TeamTopController {
         loadChatLog();
     }
 
+    public void setTeamName(String teamName) {
+        this.teamName = teamName;
+        if (teamNameLabel != null) {
+            teamNameLabel.setText(teamName);
+        }
+    }
+
     // セッションIDのsetter
     public void setSessionID(String sessionID) {
         this.sessionID = sessionID;
-    }
-
-    // chatIdのsetter
-    public void setChatId(String chatId) {
-        this.chatId = chatId;
-        System.out.println("TeamTopController: chatIdを受け取りました: " + chatId);
     }
 
     // チームタスク・ユーザタスク取得＆フィルタ処理（タスク名表示対応）
@@ -165,6 +162,7 @@ public class TeamTopController {
             }
         });
 
+        // 個人ページへ遷移するボタンのイベントハンドラ
         btnToPersonal.setOnAction(e -> {
             try {
                 javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/PersonalPage.fxml"));
@@ -173,10 +171,9 @@ public class TeamTopController {
                 // チームIDを渡す
                 controller.setUserId(userId);
                 controller.setTeamID(teamID);
+                controller.setTeamName(teamName);
                 // ユーザーのタスク一覧を渡す
                 controller.setUserTasks(getUserTasksForPersonalPage());
-                // セッションIDも渡す
-                controller.setSessionID(LoginController.getSessionId());
                 javafx.stage.Stage stage = (javafx.stage.Stage) btnToPersonal.getScene().getWindow();
                 stage.setScene(new javafx.scene.Scene(root));
                 stage.setTitle("個人ページ");
@@ -185,13 +182,15 @@ public class TeamTopController {
             }
         });
 
+        // チャットページへ遷移するボタンのイベントハンドラ
         btnToChat.setOnAction(e -> {
             try {
                 javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/Chat.fxml"));
                 javafx.scene.Parent root = loader.load();
                 ChatController controller = loader.getController();
-                controller.setUserId(userId); // userIdを渡す
-                controller.setTeamID(teamID); // チームIDのみ渡す
+                controller.setUserId(userId);
+                controller.setTeamID(teamID);
+                controller.setTeamName(teamName);
                 javafx.stage.Stage stage = (javafx.stage.Stage) btnToChat.getScene().getWindow();
                 stage.setScene(new javafx.scene.Scene(root));
                 stage.setTitle("チームチャット");
@@ -200,13 +199,16 @@ public class TeamTopController {
             }
         });
 
+        // タスク作成ボタンのイベントハンドラ
         btnCreateTask.setOnAction(e -> {
             try {
                 javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/TaskCreate.fxml"));
                 javafx.scene.Parent root = loader.load();
                 // コントローラにteamIDを渡す
                 TaskCreateController controller = loader.getController();
+                controller.setUserId(userId);
                 controller.setTeamID(teamID);
+                controller.setTeamName(teamName);
                 javafx.stage.Stage stage = (javafx.stage.Stage) btnCreateTask.getScene().getWindow();
                 stage.setScene(new javafx.scene.Scene(root));
                 stage.setTitle("タスク作成");
@@ -316,12 +318,5 @@ public class TeamTopController {
                 e.printStackTrace();
             }
         }).start();
-    }
-
-    // チーム名を外部からセット
-    public void setTeamName(String name) {
-        if (teamNameLabel != null) {
-            teamNameLabel.setText(name);
-        }
     }
 }

@@ -9,9 +9,6 @@ import java.util.*;
 import org.json.*;
 
 public class ChatController {
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
     @FXML
     private Label teamNameLabel;
     @FXML
@@ -25,9 +22,21 @@ public class ChatController {
 
     private final String serverUrl = "http://localhost:8080/sendChatMessage";
     private final String chatLogUrl = "http://localhost:8080/getChatLog";
-    private String teamID = "team1"; // 実際は動的に設定
-    private String userId; // 遷移元からセットする
-    private String teamName; // チーム名も保持
+
+    // 遷移元からセットする
+    private String userId;
+    private String teamID;
+    private String teamName = "チーム名未取得";
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public void setTeamID(String teamID) {
+        this.teamID = teamID;
+        fetchAndSetTeamName(teamID);
+        loadChatLog(); // teamIDがセットされた後に履歴を取得
+    }
 
     public void setTeamName(String teamName) {
         this.teamName = teamName;
@@ -36,11 +45,6 @@ public class ChatController {
         }
     }
 
-    public void setTeamID(String teamID) {
-        this.teamID = teamID;
-        fetchAndSetTeamName(teamID);
-        loadChatLog(); // teamIDがセットされた後に履歴を取得
-    }
 
     private void fetchAndSetTeamName(String teamID) {
         new Thread(() -> {
@@ -91,7 +95,7 @@ public class ChatController {
                 TeamTopController controller = loader.getController();
                 controller.setUserId(userId);
                 controller.setTeamID(teamID);
-                controller.setTeamName(teamName); // チーム名も渡す
+                controller.setTeamName(teamName);
                 javafx.stage.Stage stage = (javafx.stage.Stage) btnBackToTeamTop.getScene().getWindow();
                 stage.setScene(new javafx.scene.Scene(root));
                 stage.setTitle("チームトップ");
