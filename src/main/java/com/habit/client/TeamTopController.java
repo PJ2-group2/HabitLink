@@ -171,6 +171,7 @@ public class TeamTopController {
                 javafx.scene.Parent root = loader.load();
                 PersonalPageController controller = loader.getController();
                 // チームIDを渡す
+                controller.setUserId(userId);
                 controller.setTeamID(teamID);
                 // ユーザーのタスク一覧を渡す
                 controller.setUserTasks(getUserTasksForPersonalPage());
