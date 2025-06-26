@@ -39,6 +39,7 @@ public class ChatController {
     public void setTeamID(String teamID) {
         this.teamID = teamID;
         fetchAndSetTeamName(teamID);
+        loadChatLog(); // teamIDがセットされた後に履歴を取得
     }
 
     private void fetchAndSetTeamName(String teamID) {
@@ -70,7 +71,7 @@ public class ChatController {
 
     @FXML
     public void initialize() {
-        loadChatLog();
+        // loadChatLog()はここで呼ばない
         if (teamNameLabel != null && teamName != null) {
             teamNameLabel.setText(teamName);
         }
