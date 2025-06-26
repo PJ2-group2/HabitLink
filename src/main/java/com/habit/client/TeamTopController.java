@@ -31,6 +31,9 @@ public class TeamTopController {
     @FXML
     private ImageView teamCharView;
 
+    // セッションID保持用
+    private String sessionID;
+
     private final String serverUrl = "http://localhost:8080/sendChatMessage";
     private final String chatLogUrl = "http://localhost:8080/getChatLog";
     private String teamID = "team1"; // 実際は動的に設定
@@ -40,6 +43,11 @@ public class TeamTopController {
         // teamIDがセットされたタイミングで初期化処理を呼ぶ
         loadTeamTasksAndUserTasks();
         loadChatLog();
+    }
+
+    // セッションIDのsetter
+    public void setSessionID(String sessionID) {
+        this.sessionID = sessionID;
     }
 
     // チームタスク・ユーザタスク取得＆フィルタ処理（タスク名表示対応）
@@ -142,8 +150,16 @@ public class TeamTopController {
 
         btnToPersonal.setOnAction(e -> {
             try {
+                javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/PersonalPage.fxml"));
+                javafx.scene.Parent root = loader.load();
+                PersonalPageController controller = loader.getController();
+                // チームIDを渡す
+                controller.setTeamID(teamID);
+                // ユーザーのタスク一覧を渡す
+                controller.setUserTasks(getUserTasksForPersonalPage());
+                // セッションIDも渡す
+                controller.setSessionID(LoginController.getSessionId());
                 javafx.stage.Stage stage = (javafx.stage.Stage) btnToPersonal.getScene().getWindow();
-                javafx.scene.Parent root = javafx.fxml.FXMLLoader.load(getClass().getResource("/com/habit/client/gui/PersonalPage.fxml"));
                 stage.setScene(new javafx.scene.Scene(root));
                 stage.setTitle("個人ページ");
             } catch (Exception ex) {
@@ -176,6 +192,45 @@ public class TeamTopController {
                 ex.printStackTrace();
             }
         });
+    }
+
+    // ユーザーのタスク一覧を返す（todayTaskListの内容からTaskオブジェクトを取得する例）
+    // 必要に応じてキャッシュやフィールドに保持しておく
+    // ここでは簡易的に再取得する例
+    private java.util.List<com.habit.domain.Task> getUserTasksForPersonalPage() {
+        try {
+            com.habit.server.TaskRepository repo = new com.habit.server.TaskRepository();
+            java.util.List<com.habit.domain.Task> teamTaskObjs = repo.findTeamTasksByteamID(teamID);
+            String sessionId = LoginController.getSessionId();
+            java.net.URL url2 = new java.net.URL("http://localhost:8080/getUserTaskIds");
+            java.net.HttpURLConnection conn2 = (java.net.HttpURLConnection) url2.openConnection();
+            conn2.setRequestMethod("GET");
+            conn2.setRequestProperty("SESSION_ID", sessionId);
+            conn2.setConnectTimeout(3000);
+            conn2.setReadTimeout(3000);
+            java.util.Set<String> userTaskIds = new java.util.HashSet<>();
+            try (java.io.BufferedReader in2 = new java.io.BufferedReader(new java.io.InputStreamReader(conn2.getInputStream(), "UTF-8"))) {
+                String response2 = in2.readLine();
+                if (response2 != null && response2.startsWith("taskIds=")) {
+                    String[] ids = response2.substring(8).split(",");
+                    for (String id : ids) {
+                        if (!id.trim().isEmpty()) {
+                            userTaskIds.add(id.trim());
+                        }
+                    }
+                }
+            }
+            java.util.List<com.habit.domain.Task> filteredTasks = new java.util.ArrayList<>();
+            for (com.habit.domain.Task t : teamTaskObjs) {
+                if (userTaskIds.contains(t.getTaskId())) {
+                    filteredTasks.add(t);
+                }
+            }
+            return filteredTasks;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new java.util.ArrayList<>();
+        }
     }
 
     // サーバーからチャットログを取得して最新3件を表示

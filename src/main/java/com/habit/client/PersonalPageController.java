@@ -19,29 +19,42 @@ public class PersonalPageController {
     @FXML
     private Button btnBackToTeam;
 
-    // タスク情報クラス（仮）
-    static class TaskInfo {
-        String name;
-        LocalDateTime deadline;
-        TaskInfo(String name, LocalDateTime deadline) {
-            this.name = name;
-            this.deadline = deadline;
-        }
+    // セッションID保持用
+    private String sessionID;
+
+    // チームID保持用
+    private String teamID;
+
+    // タスク一覧（Task型で受け取る）
+    private List<com.habit.domain.Task> tasks = new ArrayList<>();
+
+    // チームIDのsetter
+    public void setTeamID(String teamID) {
+        this.teamID = teamID;
     }
-    // 仮のタスクデータ
-    private List<TaskInfo> tasks = Arrays.asList(
-        new TaskInfo("タスクA", LocalDateTime.now().plusHours(5).plusMinutes(30)),
-        new TaskInfo("タスクB", LocalDateTime.now().plusHours(12)),
-        new TaskInfo("タスクC", LocalDateTime.now().plusDays(1).plusMinutes(15))
-    );
+
+    // チームトップからタスク一覧を受け取る用
+    public void setUserTasks(List<com.habit.domain.Task> tasks) {
+        this.tasks = tasks != null ? tasks : new ArrayList<>();
+        updateTaskTiles();
+    }
+
+    // セッションIDのsetter
+    public void setSessionID(String sessionID) {
+        this.sessionID = sessionID;
+    }
 
     @FXML
     public void initialize() {
         updateTaskTiles();
         btnBackToTeam.setOnAction(e -> {
             try {
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/habit/client/gui/TeamTop.fxml"));
+                Parent root = loader.load();
+                TeamTopController controller = loader.getController();
+                // 保持しているteamIDを渡す
+                controller.setTeamID(teamID);
                 Stage stage = (Stage) btnBackToTeam.getScene().getWindow();
-                Parent root = FXMLLoader.load(getClass().getResource("/com/habit/client/gui/TeamTopPage.fxml"));
                 stage.setScene(new Scene(root));
                 stage.setTitle("チームトップページ");
             } catch (Exception ex) {
@@ -52,22 +65,26 @@ public class PersonalPageController {
 
     private void updateTaskTiles() {
         taskTilePane.getChildren().clear();
-        for (TaskInfo task : tasks) {
-            VBox tile = new VBox(15);
-            tile.setStyle("-fx-border-color: #aaa; -fx-padding: 30; -fx-background-color: #f9f9f9; -fx-min-width: 320px; -fx-min-height: 150px; -fx-alignment: center;");
-            Text nameText = new Text(task.name);
-            nameText.setStyle("-fx-font-size: 22px; -fx-font-weight: bold;");
-            Text remainText = new Text("残り: " + getRemainingTimeString(task.deadline));
-            remainText.setStyle("-fx-font-size: 18px;");
-            tile.getChildren().addAll(nameText, remainText);
-            taskTilePane.getChildren().add(tile);
+        for (com.habit.domain.Task task : tasks) {
+            Button tileBtn = new Button();
+            tileBtn.setStyle("-fx-border-color: #aaa; -fx-padding: 30; -fx-background-color: #f9f9f9; -fx-min-width: 320px; -fx-min-height: 150px; -fx-alignment: center; -fx-font-size: 22px; -fx-font-weight: bold;");
+            String name = task.getTaskName();
+            java.time.LocalTime dueTime = task.getDueTime();
+            String remainStr = (dueTime != null) ? "残り: " + getRemainingTimeString(dueTime) : "";
+            tileBtn.setText(name + (remainStr.isEmpty() ? "" : "\n" + remainStr));
+            tileBtn.setOnAction(ev -> {
+                // ここでタスク詳細画面などに遷移可能
+                System.out.println("タスク選択: " + name);
+            });
+            taskTilePane.getChildren().add(tileBtn);
         }
     }
 
-    private String getRemainingTimeString(LocalDateTime deadline) {
-        LocalDateTime now = LocalDateTime.now();
-        if (deadline.isBefore(now)) return "期限切れ";
-        long totalMinutes = ChronoUnit.MINUTES.between(now, deadline);
+    // LocalTime（本日分の締切時刻）までの残り時間を表示
+    private String getRemainingTimeString(java.time.LocalTime dueTime) {
+        java.time.LocalTime now = java.time.LocalTime.now();
+        if (dueTime.isBefore(now)) return "期限切れ";
+        long totalMinutes = java.time.Duration.between(now, dueTime).toMinutes();
         long hours = totalMinutes / 60;
         long minutes = totalMinutes % 60;
         return String.format("%d時間%d分", hours, minutes);
