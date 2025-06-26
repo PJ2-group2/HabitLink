@@ -10,6 +10,7 @@ import com.sun.net.httpserver.HttpServer;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.util.List;
 
 // JDBC based team management
 import com.habit.server.DatabaseTeamManager;
@@ -34,11 +35,13 @@ public class HabitServer {
     server.createContext("/login", new LoginHandler());           // ログイン
     server.createContext("/register", new RegisterHandler());     // 新規登録
     server.createContext("/createTeam", new CreateTeamHandler());   // チーム作成
+    server.createContext("/joinTeam", new JoinTeamHandler());     // チーム参加
     server.createContext("/publicTeams", new PublicTeamsHandler()); // 公開チーム一覧
     server.createContext("/findTeamByPasscode", new FindTeamByPasscodeHandler()); // 合言葉検索
     server.createContext("/sendChatMessage", new SendChatMessageHandler()); // チャット送信
     server.createContext("/getChatLog", new GetChatLogHandler()); // チャット履歴取得
-    server.createContext("/getUserInfo", new GetUserInfoHandler()); // ユーザ情報取得API追加
+    server.createContext("/getJoinedTeamInfo", new GetJoinedTeamInfoHandler()); // 参加チーム取得
+    server.createContext("/getUserTaskIds", new GetUserTaskIdsHandler()); // UserTaskStatusからTaskId取得
     server.setExecutor(null);
     server.start();
     System.out.println("サーバが起動しました: http://localhost:8080/hello");
@@ -122,29 +125,40 @@ public class HabitServer {
    */
   static class GetTasksHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
-      String query = exchange.getRequestURI().getQuery();
       String response;
-      if (query != null && query.startsWith("id=")) {
-        String teamID = query.substring(3);
-        synchronized (teamManager) {
-          if (!teamManager.teamExists(teamID)) {
-            response = "チーム『" + teamID + "』は存在しません。";
-          } else {
-            var team = teamManager.getTaskManager(teamID);
-            var tasks = team.getTasks();
-            if (tasks.isEmpty())
-              response = "タスクはありません。";
-            else
-              response = String.join("\n", tasks);
+      try {
+        String query = exchange.getRequestURI().getQuery();
+        if (query != null && query.startsWith("id=")) {
+          String teamID = query.substring(3);
+          synchronized (teamManager) {
+            if (!teamManager.teamExists(teamID)) {
+              response = "チーム『" + teamID + "』は存在しません。";
+            } else {
+              var team = teamManager.getTaskManager(teamID);
+              var tasks = team.getTasks();
+              if (tasks.isEmpty())
+                response = "タスクはありません。";
+              else
+                response = String.join("\n", tasks);
+            }
           }
+        } else {
+          response = "チームIDが指定されていません。";
         }
-      } else {
-        response = "チームIDが指定されていません。";
+        exchange.getResponseHeaders().set("Content-Type", "text/plain; charset=UTF-8");
+        exchange.sendResponseHeaders(200, response.getBytes("UTF-8").length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(response.getBytes("UTF-8"));
+        os.close();
+      } catch (Exception e) {
+        String err = "サーバーエラー: " + e.getMessage();
+        exchange.getResponseHeaders().set("Content-Type", "text/plain; charset=UTF-8");
+        exchange.sendResponseHeaders(500, err.getBytes("UTF-8").length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(err.getBytes("UTF-8"));
+        os.close();
+        e.printStackTrace();
       }
-      exchange.sendResponseHeaders(200, response.getBytes().length);
-      OutputStream os = exchange.getResponseBody();
-      os.write(response.getBytes());
-      os.close();
     }
   }
   // --- ログインAPI ---
@@ -385,20 +399,42 @@ public class HabitServer {
     public void handle(HttpExchange exchange) throws IOException {
       String response;
       String query = exchange.getRequestURI().getQuery();
-      String teamName = null, memberId = null;
+      String teamName = null;
       if (query != null) {
         String[] params = query.split("&");
         for (String param : params) {
           if (param.startsWith("teamName=")) teamName = java.net.URLDecoder.decode(param.substring(9), "UTF-8");
-          if (param.startsWith("memberId=")) memberId = java.net.URLDecoder.decode(param.substring(9), "UTF-8");
         }
       }
-      if (teamName == null || memberId == null || teamName.isEmpty() || memberId.isEmpty()) {
-        response = "パラメータが不正です";
+      // SESSION_IDヘッダからユーザ取得
+      String sessionId = null;
+      var headers = exchange.getRequestHeaders();
+      if (headers.containsKey("SESSION_ID")) {
+        sessionId = headers.getFirst("SESSION_ID");
+      }
+      if (teamName == null || teamName.isEmpty() || sessionId == null) {
+        response = "パラメータまたはセッションIDが不正です";
       } else {
-        TeamRepository repo = new TeamRepository();
-        boolean ok = repo.addMemberByTeamName(teamName, memberId);
-        response = ok ? "参加成功" : "参加失敗";
+        var user = authService.getUserBySession(sessionId);
+        if (user == null) {
+          response = "ユーザが見つかりません";
+        } else {
+          String memberId = user.getUserId();
+          TeamRepository repo = new TeamRepository();
+          boolean ok = repo.addMemberByTeamName(teamName, memberId);
+          if (ok) {
+            // 参加したチームIDを取得
+            String teamID = repo.findTeamIdByName(teamName);
+            if (teamID != null) {
+              user.addJoinedTeamId(teamID);
+              userRepository.save(user);
+              System.out.println("joinedTeamIds更新: userId=" + user.getUserId() +
+                ", username=" + user.getUsername() +
+                ", joinedTeamIds=" + user.getJoinedTeamIds());
+            }
+          }
+          response = ok ? "参加成功" : "参加失敗";
+        }
       }
       exchange.sendResponseHeaders(200, response.getBytes().length);
       OutputStream os = exchange.getResponseBody();
@@ -511,10 +547,11 @@ public class HabitServer {
     }
   }
   /**
-   * 現在ログイン中ユーザの情報を返すAPI
-   * joinedTeamIds=... の形式で返す
+   * 現在ログイン中ユーザのuserId, joinedTeamIds, joinedTeamNamesを取得するAPI。
+   * ユーザがログインしている場合、SESSION_IDヘッダからセッションIDを取得し、
+   * ユーザ情報を返す。
    */
-  static class GetUserInfoHandler implements HttpHandler {
+  static class GetJoinedTeamInfoHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
       String sessionId = null;
       var headers = exchange.getRequestHeaders();
@@ -545,4 +582,37 @@ public class HabitServer {
       os.close();
     }
   }
+    /**
+     * セッションIDからUserを検索し、そのuserIdからUserTaskStatus中の該当TaskId一覧を返すAPI。
+     * /getUserTaskIds エンドポイント
+     * SESSION_IDヘッダ必須
+     */
+    static class GetUserTaskIdsHandler implements HttpHandler {
+      public void handle(HttpExchange exchange) throws IOException {
+        String sessionId = null;
+        var headers = exchange.getRequestHeaders();
+        if (headers.containsKey("SESSION_ID")) {
+          sessionId = headers.getFirst("SESSION_ID");
+        }
+        String response = "taskIds=";
+        if (sessionId != null) {
+          var user = authService.getUserBySession(sessionId);
+          if (user != null) {
+            String userId = user.getUserId();
+            UserTaskStatusRepository repo = new UserTaskStatusRepository();
+            List<com.habit.domain.UserTaskStatus> statusList = repo.findByUserId(userId);
+            // TaskIdのみ抽出し重複排除
+            java.util.Set<String> taskIds = new java.util.HashSet<>();
+            for (com.habit.domain.UserTaskStatus status : statusList) {
+              taskIds.add(status.getTaskId());
+            }
+            response = "taskIds=" + String.join(",", taskIds);
+          }
+        }
+        exchange.sendResponseHeaders(200, response.getBytes().length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(response.getBytes());
+        os.close();
+      }
+    }
 }

@@ -37,6 +37,87 @@ public class TeamTopController {
 
     public void setTeamID(String teamID) {
         this.teamID = teamID;
+        // teamIDがセットされたタイミングで初期化処理を呼ぶ
+        loadTeamTasksAndUserTasks();
+        loadChatLog();
+    }
+
+    // チームタスク・ユーザタスク取得＆フィルタ処理（タスク名表示対応）
+    private void loadTeamTasksAndUserTasks() {
+        new Thread(() -> {
+            try {
+                // 1. チームのタスク一覧取得（taskId→taskNameマップ作成）
+                com.habit.server.TaskRepository repo = new com.habit.server.TaskRepository();
+                java.util.List<com.habit.domain.Task> teamTaskObjs = repo.findTeamTasksByteamID(teamID);
+                java.util.Map<String, String> idToName = new java.util.HashMap<>();
+                for (com.habit.domain.Task t : teamTaskObjs) {
+                    idToName.put(t.getTaskId(), t.getTaskName());
+                }
+
+                // 2. サーバからチームタスクID一覧取得（従来通り）
+                URL url = new URL("http://localhost:8080/getTasks?id=" + URLEncoder.encode(teamID, "UTF-8"));
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(3000);
+                conn.setReadTimeout(3000);
+                java.util.List<String> teamTasks = new java.util.ArrayList<>();
+                try (BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"))) {
+                    String line;
+                    while ((line = in.readLine()) != null) {
+                        if (!line.trim().isEmpty()) {
+                            teamTasks.add(line.trim());
+                        }
+                    }
+                }
+
+                // 3. ユーザのタスクID一覧取得
+                String sessionId = LoginController.getSessionId();
+                URL url2 = new URL("http://localhost:8080/getUserTaskIds");
+                HttpURLConnection conn2 = (HttpURLConnection) url2.openConnection();
+                conn2.setRequestMethod("GET");
+                conn2.setRequestProperty("SESSION_ID", sessionId);
+                conn2.setConnectTimeout(3000);
+                conn2.setReadTimeout(3000);
+                java.util.Set<String> userTaskIds = new java.util.HashSet<>();
+                try (BufferedReader in2 = new BufferedReader(new InputStreamReader(conn2.getInputStream(), "UTF-8"))) {
+                    String response2 = in2.readLine();
+                    if (response2 != null && response2.startsWith("taskIds=")) {
+                        String[] ids = response2.substring(8).split(",");
+                        for (String id : ids) {
+                            if (!id.trim().isEmpty()) {
+                                userTaskIds.add(id.trim());
+                            }
+                        }
+                    }
+                }
+
+                // 4. 両方に含まれるタスクIDのみ抽出
+                java.util.List<String> filteredTasks = new java.util.ArrayList<>();
+                for (String task : teamTasks) {
+                    if (userTaskIds.contains(task)) {
+                        filteredTasks.add(task);
+                    }
+                }
+
+                // 5. タスクID→タスク名変換
+                java.util.List<String> filteredTaskNames = new java.util.ArrayList<>();
+                for (String id : filteredTasks) {
+                    String name = idToName.get(id);
+                    if (name != null) {
+                        filteredTaskNames.add(name);
+                    } else {
+                        filteredTaskNames.add(id); // 名前が取得できなければID表示
+                    }
+                }
+
+                // 6. UIスレッドで表示
+                Platform.runLater(() -> {
+                    todayTaskList.getItems().setAll(filteredTaskNames);
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
     public String getTeamID() {
         return teamID;
@@ -44,11 +125,9 @@ public class TeamTopController {
 
     @FXML
     public void initialize() {
-        // 仮データ削除
-        todayTaskList.getItems().addAll("タスク1", "タスク2", "タスク3");
+        // UI部品の初期化のみ行う（データ取得はsetTeamIDで行う）
         teamCharView.setImage(new Image(
             "https://raw.githubusercontent.com/google/material-design-icons/master/png/social/mood/materialicons/48dp/2x/baseline_mood_black_48dp.png", true));
-        // TableViewのカラムやデータは必要に応じて追加
 
         btnBackHome.setOnAction(e -> {
             try {
@@ -83,9 +162,6 @@ public class TeamTopController {
             }
         });
 
-        // チャットログの初期読み込み
-        loadChatLog();
-        // タスク作成ボタン
         btnCreateTask.setOnAction(e -> {
             try {
                 javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/TaskCreate.fxml"));

@@ -7,6 +7,23 @@ import java.util.List;
 public class TeamRepository {
     private static final String DB_URL = "jdbc:sqlite:habit.db";
 
+    // teamNameからteamIDを取得
+    public String findTeamIdByName(String teamName) {
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String sql = "SELECT id FROM teams WHERE teamName = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, teamName);
+                ResultSet rs = pstmt.executeQuery();
+                if (rs.next()) {
+                    return rs.getString("id");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     public TeamRepository() {
         try (Connection conn = DriverManager.getConnection(DB_URL);
              Statement stmt = conn.createStatement()) {

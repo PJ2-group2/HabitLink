@@ -21,7 +21,7 @@ public class DatabaseTaskManager extends TaskManager {
 
     @Override
     public synchronized void addTask(String task) {
-        String sql = "INSERT INTO tasks(team_id, task) VALUES(?, ?)";
+        String sql = "INSERT INTO tasks(teamId, taskId) VALUES(?, ?)";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, teamID);
             ps.setString(2, task);
@@ -33,7 +33,7 @@ public class DatabaseTaskManager extends TaskManager {
 
     @Override
     public synchronized List<String> getTasks() {
-        String sql = "SELECT task FROM tasks WHERE team_id=?";
+        String sql = "SELECT taskId FROM tasks WHERE teamId=?";
         List<String> tasks = new ArrayList<>();
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, teamID);
@@ -50,7 +50,7 @@ public class DatabaseTaskManager extends TaskManager {
 
     @Override
     public synchronized boolean taskExists(String task) {
-        String sql = "SELECT 1 FROM tasks WHERE team_id=? AND task=? LIMIT 1";
+        String sql = "SELECT 1 FROM tasks WHERE teamId=? AND taskId=? LIMIT 1";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, teamID);
             ps.setString(2, task);
