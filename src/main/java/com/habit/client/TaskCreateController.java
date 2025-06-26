@@ -101,7 +101,7 @@ public class TaskCreateController {
             if (sessionId != null && !sessionId.isEmpty()) {
                 java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
                 java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
-                    .uri(java.net.URI.create("http://localhost:8080/getUserInfo"))
+                    .uri(java.net.URI.create("http://localhost:8080/getJoinedTeamInfo"))
                     .header("SESSION_ID", sessionId)
                     .GET()
                     .build();

@@ -24,7 +24,7 @@ public class HomeController {
         try {
             java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
             java.net.http.HttpRequest.Builder reqBuilder = java.net.http.HttpRequest.newBuilder()
-                .uri(java.net.URI.create("http://localhost:8080/getUserInfo"))
+                .uri(java.net.URI.create("http://localhost:8080/getJoinedTeamInfo"))
                 .GET();
             // セッションIDをヘッダに付与
             String sessionId = LoginController.getSessionId();

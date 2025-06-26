@@ -38,7 +38,7 @@ public class HabitServer {
     server.createContext("/findTeamByPasscode", new FindTeamByPasscodeHandler()); // 合言葉検索
     server.createContext("/sendChatMessage", new SendChatMessageHandler()); // チャット送信
     server.createContext("/getChatLog", new GetChatLogHandler()); // チャット履歴取得
-    server.createContext("/getUserInfo", new GetUserInfoHandler()); // ユーザ情報取得API追加
+    server.createContext("/getJoinedTeamInfo", new GetJoinedTeamInfoHandler()); // 参加チーム取得
     server.setExecutor(null);
     server.start();
     System.out.println("サーバが起動しました: http://localhost:8080/hello");
@@ -511,10 +511,11 @@ public class HabitServer {
     }
   }
   /**
-   * 現在ログイン中ユーザの情報を返すAPI
-   * joinedTeamIds=... の形式で返す
+   * 現在ログイン中ユーザのuserId, joinedTeamIds, joinedTeamNamesを取得するAPI。
+   * ユーザがログインしている場合、SESSION_IDヘッダからセッションIDを取得し、
+   * ユーザ情報を返す。
    */
-  static class GetUserInfoHandler implements HttpHandler {
+  static class GetJoinedTeamInfoHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
       String sessionId = null;
       var headers = exchange.getRequestHeaders();
