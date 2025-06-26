@@ -17,6 +17,8 @@ public class HomeController {
 
     // チーム名→IDのマップ
     private java.util.Map<String, String> teamNameToIdMap = new java.util.HashMap<>();
+    // ユーザーIDを保存
+    private String userId;
 
     @FXML
     public void initialize() {
@@ -41,10 +43,20 @@ public class HomeController {
                 String[] teamNames = null;
                 String[] teamIds = null;
                 for (String line : lines) {
+                    if (line.startsWith("userId=")) {
+                        String id = line.substring("userId=".length());
+                        if (!id.isEmpty()) {
+                            userId = id.trim();
+                        }
+                    }
                     if (line.startsWith("joinedTeamNames=")) {
                         String joined = line.substring("joinedTeamNames=".length());
                         if (!joined.isEmpty()) {
                             teamNames = joined.split(",");
+                        }
+                        // userIdをログ出力
+                        if (userId != null) {
+                            System.out.println("HomeController: userId=" + userId);
                         }
                     }
                     if (line.startsWith("joinedTeamIds=")) {
@@ -102,6 +114,11 @@ public class HomeController {
                     String teamId = teamNameToIdMap.get(selected);
                     if (teamId != null) {
                         controller.setTeamID(teamId);
+                    }
+                    // userIdも渡す
+                    if (userId != null) {
+                        controller.setUserId(userId);
+                        System.out.println("HomeController: TeamTopControllerにuserIdを渡しました: " + userId);
                     }
                     stage.setScene(new javafx.scene.Scene(root));
                     stage.setTitle("チームトップ");

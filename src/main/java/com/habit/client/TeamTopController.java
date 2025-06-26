@@ -14,6 +14,15 @@ import org.json.*;
 public class TeamTopController {
     @FXML
     private Label teamNameLabel;
+
+    // ユーザーID保持用
+    private String userId;
+
+    // userIdのsetter
+    public void setUserId(String userId) {
+        this.userId = userId;
+        System.out.println("TeamTopController: userIdを受け取りました: " + userId);
+    }
     @FXML
     private Button btnBackHome;
     @FXML
