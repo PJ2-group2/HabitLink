@@ -86,26 +86,48 @@ public class PersonalPageController {
             String remainStr = (dueTime != null) ? "残り: " + getRemainingTimeString(dueTime) : "";
             tileBtn.setText(name + (remainStr.isEmpty() ? "" : "\n" + remainStr));
             tileBtn.setOnAction(ev -> {
-                // タスク完了処理
-                try {
-                    if (userId == null || userId.isEmpty()) {
-                        System.err.println("エラー: userIdが未設定です。タスク完了処理を中止します。");
-                        return;
+                // 確認ダイアログを表示
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                alert.setTitle("タスク消化の確認");
+                alert.setHeaderText(null);
+                alert.setContentText("このタスクを消化しますか？");
+                Optional<ButtonType> result = alert.showAndWait();
+                if (result.isPresent() && result.get() == ButtonType.OK) {
+                    // タスク完了処理
+                    try {
+                        if (userId == null || userId.isEmpty()) {
+                            System.err.println("エラー: userIdが未設定です。タスク完了処理を中止します。");
+                            return;
+                        }
+                        String taskId = task.getTaskId();
+                        LocalDate date = LocalDate.now();
+                        UserTaskStatusRepository repo = new UserTaskStatusRepository();
+                        Optional<UserTaskStatus> optStatus = repo.findByUserIdAndTaskIdAndDate(userId, taskId, date);
+                        UserTaskStatus status = optStatus.orElseGet(() ->
+                            new UserTaskStatus(userId, taskId, date, false)
+                        );
+                        status.setDone(true);
+                        repo.save(status);
+                        System.out.println("タスク完了: userId=" + userId + ", taskId=" + taskId + ", 完了時刻=" + status.getCompletionTimestamp());
+                            // 個人画面を再読み込み
+                            try {
+                                javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/PersonalPage.fxml"));
+                                javafx.scene.Parent root = loader.load();
+                                PersonalPageController controller = loader.getController();
+                                controller.setUserId(userId);
+                                controller.setTeamID(teamID);
+                                controller.setTeamName(teamName);
+                                javafx.stage.Stage stage = (javafx.stage.Stage) taskTilePane.getScene().getWindow();
+                                stage.setScene(new javafx.scene.Scene(root));
+                                stage.setTitle("個人ページ");
+                            } catch (Exception ex) {
+                                ex.printStackTrace();
+                            }
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
-                    String taskId = task.getTaskId();
-                    LocalDate date = LocalDate.now();
-                    UserTaskStatusRepository repo = new UserTaskStatusRepository();
-                    Optional<UserTaskStatus> optStatus = repo.findByUserIdAndTaskIdAndDate(userId, taskId, date);
-                    UserTaskStatus status = optStatus.orElseGet(() ->
-                        new UserTaskStatus(userId, taskId, date, false)
-                    );
-                    status.setDone(true);
-                    repo.save(status);
-                    System.out.println("タスク完了: userId=" + userId + ", taskId=" + taskId + ", 完了時刻=" + status.getCompletionTimestamp());
-                } catch (Exception e) {
-                    e.printStackTrace();
+                    System.out.println("タスク選択: " + name);
                 }
-                System.out.println("タスク選択: " + name);
             });
             taskTilePane.getChildren().add(tileBtn);
         }
