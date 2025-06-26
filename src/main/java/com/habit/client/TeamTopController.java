@@ -17,6 +17,8 @@ public class TeamTopController {
 
     // ユーザーID保持用
     private String userId;
+    // チャットID保持用
+    private String chatId;
 
     // userIdのsetter
     public void setUserId(String userId) {
@@ -57,6 +59,12 @@ public class TeamTopController {
     // セッションIDのsetter
     public void setSessionID(String sessionID) {
         this.sessionID = sessionID;
+    }
+
+    // chatIdのsetter
+    public void setChatId(String chatId) {
+        this.chatId = chatId;
+        System.out.println("TeamTopController: chatIdを受け取りました: " + chatId);
     }
 
     // チームタスク・ユーザタスク取得＆フィルタ処理（タスク名表示対応）
@@ -182,6 +190,7 @@ public class TeamTopController {
                 javafx.scene.Parent root = loader.load();
                 ChatController controller = loader.getController();
                 controller.setUserId(userId); // userIdを渡す
+                controller.setTeamID(teamID); // チームIDのみ渡す
                 javafx.stage.Stage stage = (javafx.stage.Stage) btnToChat.getScene().getWindow();
                 stage.setScene(new javafx.scene.Scene(root));
                 stage.setTitle("チームチャット");

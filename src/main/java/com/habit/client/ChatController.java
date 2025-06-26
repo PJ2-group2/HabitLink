@@ -13,6 +13,8 @@ public class ChatController {
         this.userId = userId;
     }
     @FXML
+    private Label teamNameLabel;
+    @FXML
     private ListView<String> chatList;
     @FXML
     private TextField chatInput;
@@ -23,12 +25,55 @@ public class ChatController {
 
     private final String serverUrl = "http://localhost:8080/sendChatMessage";
     private final String chatLogUrl = "http://localhost:8080/getChatLog";
-    private final String teamID = "team1"; // 実際は動的に設定
+    private String teamID = "team1"; // 実際は動的に設定
     private String userId; // 遷移元からセットする
+    private String teamName; // チーム名も保持
+
+    public void setTeamName(String teamName) {
+        this.teamName = teamName;
+        if (teamNameLabel != null) {
+            teamNameLabel.setText(teamName);
+        }
+    }
+
+    public void setTeamID(String teamID) {
+        this.teamID = teamID;
+        fetchAndSetTeamName(teamID);
+    }
+
+    private void fetchAndSetTeamName(String teamID) {
+        new Thread(() -> {
+            try {
+                String urlStr = "http://localhost:8080/getTeamName?teamID=" + java.net.URLEncoder.encode(teamID, "UTF-8");
+                java.net.URL url = new java.net.URL(urlStr);
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setConnectTimeout(3000);
+                conn.setReadTimeout(3000);
+
+                try (java.io.BufferedReader in = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream(), "UTF-8"))) {
+                    String name = in.readLine();
+                    if (name != null && !name.isEmpty()) {
+                        javafx.application.Platform.runLater(() -> {
+                            teamName = name;
+                            if (teamNameLabel != null) {
+                                teamNameLabel.setText(teamName);
+                            }
+                        });
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
 
     @FXML
     public void initialize() {
         loadChatLog();
+        if (teamNameLabel != null && teamName != null) {
+            teamNameLabel.setText(teamName);
+        }
 
         btnSend.setOnAction(e -> {
             String msg = chatInput.getText();
@@ -40,8 +85,13 @@ public class ChatController {
 
         btnBackToTeamTop.setOnAction(e -> {
             try {
+                javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/TeamTop.fxml"));
+                javafx.scene.Parent root = loader.load();
+                TeamTopController controller = loader.getController();
+                controller.setUserId(userId);
+                controller.setTeamID(teamID);
+                controller.setTeamName(teamName); // チーム名も渡す
                 javafx.stage.Stage stage = (javafx.stage.Stage) btnBackToTeamTop.getScene().getWindow();
-                javafx.scene.Parent root = javafx.fxml.FXMLLoader.load(getClass().getResource("/com/habit/client/gui/TeamTop.fxml"));
                 stage.setScene(new javafx.scene.Scene(root));
                 stage.setTitle("チームトップ");
             } catch (Exception ex) {
