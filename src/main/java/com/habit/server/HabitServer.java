@@ -24,6 +24,8 @@ public class HabitServer {
   // ユーザ認証用サービス
   private static UserRepository userRepository = new UserRepository();
   private static AuthService authService = new AuthService(userRepository);
+  // チャットサービス用リポジトリ
+  private static MessageRepository messageRepository = new MessageRepository();
 
   public static void main(String[] args) throws Exception {
     // サーバを8080番ポートで起動
@@ -445,8 +447,6 @@ public class HabitServer {
 
   // --- チャット履歴取得API ---
   static class GetChatLogHandler implements HttpHandler {
-    // メモリ上にチャット履歴を保持（teamIDごと）
-    private static final java.util.Map<String, java.util.List<String>> chatLogMap = SendChatMessageHandler.chatLogMap;
 
     public void handle(HttpExchange exchange) throws IOException {
       String query = exchange.getRequestURI().getQuery();
@@ -463,14 +463,18 @@ public class HabitServer {
       if (teamID == null) {
         response = "[]";
       } else {
-        java.util.List<String> log = chatLogMap.getOrDefault(teamID, new java.util.ArrayList<>());
-        // 最新limit件だけ返す
-        java.util.List<String> limited = log.size() > limit ? log.subList(log.size() - limit, log.size()) : log;
+        List<com.habit.domain.Message> messages = messageRepository.findMessagesByteamID(teamID, limit);
         // JSON配列形式で返す
         StringBuilder sb = new StringBuilder("[");
-        for (int i = 0; i < limited.size(); i++) {
-          sb.append(limited.get(i));
-          if (i < limited.size() - 1) sb.append(",");
+        for (int i = 0; i < messages.size(); i++) {
+          com.habit.domain.Message msg = messages.get(i);
+          String username = userRepository.findById(msg.getSenderId()).getUsername();
+          String json = String.format("{\"senderId\":\"%s\",\"username\":\"%s\",\"content\":\"%s\"}",
+              msg.getSenderId().replace("\"","\\\""), 
+              username.replace("\"","\\\""), 
+              msg.getContent().replace("\"","\\\""));
+          sb.append(json);
+          if (i < messages.size() - 1) sb.append(",");
         }
         sb.append("]");
         response = sb.toString();
@@ -485,8 +489,6 @@ public class HabitServer {
 
   // --- チャット送信API ---
   static class SendChatMessageHandler implements HttpHandler {
-    // メモリ上にチャット履歴を保持（teamIDごと）
-    static final java.util.Map<String, java.util.List<String>> chatLogMap = new java.util.HashMap<>();
     public void handle(HttpExchange exchange) throws IOException {
       if (!"POST".equals(exchange.getRequestMethod())) {
         String response = "POSTメソッドのみ対応";
@@ -531,12 +533,10 @@ public class HabitServer {
         } catch (Exception ex) {
           ex.printStackTrace();
         }
-        // チャット履歴をメモリに保存（JSON形式で）
-        String json = String.format("{\"senderId\":\"%s\",\"username\":\"%s\",\"content\":\"%s\"}",
-          senderId.replace("\"","\\\""), username.replace("\"","\\\""), content.replace("\"","\\\""));
-        synchronized (chatLogMap) {
-          chatLogMap.computeIfAbsent(teamID, k -> new java.util.ArrayList<>()).add(json);
-        }
+        // チャット履歴をDBに保存
+        com.habit.domain.Message message = new com.habit.domain.Message(content, senderId, teamID, content, com.habit.domain.MessageType.NORMAL);
+        messageRepository.save(message);
+
         System.out.println("[チャット] teamID=" + teamID + ", senderId=" + senderId + ", username=" + username + ", content=" + content);
         response = "チャット送信成功";
         exchange.sendResponseHeaders(200, response.getBytes().length);
