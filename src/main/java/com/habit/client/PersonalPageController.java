@@ -23,7 +23,20 @@ public class PersonalPageController {
 
     // チームトップからタスク一覧を受け取る用
     public void setUserTasks(List<com.habit.domain.Task> tasks) {
-        this.tasks = tasks != null ? tasks : new ArrayList<>();
+        List<com.habit.domain.Task> filtered = new ArrayList<>();
+        if (tasks != null) {
+            com.habit.server.UserTaskStatusRepository statusRepo = new com.habit.server.UserTaskStatusRepository();
+            java.time.LocalDate today = java.time.LocalDate.now();
+            for (com.habit.domain.Task t : tasks) {
+                java.util.Optional<com.habit.domain.UserTaskStatus> statusOpt =
+                    statusRepo.findByUserIdAndTaskIdAndDate(userId, t.getTaskId(), today);
+                boolean isDone = statusOpt.map(com.habit.domain.UserTaskStatus::isDone).orElse(false);
+                if (!isDone) {
+                    filtered.add(t);
+                }
+            }
+        }
+        this.tasks = filtered;
         updateTaskTiles();
     }
 

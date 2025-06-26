@@ -153,7 +153,9 @@ public class TaskCreateController {
             javafx.scene.Parent root = loader.load();
             // チームIDを再セット
             TeamTopController controller = loader.getController();
+            controller.setUserId(userId);
             controller.setTeamID(teamID);
+            controller.setTeamName(teamName);
             stage.setScene(new javafx.scene.Scene(root));
             stage.setTitle("チームトップ");
             stage.show();

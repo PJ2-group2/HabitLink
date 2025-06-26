@@ -117,7 +117,14 @@ public class TeamTopController {
                 java.util.List<String> filteredTasks = new java.util.ArrayList<>();
                 for (String task : teamTasks) {
                     if (userTaskIds.contains(task)) {
-                        filteredTasks.add(task);
+                        // 未完了タスクのみ追加
+                        com.habit.server.UserTaskStatusRepository statusRepo = new com.habit.server.UserTaskStatusRepository();
+                        java.time.LocalDate today = java.time.LocalDate.now();
+                        java.util.Optional<com.habit.domain.UserTaskStatus> statusOpt = statusRepo.findByUserIdAndTaskIdAndDate(userId, task, today);
+                        boolean isDone = statusOpt.map(com.habit.domain.UserTaskStatus::isDone).orElse(false);
+                        if (!isDone) {
+                            filteredTasks.add(task);
+                        }
                     }
                 }
 
@@ -247,7 +254,13 @@ public class TeamTopController {
             java.util.List<com.habit.domain.Task> filteredTasks = new java.util.ArrayList<>();
             for (com.habit.domain.Task t : teamTaskObjs) {
                 if (userTaskIds.contains(t.getTaskId())) {
-                    filteredTasks.add(t);
+                    com.habit.server.UserTaskStatusRepository statusRepo = new com.habit.server.UserTaskStatusRepository();
+                    java.time.LocalDate today = java.time.LocalDate.now();
+                    java.util.Optional<com.habit.domain.UserTaskStatus> statusOpt = statusRepo.findByUserIdAndTaskIdAndDate(userId, t.getTaskId(), today);
+                    boolean isDone = statusOpt.map(com.habit.domain.UserTaskStatus::isDone).orElse(false);
+                    if (!isDone) {
+                        filteredTasks.add(t);
+                    }
                 }
             }
             return filteredTasks;
