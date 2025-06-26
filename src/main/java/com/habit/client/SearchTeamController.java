@@ -56,15 +56,17 @@ public class SearchTeamController {
         btnJoin.setOnAction(e -> {
             if (foundTeamName == null) return;
             // 仮のユーザID: 実際はログインユーザ名等を使う
-            String memberId = System.getProperty("user.name");
             try {
                 java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
-                String url = "http://localhost:8080/joinTeam?teamName=" + java.net.URLEncoder.encode(foundTeamName, "UTF-8")
-                        + "&memberId=" + java.net.URLEncoder.encode(memberId, "UTF-8");
-                java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                String url = "http://localhost:8080/joinTeam?teamName=" + java.net.URLEncoder.encode(foundTeamName, "UTF-8");
+                String sessionId = com.habit.client.LoginController.getSessionId();
+                java.net.http.HttpRequest.Builder reqBuilder = java.net.http.HttpRequest.newBuilder()
                     .uri(java.net.URI.create(url))
-                    .GET()
-                    .build();
+                    .GET();
+                if (sessionId != null && !sessionId.isEmpty()) {
+                    reqBuilder.header("SESSION_ID", sessionId);
+                }
+                java.net.http.HttpRequest request = reqBuilder.build();
                 java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
                 String body = response.body();
                 if (body.contains("参加成功")) {

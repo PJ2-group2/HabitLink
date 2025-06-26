@@ -34,6 +34,7 @@ public class HabitServer {
     server.createContext("/login", new LoginHandler());           // ログイン
     server.createContext("/register", new RegisterHandler());     // 新規登録
     server.createContext("/createTeam", new CreateTeamHandler());   // チーム作成
+    server.createContext("/joinTeam", new JoinTeamHandler());     // チーム参加
     server.createContext("/publicTeams", new PublicTeamsHandler()); // 公開チーム一覧
     server.createContext("/findTeamByPasscode", new FindTeamByPasscodeHandler()); // 合言葉検索
     server.createContext("/sendChatMessage", new SendChatMessageHandler()); // チャット送信
@@ -385,20 +386,42 @@ public class HabitServer {
     public void handle(HttpExchange exchange) throws IOException {
       String response;
       String query = exchange.getRequestURI().getQuery();
-      String teamName = null, memberId = null;
+      String teamName = null;
       if (query != null) {
         String[] params = query.split("&");
         for (String param : params) {
           if (param.startsWith("teamName=")) teamName = java.net.URLDecoder.decode(param.substring(9), "UTF-8");
-          if (param.startsWith("memberId=")) memberId = java.net.URLDecoder.decode(param.substring(9), "UTF-8");
         }
       }
-      if (teamName == null || memberId == null || teamName.isEmpty() || memberId.isEmpty()) {
-        response = "パラメータが不正です";
+      // SESSION_IDヘッダからユーザ取得
+      String sessionId = null;
+      var headers = exchange.getRequestHeaders();
+      if (headers.containsKey("SESSION_ID")) {
+        sessionId = headers.getFirst("SESSION_ID");
+      }
+      if (teamName == null || teamName.isEmpty() || sessionId == null) {
+        response = "パラメータまたはセッションIDが不正です";
       } else {
-        TeamRepository repo = new TeamRepository();
-        boolean ok = repo.addMemberByTeamName(teamName, memberId);
-        response = ok ? "参加成功" : "参加失敗";
+        var user = authService.getUserBySession(sessionId);
+        if (user == null) {
+          response = "ユーザが見つかりません";
+        } else {
+          String memberId = user.getUserId();
+          TeamRepository repo = new TeamRepository();
+          boolean ok = repo.addMemberByTeamName(teamName, memberId);
+          if (ok) {
+            // 参加したチームIDを取得
+            String teamID = repo.findTeamIdByName(teamName);
+            if (teamID != null) {
+              user.addJoinedTeamId(teamID);
+              userRepository.save(user);
+              System.out.println("joinedTeamIds更新: userId=" + user.getUserId() +
+                ", username=" + user.getUsername() +
+                ", joinedTeamIds=" + user.getJoinedTeamIds());
+            }
+          }
+          response = ok ? "参加成功" : "参加失敗";
+        }
       }
       exchange.sendResponseHeaders(200, response.getBytes().length);
       OutputStream os = exchange.getResponseBody();
