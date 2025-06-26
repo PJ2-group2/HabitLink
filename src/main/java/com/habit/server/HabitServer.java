@@ -449,41 +449,54 @@ public class HabitServer {
   static class GetChatLogHandler implements HttpHandler {
 
     public void handle(HttpExchange exchange) throws IOException {
-      String query = exchange.getRequestURI().getQuery();
-      String teamID = null;
-      int limit = 50;
-      if (query != null) {
-        String[] params = query.split("&");
-        for (String param : params) {
-          if (param.startsWith("teamID=")) teamID = java.net.URLDecoder.decode(param.substring(7), "UTF-8");
-          if (param.startsWith("limit=")) try { limit = Integer.parseInt(param.substring(6)); } catch (Exception ignored) {}
+      try {
+        String query = exchange.getRequestURI().getQuery();
+        String teamID = null;
+        int limit = 50;
+        if (query != null) {
+          String[] params = query.split("&");
+          for (String param : params) {
+            if (param.startsWith("teamID=")) teamID = java.net.URLDecoder.decode(param.substring(7), "UTF-8");
+            if (param.startsWith("limit=")) try { limit = Integer.parseInt(param.substring(6)); } catch (Exception ignored) {}
+          }
         }
-      }
-      String response;
-      if (teamID == null) {
-        response = "[]";
-      } else {
-        List<com.habit.domain.Message> messages = messageRepository.findMessagesByteamID(teamID, limit);
-        // JSON配列形式で返す
-        StringBuilder sb = new StringBuilder("[");
-        for (int i = 0; i < messages.size(); i++) {
-          com.habit.domain.Message msg = messages.get(i);
-          String username = userRepository.findById(msg.getSenderId()).getUsername();
-          String json = String.format("{\"senderId\":\"%s\",\"username\":\"%s\",\"content\":\"%s\"}",
-              msg.getSenderId().replace("\"","\\\""), 
-              username.replace("\"","\\\""), 
-              msg.getContent().replace("\"","\\\""));
-          sb.append(json);
-          if (i < messages.size() - 1) sb.append(",");
+        String response;
+        if (teamID == null) {
+          response = "[]";
+        } else {
+          List<com.habit.domain.Message> messages = messageRepository.findMessagesByteamID(teamID, limit);
+          // JSON配列形式で返す
+          StringBuilder sb = new StringBuilder("[");
+          for (int i = 0; i < messages.size(); i++) {
+            com.habit.domain.Message msg = messages.get(i);
+            com.habit.domain.User user = userRepository.findById(msg.getSenderId());
+            String username = (user != null && user.getUsername() != null && !user.getUsername().isEmpty())
+                ? user.getUsername()
+                : "unknown";
+            String json = String.format("{\"senderId\":\"%s\",\"username\":\"%s\",\"content\":\"%s\"}",
+                msg.getSenderId().replace("\"","\\\""),
+                username.replace("\"","\\\""),
+                msg.getContent().replace("\"","\\\""));
+            sb.append(json);
+            if (i < messages.size() - 1) sb.append(",");
+          }
+          sb.append("]");
+          response = sb.toString();
         }
-        sb.append("]");
-        response = sb.toString();
+        exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+        exchange.sendResponseHeaders(200, response.getBytes().length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(response.getBytes());
+        os.close();
+      } catch (Exception e) {
+        e.printStackTrace();
+        String err = "[]";
+        exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+        exchange.sendResponseHeaders(200, err.getBytes().length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(err.getBytes());
+        os.close();
       }
-      exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
-      exchange.sendResponseHeaders(200, response.getBytes().length);
-      OutputStream os = exchange.getResponseBody();
-      os.write(response.getBytes());
-      os.close();
     }
   }
 
