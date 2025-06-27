@@ -45,6 +45,8 @@ public class HabitServer {
     server.createContext("/getJoinedTeamInfo", new GetJoinedTeamInfoHandler()); // 参加チーム取得
     server.createContext("/getUserTaskIds", new GetUserTaskIdsHandler()); // UserTaskStatusからTaskId取得
     server.createContext("/getTeamName", new GetTeamNameHandler()); // チーム名取得
+    // タスクID→タスク名マップ取得API
+    server.createContext("/getTaskIdNameMap", new GetTaskIdNameMapHandler());
     server.setExecutor(null);
     server.start();
     System.out.println("サーバが起動しました: http://localhost:8080/hello");
@@ -632,6 +634,41 @@ public class HabitServer {
     /**
      * /getTeamName?teamID=xxx でチーム名を返すAPI
      */
+    /**
+     * /getTaskIdNameMap?id=xxx でチームIDからタスクID→タスク名のマップ(JSON)を返すAPI
+     */
+    static class GetTaskIdNameMapHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            String query = exchange.getRequestURI().getQuery();
+            String teamID = null;
+            if (query != null && query.startsWith("id=")) {
+                teamID = java.net.URLDecoder.decode(query.substring(3), "UTF-8");
+            }
+            String response;
+            if (teamID == null || teamID.isEmpty()) {
+                response = "{}";
+            } else {
+                TaskRepository repo = new TaskRepository();
+                java.util.List<com.habit.domain.Task> tasks = repo.findTeamTasksByTeamID(teamID);
+                StringBuilder sb = new StringBuilder("{");
+                for (int i = 0; i < tasks.size(); i++) {
+                    var t = tasks.get(i);
+                    sb.append("\"").append(t.getTaskId().replace("\"", "\\\"")).append("\":");
+                    sb.append("\"").append(t.getTaskName().replace("\"", "\\\"")).append("\"");
+                    if (i < tasks.size() - 1) sb.append(",");
+                }
+                sb.append("}");
+                response = sb.toString();
+            }
+            exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+            exchange.sendResponseHeaders(200, response.getBytes("UTF-8").length);
+            OutputStream os = exchange.getResponseBody();
+            os.write(response.getBytes("UTF-8"));
+            os.close();
+        }
+    }
+
     static class GetTeamNameHandler implements HttpHandler {
         public void handle(HttpExchange exchange) throws IOException {
             String query = exchange.getRequestURI().getQuery();
@@ -652,6 +689,6 @@ public class HabitServer {
             OutputStream os = exchange.getResponseBody();
             os.write(response.getBytes("UTF-8"));
             os.close();
-        }
+}
     }
 }

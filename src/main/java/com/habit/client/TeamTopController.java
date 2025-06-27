@@ -160,15 +160,26 @@ public class TeamTopController {
     private void loadTeamTasksAndUserTasks() {
         new Thread(() -> {
             try {
-                // 1. チームのタスク一覧取得（taskId→taskNameマップ作成）
-                // Repositoryを設定
-                com.habit.server.TaskRepository repo = new com.habit.server.TaskRepository();
-                // RepositoryのメソッドによりチームIDからチーム内タスク一覧を取得
-                java.util.List<com.habit.domain.Task> teamTaskObjs = repo.findTeamTasksByTeamID(teamID);
-                // タスクID→タスク名のマップを作成
+                // 1. チームのタスクID→タスク名マップをサーバAPIから取得
                 java.util.Map<String, String> idToName = new java.util.HashMap<>();
-                for (com.habit.domain.Task t : teamTaskObjs) {
-                    idToName.put(t.getTaskId(), t.getTaskName());
+                URL mapUrl = new URL("http://localhost:8080/getTaskIdNameMap?id=" + URLEncoder.encode(teamID, "UTF-8"));
+                HttpURLConnection mapConn = (HttpURLConnection) mapUrl.openConnection();
+                mapConn.setRequestMethod("GET");
+                mapConn.setConnectTimeout(3000);
+                mapConn.setReadTimeout(3000);
+                try (BufferedReader in = new BufferedReader(new InputStreamReader(mapConn.getInputStream(), "UTF-8"))) {
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = in.readLine()) != null) {
+                        sb.append(line);
+                    }
+                    String json = sb.toString();
+                    if (!json.isEmpty() && json.startsWith("{")) {
+                        org.json.JSONObject obj = new org.json.JSONObject(json);
+                        for (String key : obj.keySet()) {
+                            idToName.put(key, obj.getString(key));
+                        }
+                    }
                 }
 
                 // 2. サーバからチームタスクID一覧取得
