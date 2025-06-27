@@ -1,33 +1,39 @@
 package com.habit.client;
 
+import javafx.fxml.FXML;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
+import javafx.scene.control.TextField;
+
 /**
  * ログイン画面のコントローラークラス。
  * ログイン・新規登録の切り替えや、サーバーとの認証処理を担当する。
  */
 public class LoginController {
     /** ユーザー名入力フィールド */
-    @javafx.fxml.FXML
-    private javafx.scene.control.TextField usernameField;
+    @FXML
+    private TextField usernameField;
     /** パスワード入力フィールド */
-    @javafx.fxml.FXML
-    private javafx.scene.control.PasswordField passwordField;
+    @FXML
+    private PasswordField passwordField;
     /** ログイン/新規登録ボタン */
-    @javafx.fxml.FXML
-    private javafx.scene.control.Button btnLogin;
+    @FXML
+    private Button btnLogin;
     /** モード切替ボタン */
-    @javafx.fxml.FXML
-    private javafx.scene.control.Button btnSwitchMode;
+    @FXML
+    private Button btnSwitchMode;
     /** ステータスメッセージ表示用ラベル */
-    @javafx.fxml.FXML
-    private javafx.scene.control.Label loginStatusLabel;
+    @FXML
+    private Label loginStatusLabel;
 
     /** 新規登録モードかどうかのフラグ */
     private boolean isRegisterMode = false;
 
-    /** サーバから返却されたセッションID（認証済みユーザー用） */
+    /** サーバから返却されたセッションID */
     private static String sessionId = null;
 
-    /** 現在のセッションIDを取得 */
+    /** 現在のセッションIDを取得するメソッド */
     public static String getSessionId() {
         return sessionId;
     }
@@ -36,9 +42,11 @@ public class LoginController {
      * コントローラー初期化処理。
      * モード切替ボタン押下時の動作を設定する。
      */
-    @javafx.fxml.FXML
+    @FXML
     public void initialize() {
-        btnSwitchMode.setOnAction(e -> {
+        // モード切替ボタンのアクション設定
+        // 初期状態はログインモード
+        btnSwitchMode.setOnAction(_ -> {
             isRegisterMode = !isRegisterMode;
             if (isRegisterMode) {
                 btnLogin.setText("新規登録");
@@ -52,35 +60,54 @@ public class LoginController {
     }
 
     /**
-     * ログイン/新規登録ボタン押下時の処理。
-     * サーバーへ認証リクエストを送り、結果に応じて画面遷移やエラーメッセージ表示を行う。
+     * ログイン/新規登録ボタンのアクションハンドラ。
+     * ユーザー名とパスワードを取得し、サーバーへ認証リクエストを送信する。
+     * 認証結果に応じて、ホーム画面へ遷移する。
      */
-    @javafx.fxml.FXML
+    @FXML
     public void handleLoginButtonAction(javafx.event.ActionEvent event) {
+        // ユーザー名とパスワードの取得
         String username = usernameField.getText().trim();
         String password = passwordField.getText().trim();
+        // 未入力ならエラーメッセージを表示
         if (username.isEmpty() || password.isEmpty()) {
             loginStatusLabel.setText("ユーザ名とパスワードを入力してください");
             return;
         }
         try {
+            // HTTPリクエストを送信するためのクライアントオブジェクトを作成。
             java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+
+            // モードに応じてURLを切り替える。
+            // 送信先URLを組み立てる。
             String url = isRegisterMode
-                ? "http://localhost:8080/register?username=" + java.net.URLEncoder.encode(username, "UTF-8") + "&password=" + java.net.URLEncoder.encode(password, "UTF-8")
-                : "http://localhost:8080/login?username=" + java.net.URLEncoder.encode(username, "UTF-8") + "&password=" + java.net.URLEncoder.encode(password, "UTF-8");
+                ? "http://localhost:8080/register"
+                : "http://localhost:8080/login";
+
+            // username, passwordをapplication/x-www-form-urlencoded形式でbodyに含める
+            String body = "username=" + java.net.URLEncoder.encode(username, "UTF-8")
+                        + "&password=" + java.net.URLEncoder.encode(password, "UTF-8");
+
             java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
                 .uri(java.net.URI.create(url))
-                .POST(java.net.http.HttpRequest.BodyPublishers.noBody())
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(java.net.http.HttpRequest.BodyPublishers.ofString(body))
                 .build();
+
+            // リクエストを送信し、レスポンスを受け取る。
+            // レスポンスのボディは文字列として取得する。    
             java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
-            String body = response.body();
-            if ((isRegisterMode && body.contains("登録成功")) || (!isRegisterMode && body.contains("ログイン成功"))) {
+
+            // 登録・認証が成功したかどうかをチェック
+            String responseBody = response.body();
+            if ((isRegisterMode && responseBody.contains("登録成功")) || (!isRegisterMode && responseBody.contains("ログイン成功"))) {
                 // セッションIDを取得して保存
-                if (body.contains("SESSION_ID:")) {
-                    int idx = body.indexOf("SESSION_ID:");
-                    sessionId = body.substring(idx + "SESSION_ID:".length()).trim();
+                // LoginController.getSessionId()を使うと、staticなsessionIdが取得できる
+                if (responseBody.contains("SESSION_ID:")) {
+                    int idx = responseBody.indexOf("SESSION_ID:");
+                    sessionId = responseBody.substring(idx + "SESSION_ID:".length()).trim();
                 }
-                // 認証成功時はホーム画面へ遷移
+                // ホーム画面へ遷移
                 javafx.application.Platform.runLater(() -> {
                     try {
                         javafx.stage.Stage stage = (javafx.stage.Stage) btnLogin.getScene().getWindow();
@@ -93,7 +120,7 @@ public class LoginController {
                 });
             } else {
                 // サーバーからのメッセージを表示
-                loginStatusLabel.setText(body);
+                loginStatusLabel.setText(responseBody);
             }
         } catch (Exception ex) {
             // サーバー接続エラー時の処理

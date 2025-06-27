@@ -21,7 +21,7 @@
     <bottom>
         <HBox spacing="20">
             <VBox>
-                <Label text="本日のタスク一覧"/>
+                <Label text="本日の未消化タスク一覧"/>
                 <ListView fx:id="todayTaskList" prefHeight="60"/>
             </VBox>
             <VBox>

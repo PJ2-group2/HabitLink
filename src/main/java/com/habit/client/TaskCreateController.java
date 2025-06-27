@@ -7,12 +7,6 @@ import java.time.LocalTime;
 
 public class TaskCreateController {
 
-    private String teamID;
-
-    public void setTeamID(String teamID) {
-        this.teamID = teamID;
-    }
-
     @FXML private TextField taskNameField;
     @FXML private TextField descriptionField;
     @FXML private TextField estimatedMinutesField;
@@ -21,6 +15,23 @@ public class TaskCreateController {
     @FXML private ChoiceBox<String> cycleTypeChoice;
     @FXML private Button btnCreate;
     @FXML private Button btnCancel;
+
+    // 遷移元からセットする
+    private String userId;
+    private String teamID;
+    private String teamName = "チーム名未取得";
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
+    public void setTeamID(String teamID) {
+        this.teamID = teamID;
+    }
+
+    public void setTeamName(String teamName) {
+        this.teamName = teamName;
+    }
 
     @FXML
     private void initialize() {
@@ -142,7 +153,9 @@ public class TaskCreateController {
             javafx.scene.Parent root = loader.load();
             // チームIDを再セット
             TeamTopController controller = loader.getController();
+            controller.setUserId(userId);
             controller.setTeamID(teamID);
+            controller.setTeamName(teamName);
             stage.setScene(new javafx.scene.Scene(root));
             stage.setTitle("チームトップ");
             stage.show();
@@ -152,6 +165,7 @@ public class TaskCreateController {
     }
 
     @FXML
+    // キャンセルボタンのハンドラ
     private void handleBtnCancel() {
         try {
             Stage stage = (Stage) btnCancel.getScene().getWindow();
@@ -159,7 +173,9 @@ public class TaskCreateController {
             javafx.scene.Parent root = loader.load();
             // チームIDを再セット
             TeamTopController controller = loader.getController();
+            controller.setUserId(userId);
             controller.setTeamID(teamID);
+            controller.setTeamName(teamName);
             stage.setScene(new javafx.scene.Scene(root));
             stage.setTitle("チームトップ");
             stage.show();
