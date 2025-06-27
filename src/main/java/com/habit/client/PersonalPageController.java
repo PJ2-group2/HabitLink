@@ -34,15 +34,41 @@ public class PersonalPageController {
     public void setUserTasks(List<com.habit.domain.Task> tasks) {
         List<com.habit.domain.Task> filtered = new ArrayList<>();
         if (tasks != null) {
-            com.habit.server.UserTaskStatusRepository statusRepo = new com.habit.server.UserTaskStatusRepository();
-            java.time.LocalDate today = java.time.LocalDate.now();
-            for (com.habit.domain.Task t : tasks) {
-                java.util.Optional<com.habit.domain.UserTaskStatus> statusOpt =
-                    statusRepo.findByUserIdAndTaskIdAndDate(userId, t.getTaskId(), today);
-                boolean isDone = statusOpt.map(com.habit.domain.UserTaskStatus::isDone).orElse(false);
-                if (!isDone) {
-                    filtered.add(t);
+            try {
+                String sessionId = com.habit.client.LoginController.getSessionId();
+                java.time.LocalDate today = java.time.LocalDate.now();
+                java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+                String url = "http://localhost:8080/getUserTaskStatusList?teamID=" + java.net.URLEncoder.encode(teamID, "UTF-8")
+                        + "&date=" + today.toString();
+                java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                        .uri(java.net.URI.create(url))
+                        .timeout(java.time.Duration.ofSeconds(10))
+                        .header("SESSION_ID", sessionId)
+                        .GET()
+                        .build();
+                java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+                String json = response.body();
+                java.util.Set<String> doneTaskIds = new java.util.HashSet<>();
+                if (json != null && json.startsWith("[")) {
+                    org.json.JSONArray arr = new org.json.JSONArray(json);
+                    for (int i = 0; i < arr.length(); i++) {
+                        org.json.JSONObject obj = arr.getJSONObject(i);
+                        String taskId = obj.optString("taskId", null);
+                        boolean isDone = obj.optBoolean("isDone", false);
+                        if (isDone && taskId != null) {
+                            doneTaskIds.add(taskId);
+                        }
+                    }
                 }
+                for (com.habit.domain.Task t : tasks) {
+                    if (!doneTaskIds.contains(t.getTaskId())) {
+                        filtered.add(t);
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                // 失敗時は全件表示
+                filtered.addAll(tasks);
             }
         }
         this.tasks = filtered;

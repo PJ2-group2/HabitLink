@@ -53,6 +53,8 @@ public class HabitServer {
     server.setExecutor(null);
     // ユーザーの未完了タスク一覧取得API
     server.createContext("/getUserIncompleteTasks", new GetUserIncompleteTasksHandler());
+    // ユーザー・チーム・日付ごとの全UserTaskStatus（taskId, isDone）を返すAPI
+    server.createContext("/getUserTaskStatusList", new GetUserTaskStatusListHandler());
     server.start();
     System.out.println("サーバが起動しました: http://localhost:8080/hello");
   }
@@ -825,6 +827,66 @@ public class HabitServer {
                             sb.append("\"dueTime\":\"").append(dueTime.replace("\"", "\\\"")).append("\"");
                             sb.append("}");
                             if (i < filtered.size() - 1) sb.append(",");
+                        }
+                        sb.append("]");
+                        response = sb.toString();
+                    }
+                }
+                exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+                exchange.sendResponseHeaders(200, response.getBytes("UTF-8").length);
+                os = exchange.getResponseBody();
+                os.write(response.getBytes("UTF-8"));
+            } catch (Exception e) {
+                e.printStackTrace();
+                String errJson = "{\"error\":\"" + e.getClass().getSimpleName() + ": " + e.getMessage() + "\"}";
+                exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+                exchange.sendResponseHeaders(500, errJson.getBytes("UTF-8").length);
+                os = exchange.getResponseBody();
+                os.write(errJson.getBytes("UTF-8"));
+            } finally {
+                if (os != null) {
+                    try { os.close(); } catch (Exception ignore) {}
+                }
+            }
+        }
+    }
+    // --- ユーザー・チーム・日付ごとの全UserTaskStatus（taskId, isDone）を返すAPI ---
+    static class GetUserTaskStatusListHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            OutputStream os = null;
+            try {
+                String sessionId = null;
+                var headers = exchange.getRequestHeaders();
+                if (headers.containsKey("SESSION_ID")) {
+                    sessionId = headers.getFirst("SESSION_ID");
+                }
+                String query = exchange.getRequestURI().getQuery();
+                String teamID = null;
+                String dateStr = null;
+                if (query != null) {
+                    String[] params = query.split("&");
+                    for (String param : params) {
+                        if (param.startsWith("teamID=")) teamID = java.net.URLDecoder.decode(param.substring(7), "UTF-8");
+                        if (param.startsWith("date=")) dateStr = java.net.URLDecoder.decode(param.substring(5), "UTF-8");
+                    }
+                }
+                String response = "[]";
+                if (sessionId != null && teamID != null && dateStr != null) {
+                    var user = authService.getUserBySession(sessionId);
+                    if (user != null) {
+                        String userId = user.getUserId();
+                        UserTaskStatusRepository utsRepo = new UserTaskStatusRepository();
+                        java.time.LocalDate date = java.time.LocalDate.parse(dateStr);
+                        List<com.habit.domain.UserTaskStatus> statusList = utsRepo.findByUserIdAndTeamIdAndDate(userId, teamID, date);
+                        StringBuilder sb = new StringBuilder("[");
+                        for (int i = 0; i < statusList.size(); i++) {
+                            com.habit.domain.UserTaskStatus s = statusList.get(i);
+                            sb.append("{");
+                            sb.append("\"taskId\":\"").append(s.getTaskId().replace("\"", "\\\"")).append("\",");
+                            sb.append("\"isDone\":").append(s.isDone());
+                            sb.append("}");
+                            if (i < statusList.size() - 1) sb.append(",");
                         }
                         sb.append("]");
                         response = sb.toString();
