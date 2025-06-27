@@ -162,7 +162,7 @@ public class TeamTopController {
             try {
                 // 1. サーバAPIからチームのタスクID→タスク名マップを取得
                 java.util.Map<String, String> idToName = new java.util.HashMap<>(); // タスクID→タスク名のマップ
-                // 
+                // 送信先URLを組み立てる。
                 URL mapUrl = new URI(
                         "http://localhost:8080/getTaskIdNameMap?id=" + URLEncoder.encode(teamID, "UTF-8")).toURL();
                 HttpURLConnection mapConn = (HttpURLConnection) mapUrl.openConnection();

@@ -177,14 +177,18 @@ public class HabitServer {
         os.close();
         return;
       }
-      String query = exchange.getRequestURI().getQuery();
+      // POST bodyからusername, passwordを取得
+      byte[] bodyBytes = exchange.getRequestBody().readAllBytes();
+      String bodyStr = (bodyBytes != null) ? new String(bodyBytes, java.nio.charset.StandardCharsets.UTF_8) : "";
       String response;
       String username = null, password = null;
-      if (query != null) {
-        String[] params = query.split("&");
+      if (bodyStr != null && !bodyStr.isEmpty()) {
+        String[] params = bodyStr.split("&");
         for (String param : params) {
-          if (param.startsWith("username=")) username = param.substring(9);
-          if (param.startsWith("password=")) password = param.substring(9);
+          String[] kv = param.split("=", 2);
+          if (kv.length < 2) continue;
+          if (kv[0].equals("username")) username = java.net.URLDecoder.decode(kv[1], "UTF-8");
+          if (kv[0].equals("password")) password = java.net.URLDecoder.decode(kv[1], "UTF-8");
         }
       }
       if (username != null && password != null) {
@@ -223,14 +227,18 @@ public class HabitServer {
         os.close();
         return;
       }
-      String query = exchange.getRequestURI().getQuery();
+      // POST bodyからusername, passwordを取得
+      byte[] bodyBytes = exchange.getRequestBody().readAllBytes();
+      String bodyStr = (bodyBytes != null) ? new String(bodyBytes, java.nio.charset.StandardCharsets.UTF_8) : "";
       String response;
       String username = null, password = null;
-      if (query != null) {
-        String[] params = query.split("&");
+      if (bodyStr != null && !bodyStr.isEmpty()) {
+        String[] params = bodyStr.split("&");
         for (String param : params) {
-          if (param.startsWith("username=")) username = param.substring(9);
-          if (param.startsWith("password=")) password = param.substring(9);
+          String[] kv = param.split("=", 2);
+          if (kv.length < 2) continue;
+          if (kv[0].equals("username")) username = java.net.URLDecoder.decode(kv[1], "UTF-8");
+          if (kv[0].equals("password")) password = java.net.URLDecoder.decode(kv[1], "UTF-8");
         }
       }
       if (username != null && password != null) {

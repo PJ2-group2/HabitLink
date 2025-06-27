@@ -81,27 +81,31 @@ public class LoginController {
             // モードに応じてURLを切り替える。
             // 送信先URLを組み立てる。
             String url = isRegisterMode
-                ? "http://localhost:8080/register?username=" + java.net.URLEncoder.encode(username, "UTF-8") + "&password=" + java.net.URLEncoder.encode(password, "UTF-8")
-                : "http://localhost:8080/login?username=" + java.net.URLEncoder.encode(username, "UTF-8") + "&password=" + java.net.URLEncoder.encode(password, "UTF-8");
+                ? "http://localhost:8080/register"
+                : "http://localhost:8080/login";
 
-            // リクエストビルダーを使用してPOSTリクエストを作成
-            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder() // リクエスト作成を開始
-                .uri(java.net.URI.create(url)) // リクエストの送信先URLを設定
-                .POST(java.net.http.HttpRequest.BodyPublishers.noBody()) // POSTメソッドを指定, bodyは空
-                .build(); // リクエストをビルドして完成
+            // username, passwordをapplication/x-www-form-urlencoded形式でbodyに含める
+            String body = "username=" + java.net.URLEncoder.encode(username, "UTF-8")
+                        + "&password=" + java.net.URLEncoder.encode(password, "UTF-8");
+
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                .uri(java.net.URI.create(url))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(java.net.http.HttpRequest.BodyPublishers.ofString(body))
+                .build();
 
             // リクエストを送信し、レスポンスを受け取る。
             // レスポンスのボディは文字列として取得する。    
             java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
 
             // 登録・認証が成功したかどうかをチェック
-            String body = response.body();
-            if ((isRegisterMode && body.contains("登録成功")) || (!isRegisterMode && body.contains("ログイン成功"))) {
+            String responseBody = response.body();
+            if ((isRegisterMode && responseBody.contains("登録成功")) || (!isRegisterMode && responseBody.contains("ログイン成功"))) {
                 // セッションIDを取得して保存
                 // LoginController.getSessionId()を使うと、staticなsessionIdが取得できる
-                if (body.contains("SESSION_ID:")) {
-                    int idx = body.indexOf("SESSION_ID:");
-                    sessionId = body.substring(idx + "SESSION_ID:".length()).trim();
+                if (responseBody.contains("SESSION_ID:")) {
+                    int idx = responseBody.indexOf("SESSION_ID:");
+                    sessionId = responseBody.substring(idx + "SESSION_ID:".length()).trim();
                 }
                 // ホーム画面へ遷移
                 javafx.application.Platform.runLater(() -> {
@@ -116,7 +120,7 @@ public class LoginController {
                 });
             } else {
                 // サーバーからのメッセージを表示
-                loginStatusLabel.setText(body);
+                loginStatusLabel.setText(responseBody);
             }
         } catch (Exception ex) {
             // サーバー接続エラー時の処理
