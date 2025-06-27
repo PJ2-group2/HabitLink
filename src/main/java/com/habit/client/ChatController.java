@@ -50,7 +50,7 @@ public class ChatController {
         new Thread(() -> {
             try {
                 String urlStr = "http://localhost:8080/getTeamName?teamID=" + java.net.URLEncoder.encode(teamID, "UTF-8");
-                java.net.URL url = new java.net.URL(urlStr);
+                java.net.URL url = new URI(urlStr).toURL();
                 java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
                 conn.setConnectTimeout(3000);
@@ -80,7 +80,7 @@ public class ChatController {
             teamNameLabel.setText(teamName);
         }
 
-        btnSend.setOnAction(e -> {
+        btnSend.setOnAction(_ -> {
             String msg = chatInput.getText();
             if (msg != null && !msg.isEmpty()) {
                 sendChatMessage(msg);
@@ -88,7 +88,7 @@ public class ChatController {
             }
         });
 
-        btnBackToTeamTop.setOnAction(e -> {
+        btnBackToTeamTop.setOnAction(_ -> {
             try {
                 javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/TeamTop.fxml"));
                 javafx.scene.Parent root = loader.load();

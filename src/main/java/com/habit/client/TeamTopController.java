@@ -83,7 +83,7 @@ public class TeamTopController {
         teamCharView.setImage(new Image(
             "https://raw.githubusercontent.com/google/material-design-icons/master/png/social/mood/materialicons/48dp/2x/baseline_mood_black_48dp.png", true));
 
-        // ホームへ戻るボタンのイベントハンドラ
+        // ホームへ戻るボタンのアクション設定
         btnBackHome.setOnAction(_ -> {
             try {
                 javafx.stage.Stage stage = (javafx.stage.Stage) btnBackHome.getScene().getWindow();
@@ -95,7 +95,7 @@ public class TeamTopController {
             }
         });
 
-        // 個人ページへ遷移するボタンのイベントハンドラ
+        // 個人ページへ遷移するボタンのアクション設定
         btnToPersonal.setOnAction(_ -> {
             try {
                 javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/PersonalPage.fxml"));
@@ -115,7 +115,7 @@ public class TeamTopController {
             }
         });
 
-        // チャットページへ遷移するボタンのイベントハンドラ
+        // チャットページへ遷移するボタンのアクション設定
         btnToChat.setOnAction(_ -> {
             try {
                 javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/Chat.fxml"));
@@ -134,7 +134,7 @@ public class TeamTopController {
             }
         });
 
-        // タスク作成ボタンのイベントハンドラ
+        // タスク作成ボタンのアクション設定
         btnCreateTask.setOnAction(_ -> {
             try {
                 javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/TaskCreate.fxml"));
@@ -160,9 +160,10 @@ public class TeamTopController {
     private void loadTeamTasksAndUserTasks() {
         new Thread(() -> {
             try {
-                // 1. チームのタスクID→タスク名マップをサーバAPIから取得
-                java.util.Map<String, String> idToName = new java.util.HashMap<>();
-                URL mapUrl = new java.net.URI(
+                // 1. サーバAPIからチームのタスクID→タスク名マップを取得
+                java.util.Map<String, String> idToName = new java.util.HashMap<>(); // タスクID→タスク名のマップ
+                // 
+                URL mapUrl = new URI(
                         "http://localhost:8080/getTaskIdNameMap?id=" + URLEncoder.encode(teamID, "UTF-8")).toURL();
                 HttpURLConnection mapConn = (HttpURLConnection) mapUrl.openConnection();
                 mapConn.setRequestMethod("GET");
@@ -184,7 +185,7 @@ public class TeamTopController {
                 }
 
                 // 2. サーバからチームタスクID一覧取得
-                URL url = new java.net.URI("http://localhost:8080/getTasks?id=" + URLEncoder.encode(teamID, "UTF-8"))
+                URL url = new URI("http://localhost:8080/getTasks?id=" + URLEncoder.encode(teamID, "UTF-8"))
                         .toURL();
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
@@ -202,7 +203,7 @@ public class TeamTopController {
 
                 // 3. ユーザのタスクID一覧取得
                 String sessionId = LoginController.getSessionId();
-                URL url2 = new java.net.URI("http://localhost:8080/getUserTaskIds").toURL();
+                URL url2 = new URI("http://localhost:8080/getUserTaskIds").toURL();
                 HttpURLConnection conn2 = (HttpURLConnection) url2.openConnection();
                 conn2.setRequestMethod("GET");
                 conn2.setRequestProperty("SESSION_ID", sessionId);
@@ -267,7 +268,7 @@ public class TeamTopController {
             com.habit.server.TaskRepository repo = new com.habit.server.TaskRepository();
             java.util.List<com.habit.domain.Task> teamTaskObjs = repo.findTeamTasksByTeamID(teamID);
             String sessionId = LoginController.getSessionId();
-            java.net.URL url2 = new java.net.URL("http://localhost:8080/getUserTaskIds");
+            java.net.URL url2 = new URI("http://localhost:8080/getUserTaskIds").toURL();
             java.net.HttpURLConnection conn2 = (java.net.HttpURLConnection) url2.openConnection();
             conn2.setRequestMethod("GET");
             conn2.setRequestProperty("SESSION_ID", sessionId);

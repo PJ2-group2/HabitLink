@@ -111,8 +111,9 @@ public class HomeController {
         characterView.setImage(new javafx.scene.image.Image(
             "https://raw.githubusercontent.com/google/material-design-icons/master/png/social/mood/materialicons/48dp/2x/baseline_mood_black_48dp.png", true));
 
-        // チーム選択でチームトップ画面へ遷移
-        teamListView.setOnMouseClicked(e -> {
+        // チームリストビューのクリックイベント設定
+        // チーム名を選択したらチームトップへ遷移
+        teamListView.setOnMouseClicked(_ -> {
             String selected = teamListView.getSelectionModel().getSelectedItem();
             if (selected != null && !selected.equals("サーバ接続エラー")) {
                 try {
@@ -126,7 +127,7 @@ public class HomeController {
                     String teamId = teamNameToIdMap.get(selected);
                     if (teamId != null) {
                         controller.setTeamID(teamId);
-                    }
+                    } 
                     // userIdも渡す
                     if (userId != null) {
                         controller.setUserId(userId);
@@ -140,8 +141,8 @@ public class HomeController {
             }
         });
 
-        // チーム作成画面への遷移
-        btnToCreateTeam.setOnAction(e -> {
+        // チーム作成画面遷移ボタンのアクション設定
+        btnToCreateTeam.setOnAction(_ -> {
             try {
                 javafx.stage.Stage stage = (javafx.stage.Stage) btnToCreateTeam.getScene().getWindow();
                 javafx.scene.Parent root = javafx.fxml.FXMLLoader.load(getClass().getResource("/com/habit/client/gui/CreateTeam.fxml"));
@@ -152,8 +153,8 @@ public class HomeController {
             }
         });
 
-        // チーム検索画面への遷移
-        btnToSearchTeam.setOnAction(e -> {
+        // チーム検索画面遷移ボタンのアクション設定
+        btnToSearchTeam.setOnAction(_ -> {
             try {
                 javafx.stage.Stage stage = (javafx.stage.Stage) btnToSearchTeam.getScene().getWindow();
                 javafx.scene.Parent root = javafx.fxml.FXMLLoader.load(getClass().getResource("/com/habit/client/gui/SearchTeam.fxml"));
