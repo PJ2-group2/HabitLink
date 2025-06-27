@@ -108,7 +108,7 @@ public class ChatController {
     private void loadChatLog() {
         new Thread(() -> {
             try {
-                URL url = new URL(chatLogUrl + "?teamID=" + URLEncoder.encode(teamID, "UTF-8") + "&limit=50");
+                URL url = new URI(chatLogUrl + "?teamID=" + URLEncoder.encode(teamID, "UTF-8") + "&limit=50").toURL();
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
                 conn.setConnectTimeout(3000);
@@ -144,7 +144,7 @@ public class ChatController {
     private void sendChatMessage(String message) {
         new Thread(() -> {
             try {
-                URL url = new URL(serverUrl);
+                URL url = new URI(serverUrl).toURL();
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setDoOutput(true);

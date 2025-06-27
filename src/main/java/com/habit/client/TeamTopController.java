@@ -162,7 +162,8 @@ public class TeamTopController {
             try {
                 // 1. チームのタスクID→タスク名マップをサーバAPIから取得
                 java.util.Map<String, String> idToName = new java.util.HashMap<>();
-                URL mapUrl = new URL("http://localhost:8080/getTaskIdNameMap?id=" + URLEncoder.encode(teamID, "UTF-8"));
+                URL mapUrl = new java.net.URI(
+                        "http://localhost:8080/getTaskIdNameMap?id=" + URLEncoder.encode(teamID, "UTF-8")).toURL();
                 HttpURLConnection mapConn = (HttpURLConnection) mapUrl.openConnection();
                 mapConn.setRequestMethod("GET");
                 mapConn.setConnectTimeout(3000);
@@ -183,7 +184,8 @@ public class TeamTopController {
                 }
 
                 // 2. サーバからチームタスクID一覧取得
-                URL url = new URL("http://localhost:8080/getTasks?id=" + URLEncoder.encode(teamID, "UTF-8"));
+                URL url = new java.net.URI("http://localhost:8080/getTasks?id=" + URLEncoder.encode(teamID, "UTF-8"))
+                        .toURL();
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
                 conn.setConnectTimeout(3000);
@@ -200,7 +202,7 @@ public class TeamTopController {
 
                 // 3. ユーザのタスクID一覧取得
                 String sessionId = LoginController.getSessionId();
-                URL url2 = new URL("http://localhost:8080/getUserTaskIds");
+                URL url2 = new java.net.URI("http://localhost:8080/getUserTaskIds").toURL();
                 HttpURLConnection conn2 = (HttpURLConnection) url2.openConnection();
                 conn2.setRequestMethod("GET");
                 conn2.setRequestProperty("SESSION_ID", sessionId);
@@ -306,7 +308,7 @@ public class TeamTopController {
     private void loadChatLog() {
         new Thread(() -> {
             try {
-                URL url = new URL(chatLogUrl + "?teamID=" + URLEncoder.encode(teamID, "UTF-8") + "&limit=3");
+                URL url = new URI(chatLogUrl + "?teamID=" + URLEncoder.encode(teamID, "UTF-8") + "&limit=3").toURL();
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
                 conn.setConnectTimeout(3000);
@@ -343,7 +345,7 @@ public class TeamTopController {
     private void sendChatMessage(String message) {
         new Thread(() -> {
             try {
-                URL url = new URL(serverUrl);
+                URL url = new URI(serverUrl).toURL();
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setDoOutput(true);
