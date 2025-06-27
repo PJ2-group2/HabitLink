@@ -7,6 +7,9 @@ import java.net.*;
 import java.io.*;
 import java.util.*;
 import org.json.*;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
 public class ChatController {
     @FXML
@@ -49,23 +52,22 @@ public class ChatController {
     private void fetchAndSetTeamName(String teamID) {
         new Thread(() -> {
             try {
-                String urlStr = "http://localhost:8080/getTeamName?teamID=" + java.net.URLEncoder.encode(teamID, "UTF-8");
-                java.net.URL url = new URI(urlStr).toURL();
-                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("GET");
-                conn.setConnectTimeout(3000);
-                conn.setReadTimeout(3000);
-
-                try (java.io.BufferedReader in = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream(), "UTF-8"))) {
-                    String name = in.readLine();
-                    if (name != null && !name.isEmpty()) {
-                        javafx.application.Platform.runLater(() -> {
-                            teamName = name;
-                            if (teamNameLabel != null) {
-                                teamNameLabel.setText(teamName);
-                            }
-                        });
-                    }
+                HttpClient client = HttpClient.newHttpClient();
+                String urlStr = "http://localhost:8080/getTeamName?teamID=" + URLEncoder.encode(teamID, "UTF-8");
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(urlStr))
+                        .timeout(java.time.Duration.ofSeconds(3))
+                        .GET()
+                        .build();
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                String name = response.body();
+                if (name != null && !name.isEmpty()) {
+                    javafx.application.Platform.runLater(() -> {
+                        teamName = name;
+                        if (teamNameLabel != null) {
+                            teamNameLabel.setText(teamName);
+                        }
+                    });
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -108,22 +110,17 @@ public class ChatController {
     private void loadChatLog() {
         new Thread(() -> {
             try {
-                URL url = new URI(chatLogUrl + "?teamID=" + URLEncoder.encode(teamID, "UTF-8") + "&limit=50").toURL();
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("GET");
-                conn.setConnectTimeout(3000);
-                conn.setReadTimeout(3000);
-
-                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = in.readLine()) != null) {
-                    response.append(line);
-                }
-                in.close();
+                HttpClient client = HttpClient.newHttpClient();
+                String url = chatLogUrl + "?teamID=" + URLEncoder.encode(teamID, "UTF-8") + "&limit=50";
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(url))
+                        .timeout(java.time.Duration.ofSeconds(3))
+                        .GET()
+                        .build();
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
                 List<String> messages = new ArrayList<>();
-                JSONArray arr = new JSONArray(response.toString());
+                JSONArray arr = new JSONArray(response.body());
                 for (int i = 0; i < arr.length(); i++) {
                     JSONObject obj = arr.getJSONObject(i);
                     String username = obj.optString("username", null);
@@ -144,22 +141,18 @@ public class ChatController {
     private void sendChatMessage(String message) {
         new Thread(() -> {
             try {
-                URL url = new URI(serverUrl).toURL();
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setDoOutput(true);
-                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
-
+                HttpClient client = HttpClient.newHttpClient();
                 String params = "senderId=" + URLEncoder.encode(userId, "UTF-8")
                         + "&teamID=" + URLEncoder.encode(teamID, "UTF-8")
                         + "&content=" + URLEncoder.encode(message, "UTF-8");
-
-                try (OutputStream os = conn.getOutputStream()) {
-                    os.write(params.getBytes("UTF-8"));
-                }
-
-                int responseCode = conn.getResponseCode();
-                if (responseCode == 200) {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(serverUrl))
+                        .timeout(java.time.Duration.ofSeconds(3))
+                        .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+                        .POST(HttpRequest.BodyPublishers.ofString(params))
+                        .build();
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() == 200) {
                     loadChatLog();
                 }
             } catch (Exception e) {

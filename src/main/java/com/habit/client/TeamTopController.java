@@ -6,9 +6,11 @@ import javafx.scene.image.ImageView;
 import javafx.scene.image.Image;
 import javafx.application.Platform;
 import java.net.*;
-import java.io.*;
 import java.util.*;
 import org.json.*;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 
 /**
  * チームトップ画面のコントローラークラス。
@@ -160,64 +162,57 @@ public class TeamTopController {
     private void loadTeamTasksAndUserTasks() {
         new Thread(() -> {
             try {
+                HttpClient client = HttpClient.newHttpClient();
+
                 // 1. サーバAPIからチームのタスクID→タスク名マップを取得
-                java.util.Map<String, String> idToName = new java.util.HashMap<>(); // タスクID→タスク名のマップ
-                // 送信先URLを組み立てる。
-                URL mapUrl = new URI(
-                        "http://localhost:8080/getTaskIdNameMap?id=" + URLEncoder.encode(teamID, "UTF-8")).toURL();
-                HttpURLConnection mapConn = (HttpURLConnection) mapUrl.openConnection();
-                mapConn.setRequestMethod("GET");
-                mapConn.setConnectTimeout(3000);
-                mapConn.setReadTimeout(3000);
-                try (BufferedReader in = new BufferedReader(new InputStreamReader(mapConn.getInputStream(), "UTF-8"))) {
-                    StringBuilder sb = new StringBuilder();
-                    String line;
-                    while ((line = in.readLine()) != null) {
-                        sb.append(line);
-                    }
-                    String json = sb.toString();
-                    if (!json.isEmpty() && json.startsWith("{")) {
-                        org.json.JSONObject obj = new org.json.JSONObject(json);
-                        for (String key : obj.keySet()) {
-                            idToName.put(key, obj.getString(key));
-                        }
+                java.util.Map<String, String> idToName = new java.util.HashMap<>();
+                String mapUrl = "http://localhost:8080/getTaskIdNameMap?id=" + URLEncoder.encode(teamID, "UTF-8");
+                HttpRequest mapRequest = HttpRequest.newBuilder()
+                        .uri(URI.create(mapUrl))
+                        .timeout(java.time.Duration.ofSeconds(3))
+                        .GET()
+                        .build();
+                HttpResponse<String> mapResponse = client.send(mapRequest, HttpResponse.BodyHandlers.ofString());
+                String json = mapResponse.body();
+                if (!json.isEmpty() && json.startsWith("{")) {
+                    org.json.JSONObject obj = new org.json.JSONObject(json);
+                    for (String key : obj.keySet()) {
+                        idToName.put(key, obj.getString(key));
                     }
                 }
 
                 // 2. サーバからチームタスクID一覧取得
-                URL url = new URI("http://localhost:8080/getTasks?id=" + URLEncoder.encode(teamID, "UTF-8"))
-                        .toURL();
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("GET");
-                conn.setConnectTimeout(3000);
-                conn.setReadTimeout(3000);
+                String tasksUrl = "http://localhost:8080/getTasks?id=" + URLEncoder.encode(teamID, "UTF-8");
+                HttpRequest tasksRequest = HttpRequest.newBuilder()
+                        .uri(URI.create(tasksUrl))
+                        .timeout(java.time.Duration.ofSeconds(3))
+                        .GET()
+                        .build();
+                HttpResponse<String> tasksResponse = client.send(tasksRequest, HttpResponse.BodyHandlers.ofString());
                 java.util.List<String> teamTasks = new java.util.ArrayList<>();
-                try (BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"))) {
-                    String line;
-                    while ((line = in.readLine()) != null) {
-                        if (!line.trim().isEmpty()) {
-                            teamTasks.add(line.trim());
-                        }
+                for (String line : tasksResponse.body().split("\n")) {
+                    if (!line.trim().isEmpty()) {
+                        teamTasks.add(line.trim());
                     }
                 }
 
                 // 3. ユーザのタスクID一覧取得
                 String sessionId = LoginController.getSessionId();
-                URL url2 = new URI("http://localhost:8080/getUserTaskIds").toURL();
-                HttpURLConnection conn2 = (HttpURLConnection) url2.openConnection();
-                conn2.setRequestMethod("GET");
-                conn2.setRequestProperty("SESSION_ID", sessionId);
-                conn2.setConnectTimeout(3000);
-                conn2.setReadTimeout(3000);
+                String userTaskUrl = "http://localhost:8080/getUserTaskIds";
+                HttpRequest userTaskRequest = HttpRequest.newBuilder()
+                        .uri(URI.create(userTaskUrl))
+                        .timeout(java.time.Duration.ofSeconds(3))
+                        .header("SESSION_ID", sessionId)
+                        .GET()
+                        .build();
+                HttpResponse<String> userTaskResponse = client.send(userTaskRequest, HttpResponse.BodyHandlers.ofString());
                 java.util.Set<String> userTaskIds = new java.util.HashSet<>();
-                try (BufferedReader in2 = new BufferedReader(new InputStreamReader(conn2.getInputStream(), "UTF-8"))) {
-                    String response2 = in2.readLine();
-                    if (response2 != null && response2.startsWith("taskIds=")) {
-                        String[] ids = response2.substring(8).split(",");
-                        for (String id : ids) {
-                            if (!id.trim().isEmpty()) {
-                                userTaskIds.add(id.trim());
-                            }
+                String response2 = userTaskResponse.body();
+                if (response2 != null && response2.startsWith("taskIds=")) {
+                    String[] ids = response2.substring(8).split(",");
+                    for (String id : ids) {
+                        if (!id.trim().isEmpty()) {
+                            userTaskIds.add(id.trim());
                         }
                     }
                 }
@@ -268,24 +263,28 @@ public class TeamTopController {
             com.habit.server.TaskRepository repo = new com.habit.server.TaskRepository();
             java.util.List<com.habit.domain.Task> teamTaskObjs = repo.findTeamTasksByTeamID(teamID);
             String sessionId = LoginController.getSessionId();
-            java.net.URL url2 = new URI("http://localhost:8080/getUserTaskIds").toURL();
-            java.net.HttpURLConnection conn2 = (java.net.HttpURLConnection) url2.openConnection();
-            conn2.setRequestMethod("GET");
-            conn2.setRequestProperty("SESSION_ID", sessionId);
-            conn2.setConnectTimeout(3000);
-            conn2.setReadTimeout(3000);
+
+            // HttpClientでユーザーのタスクID一覧取得
+            HttpClient client = HttpClient.newHttpClient();
+            String userTaskUrl = "http://localhost:8080/getUserTaskIds";
+            HttpRequest userTaskRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(userTaskUrl))
+                    .timeout(java.time.Duration.ofSeconds(3))
+                    .header("SESSION_ID", sessionId)
+                    .GET()
+                    .build();
+            HttpResponse<String> userTaskResponse = client.send(userTaskRequest, HttpResponse.BodyHandlers.ofString());
             java.util.Set<String> userTaskIds = new java.util.HashSet<>();
-            try (java.io.BufferedReader in2 = new java.io.BufferedReader(new java.io.InputStreamReader(conn2.getInputStream(), "UTF-8"))) {
-                String response2 = in2.readLine();
-                if (response2 != null && response2.startsWith("taskIds=")) {
-                    String[] ids = response2.substring(8).split(",");
-                    for (String id : ids) {
-                        if (!id.trim().isEmpty()) {
-                            userTaskIds.add(id.trim());
-                        }
+            String response2 = userTaskResponse.body();
+            if (response2 != null && response2.startsWith("taskIds=")) {
+                String[] ids = response2.substring(8).split(",");
+                for (String id : ids) {
+                    if (!id.trim().isEmpty()) {
+                        userTaskIds.add(id.trim());
                     }
                 }
             }
+
             java.util.List<com.habit.domain.Task> filteredTasks = new java.util.ArrayList<>();
             for (com.habit.domain.Task t : teamTaskObjs) {
                 if (userTaskIds.contains(t.getTaskId())) {
@@ -309,22 +308,17 @@ public class TeamTopController {
     private void loadChatLog() {
         new Thread(() -> {
             try {
-                URL url = new URI(chatLogUrl + "?teamID=" + URLEncoder.encode(teamID, "UTF-8") + "&limit=3").toURL();
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("GET");
-                conn.setConnectTimeout(3000);
-                conn.setReadTimeout(3000);
-
-                BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = in.readLine()) != null) {
-                    response.append(line);
-                }
-                in.close();
+                HttpClient client = HttpClient.newHttpClient();
+                String url = chatLogUrl + "?teamID=" + URLEncoder.encode(teamID, "UTF-8") + "&limit=3";
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(url))
+                        .timeout(java.time.Duration.ofSeconds(3))
+                        .GET()
+                        .build();
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
                 List<String> messages = new ArrayList<>();
-                JSONArray arr = new JSONArray(response.toString());
+                JSONArray arr = new JSONArray(response.body());
                 for (int i = 0; i < arr.length(); i++) {
                     JSONObject obj = arr.getJSONObject(i);
                     String username = obj.optString("username", null);
@@ -346,20 +340,16 @@ public class TeamTopController {
     private void sendChatMessage(String message) {
         new Thread(() -> {
             try {
-                URL url = new URI(serverUrl).toURL();
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setDoOutput(true);
-                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
-
+                HttpClient client = HttpClient.newHttpClient();
                 String params = "senderId=user1&teamID=" + URLEncoder.encode(teamID, "UTF-8") + "&content=" + URLEncoder.encode(message, "UTF-8");
-
-                try (OutputStream os = conn.getOutputStream()) {
-                    os.write(params.getBytes("UTF-8"));
-                }
-
-                int responseCode = conn.getResponseCode();
-                if (responseCode == 200) {
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(serverUrl))
+                        .timeout(java.time.Duration.ofSeconds(3))
+                        .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+                        .POST(HttpRequest.BodyPublishers.ofString(params))
+                        .build();
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() == 200) {
                     loadChatLog();
                 }
             } catch (Exception e) {
