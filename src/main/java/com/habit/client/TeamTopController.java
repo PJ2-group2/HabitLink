@@ -157,123 +157,73 @@ public class TeamTopController {
     }
 
 
-    // チームタスク・ユーザタスク取得＆フィルタ処理
-    // setTeamIDで呼び出される
+    /**
+     * チームタスク・ユーザタスク取得メソッド
+     * チームIDがセットされたタイミングで呼び出される。
+     */
     private void loadTeamTasksAndUserTasks() {
         new Thread(() -> {
             try {
-                HttpClient client = HttpClient.newHttpClient();
-
-                // 1. サーバAPIからチームのタスクID→タスク名マップを取得
-                java.util.Map<String, String> idToName = new java.util.HashMap<>();
-                String mapUrl = "http://localhost:8080/getTaskIdNameMap?id=" + URLEncoder.encode(teamID, "UTF-8");
-                HttpRequest mapRequest = HttpRequest.newBuilder()
-                        .uri(URI.create(mapUrl))
-                        .timeout(java.time.Duration.ofSeconds(3))
-                        .GET()
-                        .build();
-                HttpResponse<String> mapResponse = client.send(mapRequest, HttpResponse.BodyHandlers.ofString());
-                String json = mapResponse.body();
-                if (!json.isEmpty() && json.startsWith("{")) {
-                    org.json.JSONObject obj = new org.json.JSONObject(json);
-                    for (String key : obj.keySet()) {
-                        idToName.put(key, obj.getString(key));
-                    }
-                }
-
-                // 2. サーバからチームタスクID一覧取得
-                String tasksUrl = "http://localhost:8080/getTasks?id=" + URLEncoder.encode(teamID, "UTF-8");
-                HttpRequest tasksRequest = HttpRequest.newBuilder()
-                        .uri(URI.create(tasksUrl))
-                        .timeout(java.time.Duration.ofSeconds(3))
-                        .GET()
-                        .build();
-                HttpResponse<String> tasksResponse = client.send(tasksRequest, HttpResponse.BodyHandlers.ofString());
-                java.util.List<String> teamTasks = new java.util.ArrayList<>();
-                for (String line : tasksResponse.body().split("\n")) {
-                    if (!line.trim().isEmpty()) {
-                        teamTasks.add(line.trim());
-                    }
-                }
-
-                // 3. ユーザのタスクID一覧取得
                 String sessionId = LoginController.getSessionId();
-                String userTaskUrl = "http://localhost:8080/getUserTaskIds";
-                HttpRequest userTaskRequest = HttpRequest.newBuilder()
-                        .uri(URI.create(userTaskUrl))
+                HttpClient client = HttpClient.newHttpClient();
+                String url = "http://localhost:8080/getUserTeamTasks?teamID=" + URLEncoder.encode(teamID, "UTF-8");
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(url))
                         .timeout(java.time.Duration.ofSeconds(3))
                         .header("SESSION_ID", sessionId)
                         .GET()
                         .build();
-                HttpResponse<String> userTaskResponse = client.send(userTaskRequest, HttpResponse.BodyHandlers.ofString());
-                java.util.Set<String> userTaskIds = new java.util.HashSet<>();
-                String response2 = userTaskResponse.body();
-                if (response2 != null && response2.startsWith("taskIds=")) {
-                    String[] ids = response2.substring(8).split(",");
-                    for (String id : ids) {
-                        if (!id.trim().isEmpty()) {
-                            userTaskIds.add(id.trim());
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                // レスポンスは [{"taskId":"...","taskName":"..."}] のJSON配列
+                java.util.List<String> taskNames = new java.util.ArrayList<>();
+                String json = response.body();
+                if (json != null && json.startsWith("[")) {
+                    org.json.JSONArray arr = new org.json.JSONArray(json);
+                    for (int i = 0; i < arr.length(); i++) {
+                        org.json.JSONObject obj = arr.getJSONObject(i);
+                        String name = obj.optString("taskName", null);
+                        if (name != null) {
+                            taskNames.add(name);
                         }
                     }
                 }
-
-                // 4. 両方に含まれるタスクIDのみ抽出
-                java.util.List<String> filteredTasks = new java.util.ArrayList<>();
-                for (String task : teamTasks) {
-                    if (userTaskIds.contains(task)) {
-                        // 未完了タスクのみ追加
-                        com.habit.server.UserTaskStatusRepository statusRepo = new com.habit.server.UserTaskStatusRepository();
-                        java.time.LocalDate today = java.time.LocalDate.now();
-                        java.util.Optional<com.habit.domain.UserTaskStatus> statusOpt = statusRepo.findByUserIdAndTaskIdAndDate(userId, task, today);
-                        boolean isDone = statusOpt.map(com.habit.domain.UserTaskStatus::isDone).orElse(false);
-                        if (!isDone) {
-                            filteredTasks.add(task);
-                        }
-                    }
-                }
-
-                // 5. タスクID→タスク名変換
-                java.util.List<String> filteredTaskNames = new java.util.ArrayList<>();
-                for (String id : filteredTasks) {
-                    String name = idToName.get(id);
-                    if (name != null) {
-                        filteredTaskNames.add(name);
-                    } else {
-                        filteredTaskNames.add(id); // 名前が取得できなければID表示
-                    }
-                }
-
-                // 6. UIスレッドで表示
                 Platform.runLater(() -> {
-                    todayTaskList.getItems().setAll(filteredTaskNames);
+                    todayTaskList.getItems().setAll(taskNames);
                 });
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }).start();
     }
-    public String getTeamID() {
-        return teamID;
-    }
-    // ユーザーのタスク一覧を返す（todayTaskListの内容からTaskオブジェクトを取得する例）
-    // 必要に応じてキャッシュやフィールドに保持しておく
-    // ここでは簡易的に再取得する例
+
+    /**
+     * ユーザーのタスク一覧を取得するメソッド。
+     * 今日のタスクリストからユーザーのタスクオブジェクトを取得する例。
+     * 必要に応じてキャッシュやフィールドに保持しておくことも可能。
+     * ここでは簡易的に再取得する例を示す。
+     *
+     * @return ユーザーのタスク一覧
+     */
     private java.util.List<com.habit.domain.Task> getUserTasksForPersonalPage() {
         try {
             com.habit.server.TaskRepository repo = new com.habit.server.TaskRepository();
             java.util.List<com.habit.domain.Task> teamTaskObjs = repo.findTeamTasksByTeamID(teamID);
             String sessionId = LoginController.getSessionId();
 
-            // HttpClientでユーザーのタスクID一覧取得
+            // HTTPリクエストを送信するためのクライアントオブジェクトを作成
             HttpClient client = HttpClient.newHttpClient();
+            // URLを作成
             String userTaskUrl = "http://localhost:8080/getUserTaskIds";
+            // リクエストを送信
             HttpRequest userTaskRequest = HttpRequest.newBuilder()
                     .uri(URI.create(userTaskUrl))
                     .timeout(java.time.Duration.ofSeconds(3))
                     .header("SESSION_ID", sessionId)
                     .GET()
                     .build();
+            // レスポンスを取得
             HttpResponse<String> userTaskResponse = client.send(userTaskRequest, HttpResponse.BodyHandlers.ofString());
+            // レスポンスのボディをタスクIDのセットに変換
             java.util.Set<String> userTaskIds = new java.util.HashSet<>();
             String response2 = userTaskResponse.body();
             if (response2 != null && response2.startsWith("taskIds=")) {
@@ -304,19 +254,26 @@ public class TeamTopController {
         }
     }
 
-    // サーバーからチャットログを取得して最新3件を表示
+    /**
+     * チャットログをサーバーから取得し、最新3件を表示するメソッド。
+     * チームIDがセットされたタイミングで呼び出される。
+     */
     private void loadChatLog() {
         new Thread(() -> {
             try {
+                // HTTPリクエストを送信するためのクライアントオブジェクトを作成
                 HttpClient client = HttpClient.newHttpClient();
+                // チャットログのURLを作成
                 String url = chatLogUrl + "?teamID=" + URLEncoder.encode(teamID, "UTF-8") + "&limit=3";
+                // リクエストを送信
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(url))
                         .timeout(java.time.Duration.ofSeconds(3))
                         .GET()
                         .build();
+                // レスポンスを取得
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
+                // レスポンスのボディをJSONとして解析し、メッセージリストを作成
                 List<String> messages = new ArrayList<>();
                 JSONArray arr = new JSONArray(response.body());
                 for (int i = 0; i < arr.length(); i++) {
@@ -336,7 +293,7 @@ public class TeamTopController {
         }).start();
     }
 
-    // サーバーにチャットメッセージを送信
+    // サーバーにチャットメッセージを送信(未使用)
     private void sendChatMessage(String message) {
         new Thread(() -> {
             try {

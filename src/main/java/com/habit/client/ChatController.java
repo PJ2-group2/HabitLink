@@ -4,7 +4,6 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.application.Platform;
 import java.net.*;
-import java.io.*;
 import java.util.*;
 import org.json.*;
 import java.net.http.HttpClient;
@@ -12,21 +11,26 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
 public class ChatController {
+    /* チーム名ラベル */
     @FXML
     private Label teamNameLabel;
+    /* チャットリスト */
     @FXML
     private ListView<String> chatList;
+    /* チャット入力フィールド */
     @FXML
     private TextField chatInput;
+    /* チャット送信ボタン */
     @FXML
     private Button btnSend;
+    /* チームトップに戻るボタン */
     @FXML
-    private Button btnBackToTeamTop; // チームトップに戻るボタン
+    private Button btnBackToTeamTop;
 
     private final String serverUrl = "http://localhost:8080/sendChatMessage";
     private final String chatLogUrl = "http://localhost:8080/getChatLog";
 
-    // 遷移元からセットする
+    // 遷移時に渡すデータとセッター
     private String userId;
     private String teamID;
     private String teamName = "チーム名未取得";
@@ -49,6 +53,10 @@ public class ChatController {
     }
 
 
+    /**
+     * チームIDに基づいてサーバーからチーム名を取得し、ラベルに設定するメソッド。
+     * チームIDがセットされたタイミングで呼び出される。
+     */
     private void fetchAndSetTeamName(String teamID) {
         new Thread(() -> {
             try {
@@ -75,13 +83,19 @@ public class ChatController {
         }).start();
     }
 
+    /**
+     * コントローラー初期化処理。
+     * チーム名の設定やボタンのアクション設定を行う。
+     */
     @FXML
     public void initialize() {
         // loadChatLog()はここで呼ばない
+        // チーム名がセットされている場合はラベルに表示
         if (teamNameLabel != null && teamName != null) {
             teamNameLabel.setText(teamName);
         }
 
+        // チャット送信ボタンのアクション設定
         btnSend.setOnAction(_ -> {
             String msg = chatInput.getText();
             if (msg != null && !msg.isEmpty()) {
@@ -90,6 +104,7 @@ public class ChatController {
             }
         });
 
+        // チームトップに戻るボタンのアクション設定
         btnBackToTeamTop.setOnAction(_ -> {
             try {
                 javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/TeamTop.fxml"));
@@ -107,6 +122,10 @@ public class ChatController {
         });
     }
 
+    /**
+     * チャットログをサーバーから取得し、リストに表示するメソッド。
+     * 新しいスレッドで実行される。
+     */
     private void loadChatLog() {
         new Thread(() -> {
             try {
@@ -138,6 +157,12 @@ public class ChatController {
         }).start();
     }
 
+    /**
+     * チャットメッセージをサーバーに送信するメソッド。
+     * 新しいスレッドで実行される。
+     *
+     * @param message 送信するチャットメッセージ
+     */
     private void sendChatMessage(String message) {
         new Thread(() -> {
             try {

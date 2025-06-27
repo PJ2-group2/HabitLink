@@ -1,9 +1,14 @@
 package com.habit.client;
 
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.URI;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
 import javafx.scene.image.ImageView;
+
 
 /**
  * ホーム画面のコントローラークラス。
@@ -36,18 +41,23 @@ public class HomeController {
     public void initialize() {
         // 現在ログインユーザのjoinedTeamIdsにあるチームのみ表示
         try {
-            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
-            java.net.http.HttpRequest.Builder reqBuilder = java.net.http.HttpRequest.newBuilder()
-                .uri(java.net.URI.create("http://localhost:8080/getJoinedTeamInfo"))
+            // HTTPリクエストを送信するためのクライアントオブジェクトを作成。
+            HttpClient client = HttpClient.newHttpClient();
+            // URLを作成
+            HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/getJoinedTeamInfo"))
                 .GET();
             // セッションIDをヘッダに付与
             String sessionId = LoginController.getSessionId();
             if (sessionId != null && !sessionId.isEmpty()) {
                 reqBuilder.header("SESSION_ID", sessionId);
             }
-            java.net.http.HttpRequest request = reqBuilder.build();
-            java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+            // リクエストを送信
+            HttpRequest request = reqBuilder.build();
+            // レスポンスを受け取り、ボディを文字列として取得
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             String body = response.body();
+            // レスポンスのボディを解析
             teamListView.getItems().clear();
             if (body != null && !body.trim().isEmpty()) {
                 // サーバから "joinedTeamIds=... \n joinedTeamNames=..." の形式で返す
@@ -108,6 +118,7 @@ public class HomeController {
         }
 
         // アイコン画像セット例
+        // ここではGoogleのマテリアルアイコンを使用
         characterView.setImage(new javafx.scene.image.Image(
             "https://raw.githubusercontent.com/google/material-design-icons/master/png/social/mood/materialicons/48dp/2x/baseline_mood_black_48dp.png", true));
 

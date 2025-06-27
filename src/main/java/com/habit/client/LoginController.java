@@ -1,5 +1,9 @@
 package com.habit.client;
 
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.URI;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -76,27 +80,27 @@ public class LoginController {
         }
         try {
             // HTTPリクエストを送信するためのクライアントオブジェクトを作成。
-            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+            HttpClient client = HttpClient.newHttpClient();
 
-            // モードに応じてURLを切り替える。
-            // 送信先URLを組み立てる。
+            // モードに応じてURLを切り替え、送信先URLを組み立てる。
             String url = isRegisterMode
                 ? "http://localhost:8080/register"
                 : "http://localhost:8080/login";
 
-            // username, passwordをapplication/x-www-form-urlencoded形式でbodyに含める
+            // username, passwordをbodyに含める
             String body = "username=" + java.net.URLEncoder.encode(username, "UTF-8")
                         + "&password=" + java.net.URLEncoder.encode(password, "UTF-8");
 
-            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
-                .uri(java.net.URI.create(url))
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .POST(java.net.http.HttpRequest.BodyPublishers.ofString(body))
-                .build();
+            // リクエストを構築する。
+            HttpRequest request = HttpRequest.newBuilder() // ビルド開始
+                .uri(URI.create(url)) // 送信先URLを指定
+                .header("Content-Type", "application/x-www-form-urlencoded") // ヘッダ情報を追加
+                .POST(HttpRequest.BodyPublishers.ofString(body)) // POSTメソッドを指定、ボディを設定
+                .build(); // 生成
 
             // リクエストを送信し、レスポンスを受け取る。
             // レスポンスのボディは文字列として取得する。    
-            java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
             // 登録・認証が成功したかどうかをチェック
             String responseBody = response.body();

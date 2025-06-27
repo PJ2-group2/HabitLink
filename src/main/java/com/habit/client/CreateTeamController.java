@@ -1,29 +1,59 @@
 package com.habit.client;
 
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.URI;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import javafx.scene.image.ImageView;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
 public class CreateTeamController {
-    @FXML private TextField teamNameField;
-    @FXML private TextField passcodeField;
-    @FXML private Spinner<Integer> maxMembersSpinner;
-    @FXML private ChoiceBox<String> editPermissionChoice;
-    @FXML private CheckBox catStudy, catWorkout, catReading, catDiet, catHobby, catOther;
-    @FXML private RadioButton publicRadio, privateRadio;
-    @FXML private TextField inviteMemberField;
-    @FXML private Button btnAddMember;
-    @FXML private ListView<String> inviteList;
-    @FXML private Button btnCreateTeam;
-    @FXML private Button btnBackHome;
+    /** チーム名入力フィールド */
+    @FXML
+    private TextField teamNameField;
+    /** パスコード入力フィールド */
+    @FXML
+    private TextField passcodeField;
+    /** チームメンバー上限数スピナー */
+    @FXML
+    private Spinner<Integer> maxMembersSpinner;
+    /** 編集権限選択ボックス */
+    @FXML
+    private ChoiceBox<String> editPermissionChoice;
+    /** カテゴリチェックボックス */
+    @FXML
+    private CheckBox catStudy, catWorkout, catReading, catDiet, catHobby, catOther;
+    /** チームの公開範囲ラジオボタン */
+    @FXML
+    private RadioButton publicRadio, privateRadio;
+    /** チームの公開範囲ラベル */
+    @FXML
+    private TextField inviteMemberField;
+    /** チームメンバー追加ボタン */
+    @FXML
+    private Button btnAddMember;
+    /** チームメンバー追加フィールド */
+    @FXML
+    private ListView<String> inviteList;
+    /** チーム作成ボタン */
+    @FXML
+    private Button btnCreateTeam;
+    /** 戻るボタン */
+    @FXML
+    private Button btnBackHome;
 
-    private ToggleGroup scopeGroup = new ToggleGroup();
-    private ObservableList<String> invitedMembers = FXCollections.observableArrayList();
+    private ToggleGroup scopeGroup = new ToggleGroup(); // チームの公開範囲を選択するためのトグルグループ
+    private ObservableList<String> invitedMembers = FXCollections.observableArrayList(); // 招待されたメンバーのリスト
 
+    /* コントローラー初期化メソッド
+     * チーム名、パスコード、メンバー上限数、編集権限の初期値設定や、
+     * 招待メンバーリストの初期化を行う。
+     */
     @FXML
     public void initialize() {
+        // 初期値設定
         maxMembersSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 30, 5));
         editPermissionChoice.setItems(FXCollections.observableArrayList("自分だけ", "自由"));
         editPermissionChoice.getSelectionModel().selectFirst();
@@ -32,7 +62,8 @@ public class CreateTeamController {
         publicRadio.setSelected(true);
         inviteList.setItems(invitedMembers);
 
-        btnAddMember.setOnAction(e -> {
+        // メンバー追加ボタンのアクション設定
+        btnAddMember.setOnAction(_ -> {
             String id = inviteMemberField.getText().trim();
             if (!id.isEmpty() && !invitedMembers.contains(id)) {
                 invitedMembers.add(id);
@@ -40,7 +71,8 @@ public class CreateTeamController {
             }
         });
 
-        btnBackHome.setOnAction(e -> {
+        // 戻るボタンのアクション設定
+        btnBackHome.setOnAction(_ -> {
             try {
                 javafx.stage.Stage stage = (javafx.stage.Stage) btnBackHome.getScene().getWindow();
                 javafx.scene.Parent root = javafx.fxml.FXMLLoader.load(getClass().getResource("/com/habit/client/gui/Home.fxml"));
@@ -51,7 +83,8 @@ public class CreateTeamController {
             }
         });
 
-        btnCreateTeam.setOnAction(e -> {
+        // チーム作成ボタンのアクション設定
+        btnCreateTeam.setOnAction(_ -> {
             // 入力値取得
             String teamName = teamNameField.getText().trim();
             String passcode = passcodeField.getText().trim();
@@ -77,19 +110,23 @@ public class CreateTeamController {
                 sb.append("&scope=").append(java.net.URLEncoder.encode(scope, "UTF-8"));
                 sb.append("&members=").append(java.net.URLEncoder.encode(String.join(",", members), "UTF-8"));
 
-                java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
-                java.net.http.HttpRequest.Builder reqBuilder = java.net.http.HttpRequest.newBuilder()
-                    .uri(java.net.URI.create("http://localhost:8080/createTeam"))
+                // HTTPクライアントを作成
+                HttpClient client = HttpClient.newHttpClient();
+                // リクエストビルダーを使用してリクエストを構築
+                HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
+                    .uri(URI.create("http://localhost:8080/createTeam"))
                     .header("Content-Type", "application/x-www-form-urlencoded");
                 // セッションIDをヘッダに付与
                 String sessionId = LoginController.getSessionId();
                 if (sessionId != null && !sessionId.isEmpty()) {
                     reqBuilder.header("SESSION_ID", sessionId);
                 }
-                java.net.http.HttpRequest request = reqBuilder
-                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(sb.toString()))
+                // リクエストをPOSTメソッドで送信
+                HttpRequest request = reqBuilder
+                    .POST(HttpRequest.BodyPublishers.ofString(sb.toString()))
                     .build();
-                java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+                // レスポンスを受け取る
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
                 String body = response.body();
                 if (body.contains("チーム作成成功")) {
                     javafx.stage.Stage stage = (javafx.stage.Stage) btnCreateTeam.getScene().getWindow();
@@ -120,6 +157,10 @@ public class CreateTeamController {
         });
     }
 
+    /**
+     * 選択されたカテゴリのチェックボックスから、選択されたカテゴリをカンマ区切りの文字列で取得するメソッド
+     * @return 選択されたカテゴリの文字列
+     */
     private String getSelectedCategories() {
         StringBuilder sb = new StringBuilder();
         if (catStudy.isSelected()) sb.append("勉強,");

@@ -1,22 +1,44 @@
 package com.habit.client;
 
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.URI;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
 import java.time.LocalTime;
 
+/**
+ * タスク作成画面のコントローラー
+ */
 public class TaskCreateController {
+    /* タスク名入力フィールド */
+    @FXML 
+    private TextField taskNameField;
+    /* タスクの詳細説明フィールド */
+    @FXML 
+    private TextField descriptionField;
+    /* タスクの所要時間入力フィールド */
+    @FXML 
+    private TextField estimatedMinutesField;
+    /* タスクの種類選択ボックス */
+    @FXML 
+    private ChoiceBox<String> taskTypeChoice;
+    /* タスクの期限時刻入力フィールド */
+    @FXML 
+    private TextField dueTimeField;
+    /* タスクの周期選択ボックス */
+    @FXML 
+    private ChoiceBox<String> cycleTypeChoice;
+    /* タスク作成ボタンとキャンセルボタン */
+    @FXML 
+    private Button btnCreate;
+    /* キャンセルボタン */
+    @FXML 
+    private Button btnCancel;
 
-    @FXML private TextField taskNameField;
-    @FXML private TextField descriptionField;
-    @FXML private TextField estimatedMinutesField;
-    @FXML private ChoiceBox<String> taskTypeChoice;
-    @FXML private TextField dueTimeField;
-    @FXML private ChoiceBox<String> cycleTypeChoice;
-    @FXML private Button btnCreate;
-    @FXML private Button btnCancel;
-
-    // 遷移元からセットする
+    // 遷移元からセットするデータとセッター
     private String userId;
     private String teamID;
     private String teamName = "チーム名未取得";
@@ -33,6 +55,10 @@ public class TaskCreateController {
         this.teamName = teamName;
     }
 
+    /**
+     * コントローラー初期化メソッド。
+     * ChoiceBoxの初期値設定や、ボタンのアクション設定を行う。
+     */
     @FXML
     private void initialize() {
         // ChoiceBoxの選択肢をセット
@@ -46,6 +72,9 @@ public class TaskCreateController {
         }
     }
 
+    /**
+     * タスク作成ボタンのアクションハンドラ。
+     */
     @FXML
     private void handleBtnCreate() {
         String name = taskNameField.getText();
@@ -67,9 +96,9 @@ public class TaskCreateController {
             showAlert("所要時間は数字で入力してください");
             return;
         }
-        java.time.LocalTime dueTime = null;
+        LocalTime dueTime = null;
         try {
-            dueTime = java.time.LocalTime.parse(dueTimeStr);
+            dueTime = LocalTime.parse(dueTimeStr);
         } catch (Exception e) {
             showAlert("期限時刻はHH:mm形式で入力してください");
             return;
@@ -110,13 +139,16 @@ public class TaskCreateController {
         try {
             String sessionId = com.habit.client.LoginController.getSessionId();
             if (sessionId != null && !sessionId.isEmpty()) {
-                java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
-                java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
-                    .uri(java.net.URI.create("http://localhost:8080/getJoinedTeamInfo"))
+                // HTTPクライアントを作成
+                HttpClient client = HttpClient.newHttpClient();
+                // リクエストを構築
+                HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create("http://localhost:8080/getJoinedTeamInfo"))
                     .header("SESSION_ID", sessionId)
                     .GET()
                     .build();
-                java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+                // レスポンスを受け取る
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
                 String body = response.body();
                 // サーバから "userId=..." の形式で返ることを想定
                 String userId = null;
@@ -144,14 +176,13 @@ public class TaskCreateController {
         } catch (Exception e) {
             System.out.println("UserTaskStatus保存時エラー: " + e.getMessage());
         }
-        // --- ここまでUserTaskStatus保存処理 ---
 
         // チームトップ画面に戻る
         try {
             javafx.stage.Stage stage = (Stage) btnCreate.getScene().getWindow();
             javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/TeamTop.fxml"));
             javafx.scene.Parent root = loader.load();
-            // チームIDを再セット
+            // IDを再セット
             TeamTopController controller = loader.getController();
             controller.setUserId(userId);
             controller.setTeamID(teamID);
@@ -171,7 +202,7 @@ public class TaskCreateController {
             Stage stage = (Stage) btnCancel.getScene().getWindow();
             javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/TeamTop.fxml"));
             javafx.scene.Parent root = loader.load();
-            // チームIDを再セット
+            // IDを再セット
             TeamTopController controller = loader.getController();
             controller.setUserId(userId);
             controller.setTeamID(teamID);
@@ -184,6 +215,10 @@ public class TaskCreateController {
         }
     }
 
+    /**
+     * アラートダイアログを表示するヘルパーメソッド。
+     * @param msg 表示するメッセージ
+     */
     private void showAlert(String msg) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setContentText(msg);

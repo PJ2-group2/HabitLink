@@ -13,7 +13,7 @@ import java.net.InetSocketAddress;
 import java.util.List;
 
 // JDBC based team management
-import com.habit.server.DatabaseTeamManager;
+// import com.habit.server.DatabaseTeamManager;
 
 /**
  * 習慣化共有アプリのサーバ本体クラス。
@@ -46,6 +46,7 @@ public class HabitServer {
     server.createContext("/getUserTaskIds", new GetUserTaskIdsHandler()); // UserTaskStatusからTaskId取得
     server.createContext("/getTeamName", new GetTeamNameHandler()); // チーム名取得
     // タスクID→タスク名マップ取得API
+    server.createContext("/getUserTeamTasks", new GetUserTeamTasksHandler()); // チーム内で自分に紐づくタスク取得
     server.createContext("/getTaskIdNameMap", new GetTaskIdNameMapHandler());
     server.setExecutor(null);
     server.start();
@@ -698,5 +699,62 @@ public class HabitServer {
             os.write(response.getBytes("UTF-8"));
             os.close();
 }
+}
+    /**
+     * /getUserTeamTasks?teamID=xxx
+     * SESSION_IDヘッダ必須
+     * 指定チーム内で自分に紐づくタスク（Task情報）をJSON配列で返す
+     */
+    static class GetUserTeamTasksHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            String sessionId = null;
+            var headers = exchange.getRequestHeaders();
+            if (headers.containsKey("SESSION_ID")) {
+                sessionId = headers.getFirst("SESSION_ID");
+            }
+            String query = exchange.getRequestURI().getQuery();
+            String teamID = null;
+            if (query != null && query.startsWith("teamID=")) {
+                teamID = java.net.URLDecoder.decode(query.substring(7), "UTF-8");
+            }
+            String response = "[]";
+            if (sessionId != null && teamID != null) {
+                var user = authService.getUserBySession(sessionId);
+                if (user != null) {
+                    String userId = user.getUserId();
+                    UserTaskStatusRepository utsRepo = new UserTaskStatusRepository();
+                    TaskRepository taskRepo = new TaskRepository();
+                    // 1. ユーザーが担当するチーム内タスクID一覧
+                    java.util.List<String> taskIds = utsRepo.findTaskIdsByUserIdAndTeamId(userId, teamID);
+                    // 2. チーム内全タスク
+                    java.util.List<com.habit.domain.Task> teamTasks = taskRepo.findTeamTasksByTeamID(teamID);
+                    // 3. 担当タスクのみ抽出
+                    java.util.List<com.habit.domain.Task> filtered = new java.util.ArrayList<>();
+                    for (com.habit.domain.Task t : teamTasks) {
+                        if (taskIds.contains(t.getTaskId())) {
+                            filtered.add(t);
+                        }
+                    }
+                    // 4. JSON配列で返す
+                    StringBuilder sb = new StringBuilder("[");
+                    for (int i = 0; i < filtered.size(); i++) {
+                        com.habit.domain.Task t = filtered.get(i);
+                        sb.append("{");
+                        sb.append("\"taskId\":\"").append(t.getTaskId().replace("\"", "\\\"")).append("\",");
+                        sb.append("\"taskName\":\"").append(t.getTaskName().replace("\"", "\\\"")).append("\"");
+                        sb.append("}");
+                        if (i < filtered.size() - 1) sb.append(",");
+                    }
+                    sb.append("]");
+                    response = sb.toString();
+                }
+            }
+            exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+            exchange.sendResponseHeaders(200, response.getBytes("UTF-8").length);
+            OutputStream os = exchange.getResponseBody();
+            os.write(response.getBytes("UTF-8"));
+            os.close();
+        }
     }
 }
