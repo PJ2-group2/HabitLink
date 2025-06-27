@@ -10,48 +10,61 @@ import java.io.*;
 import java.util.*;
 import org.json.*;
 
+/**
+ * チームトップ画面のコントローラークラス。
+ * チーム名の表示、タスク作成、個人ページやチャットページへの遷移を担当する。
+ */
 public class TeamTopController {
+    /* チーム名ラベル */
     @FXML
     private Label teamNameLabel;
+    /* 戻るボタン */
     @FXML
     private Button btnBackHome;
-    @FXML
-    private Button btnToPersonal;
-    @FXML
-    private Button btnToChat; // チャットページへ遷移するボタンを追加
-    @FXML
-    private TableView<?> taskTable;
+    /* タスク作成ボタン */
     @FXML
     private Button btnCreateTask;
+    /* 個人ページへ遷移するボタン */
+    @FXML
+    private Button btnToPersonal;
+    /* チャットページへ遷移するボタン */
+    @FXML
+    private Button btnToChat;
+    /* チームタスク一覧テーブル */
+    @FXML
+    private TableView<?> taskTable;
+    /* 今日のタスクリスト */
     @FXML
     private ListView<String> todayTaskList;
+    /* チャットログリストビュー */
     @FXML
     private ListView<String> chatList;
+    /* チームキャラクター画像 */
     @FXML
     private ImageView teamCharView;
-
-    // セッションID保持用
-    private String sessionID;
 
     private final String serverUrl = "http://localhost:8080/sendChatMessage";
     private final String chatLogUrl = "http://localhost:8080/getChatLog";
 
-    // 遷移元からセットする
+    /*  遷移時に渡すユーザーIDとチームID, チーム名
+     * これらは全てのコントローラが持つようにしてください。
+     * 余裕があったら共通化します。
+     */
     private String userId;
     private String teamID;
     private String teamName = "チーム名未取得";
-
+    // ユーザIDのセッター
     public void setUserId(String userId) {
         this.userId = userId;
     }
-
+    // チームIDのセッター
     public void setTeamID(String teamID) {
         this.teamID = teamID;
-        // teamIDがセットされたタイミングで初期化処理を呼ぶ
+        // teamIDがセットされたタイミングでタスク、チャットを読み込む。
         loadTeamTasksAndUserTasks();
         loadChatLog();
     }
-
+    // チーム名のセッター
     public void setTeamName(String teamName) {
         this.teamName = teamName;
         if (teamNameLabel != null) {
@@ -59,24 +72,106 @@ public class TeamTopController {
         }
     }
 
-    // セッションIDのsetter
-    public void setSessionID(String sessionID) {
-        this.sessionID = sessionID;
+    /**
+     * コントローラー初期化処理。
+     * UI部品の初期化や、ボタンのアクション設定を行う。
+     */
+    @FXML
+    public void initialize() {
+        // UI部品の初期化のみ行う（データ取得はsetTeamIDで行う）
+        // googleの適当絵文字、画像を用意してPathを指定してください。
+        teamCharView.setImage(new Image(
+            "https://raw.githubusercontent.com/google/material-design-icons/master/png/social/mood/materialicons/48dp/2x/baseline_mood_black_48dp.png", true));
+
+        // ホームへ戻るボタンのイベントハンドラ
+        btnBackHome.setOnAction(_ -> {
+            try {
+                javafx.stage.Stage stage = (javafx.stage.Stage) btnBackHome.getScene().getWindow();
+                javafx.scene.Parent root = javafx.fxml.FXMLLoader.load(getClass().getResource("/com/habit/client/gui/Home.fxml"));
+                stage.setScene(new javafx.scene.Scene(root));
+                stage.setTitle("ホーム");
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        // 個人ページへ遷移するボタンのイベントハンドラ
+        btnToPersonal.setOnAction(_ -> {
+            try {
+                javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/PersonalPage.fxml"));
+                javafx.scene.Parent root = loader.load();
+                PersonalPageController controller = loader.getController();
+                // 各データを渡す
+                controller.setUserId(userId);
+                controller.setTeamID(teamID);
+                controller.setTeamName(teamName);
+                // ユーザーのタスク一覧を渡す
+                controller.setUserTasks(getUserTasksForPersonalPage());
+                javafx.stage.Stage stage = (javafx.stage.Stage) btnToPersonal.getScene().getWindow();
+                stage.setScene(new javafx.scene.Scene(root));
+                stage.setTitle("個人ページ");
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        // チャットページへ遷移するボタンのイベントハンドラ
+        btnToChat.setOnAction(_ -> {
+            try {
+                javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/Chat.fxml"));
+                javafx.scene.Parent root = loader.load();
+                // ChatControllerを取得
+                ChatController controller = loader.getController();
+                // 各データを渡す(この処理を全ての画面遷移で行ってください。)
+                controller.setUserId(userId);
+                controller.setTeamID(teamID);
+                controller.setTeamName(teamName);
+                javafx.stage.Stage stage = (javafx.stage.Stage) btnToChat.getScene().getWindow();
+                stage.setScene(new javafx.scene.Scene(root));
+                stage.setTitle("チームチャット");
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
+
+        // タスク作成ボタンのイベントハンドラ
+        btnCreateTask.setOnAction(_ -> {
+            try {
+                javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/TaskCreate.fxml"));
+                javafx.scene.Parent root = loader.load();
+                // TaskCreateControllerを取得
+                TaskCreateController controller = loader.getController();
+                // 各データを渡す
+                controller.setUserId(userId);
+                controller.setTeamID(teamID);
+                controller.setTeamName(teamName);
+                javafx.stage.Stage stage = (javafx.stage.Stage) btnCreateTask.getScene().getWindow();
+                stage.setScene(new javafx.scene.Scene(root));
+                stage.setTitle("タスク作成");
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        });
     }
 
-    // チームタスク・ユーザタスク取得＆フィルタ処理（タスク名表示対応）
+
+    // チームタスク・ユーザタスク取得＆フィルタ処理
+    // setTeamIDで呼び出される
     private void loadTeamTasksAndUserTasks() {
         new Thread(() -> {
             try {
                 // 1. チームのタスク一覧取得（taskId→taskNameマップ作成）
+                // Repositoryを設定
                 com.habit.server.TaskRepository repo = new com.habit.server.TaskRepository();
-                java.util.List<com.habit.domain.Task> teamTaskObjs = repo.findTeamTasksByteamID(teamID);
+                // RepositoryのメソッドによりチームIDからチーム内タスク一覧を取得
+                java.util.List<com.habit.domain.Task> teamTaskObjs = repo.findTeamTasksByTeamID(teamID);
+                // タスクID→タスク名のマップを作成
                 java.util.Map<String, String> idToName = new java.util.HashMap<>();
                 for (com.habit.domain.Task t : teamTaskObjs) {
                     idToName.put(t.getTaskId(), t.getTaskName());
                 }
 
-                // 2. サーバからチームタスクID一覧取得（従来通り）
+                // 2. サーバからチームタスクID一覧取得
                 URL url = new URL("http://localhost:8080/getTasks?id=" + URLEncoder.encode(teamID, "UTF-8"));
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
@@ -151,87 +246,13 @@ public class TeamTopController {
     public String getTeamID() {
         return teamID;
     }
-
-    @FXML
-    public void initialize() {
-        // UI部品の初期化のみ行う（データ取得はsetTeamIDで行う）
-        teamCharView.setImage(new Image(
-            "https://raw.githubusercontent.com/google/material-design-icons/master/png/social/mood/materialicons/48dp/2x/baseline_mood_black_48dp.png", true));
-
-        btnBackHome.setOnAction(e -> {
-            try {
-                javafx.stage.Stage stage = (javafx.stage.Stage) btnBackHome.getScene().getWindow();
-                javafx.scene.Parent root = javafx.fxml.FXMLLoader.load(getClass().getResource("/com/habit/client/gui/Home.fxml"));
-                stage.setScene(new javafx.scene.Scene(root));
-                stage.setTitle("ホーム");
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        });
-
-        // 個人ページへ遷移するボタンのイベントハンドラ
-        btnToPersonal.setOnAction(e -> {
-            try {
-                javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/PersonalPage.fxml"));
-                javafx.scene.Parent root = loader.load();
-                PersonalPageController controller = loader.getController();
-                // チームIDを渡す
-                controller.setUserId(userId);
-                controller.setTeamID(teamID);
-                controller.setTeamName(teamName);
-                // ユーザーのタスク一覧を渡す
-                controller.setUserTasks(getUserTasksForPersonalPage());
-                javafx.stage.Stage stage = (javafx.stage.Stage) btnToPersonal.getScene().getWindow();
-                stage.setScene(new javafx.scene.Scene(root));
-                stage.setTitle("個人ページ");
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        });
-
-        // チャットページへ遷移するボタンのイベントハンドラ
-        btnToChat.setOnAction(e -> {
-            try {
-                javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/Chat.fxml"));
-                javafx.scene.Parent root = loader.load();
-                ChatController controller = loader.getController();
-                controller.setUserId(userId);
-                controller.setTeamID(teamID);
-                controller.setTeamName(teamName);
-                javafx.stage.Stage stage = (javafx.stage.Stage) btnToChat.getScene().getWindow();
-                stage.setScene(new javafx.scene.Scene(root));
-                stage.setTitle("チームチャット");
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        });
-
-        // タスク作成ボタンのイベントハンドラ
-        btnCreateTask.setOnAction(e -> {
-            try {
-                javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/TaskCreate.fxml"));
-                javafx.scene.Parent root = loader.load();
-                // コントローラにteamIDを渡す
-                TaskCreateController controller = loader.getController();
-                controller.setUserId(userId);
-                controller.setTeamID(teamID);
-                controller.setTeamName(teamName);
-                javafx.stage.Stage stage = (javafx.stage.Stage) btnCreateTask.getScene().getWindow();
-                stage.setScene(new javafx.scene.Scene(root));
-                stage.setTitle("タスク作成");
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-        });
-    }
-
     // ユーザーのタスク一覧を返す（todayTaskListの内容からTaskオブジェクトを取得する例）
     // 必要に応じてキャッシュやフィールドに保持しておく
     // ここでは簡易的に再取得する例
     private java.util.List<com.habit.domain.Task> getUserTasksForPersonalPage() {
         try {
             com.habit.server.TaskRepository repo = new com.habit.server.TaskRepository();
-            java.util.List<com.habit.domain.Task> teamTaskObjs = repo.findTeamTasksByteamID(teamID);
+            java.util.List<com.habit.domain.Task> teamTaskObjs = repo.findTeamTasksByTeamID(teamID);
             String sessionId = LoginController.getSessionId();
             java.net.URL url2 = new java.net.URL("http://localhost:8080/getUserTaskIds");
             java.net.HttpURLConnection conn2 = (java.net.HttpURLConnection) url2.openConnection();

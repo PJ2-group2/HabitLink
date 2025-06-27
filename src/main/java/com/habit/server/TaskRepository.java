@@ -148,7 +148,7 @@ public class TaskRepository {
         return list;
     }
 
-    public List<Task> findTeamTasksByteamID(String teamID) {
+    public List<Task> findTeamTasksByTeamID(String teamID) {
         List<Task> list = new java.util.ArrayList<>();
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
             String sql = "SELECT * FROM tasks WHERE teamID = ? AND isTeamTask = 1";

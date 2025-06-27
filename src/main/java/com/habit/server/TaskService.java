@@ -42,6 +42,6 @@ public class TaskService {
     }
 
     public List<Task> getTeamTasks(String teamID) {
-        return taskRepository.findTeamTasksByteamID(teamID);
+        return taskRepository.findTeamTasksByTeamID(teamID);
     }
 }

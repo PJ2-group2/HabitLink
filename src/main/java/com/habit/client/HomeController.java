@@ -5,13 +5,21 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
 import javafx.scene.image.ImageView;
 
+/**
+ * ホーム画面のコントローラークラス。
+ * チーム一覧・キャラクターの表示や、チーム作成・検索画面への遷移を担当する。
+ */
 public class HomeController {
+    /* キャラクター画像 */
     @FXML
     private ImageView characterView;
+    /* チームリストビュー */
     @FXML
     private ListView<String> teamListView;
+    /* チーム作成ボタン */
     @FXML
     private Button btnToCreateTeam;
+    /* チーム検索ボタン */
     @FXML
     private Button btnToSearchTeam;
 
@@ -20,6 +28,10 @@ public class HomeController {
     // ユーザーIDを保存
     private String userId;
 
+    /**
+     * コントローラー初期化処理。
+     * チーム一覧の取得や、ボタンのアクション設定を行う。
+     */
     @FXML
     public void initialize() {
         // 現在ログインユーザのjoinedTeamIdsにあるチームのみ表示

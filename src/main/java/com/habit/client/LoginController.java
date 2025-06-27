@@ -1,25 +1,31 @@
 package com.habit.client;
 
+import javafx.fxml.FXML;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
+import javafx.scene.control.TextField;
+
 /**
  * ログイン画面のコントローラークラス。
  * ログイン・新規登録の切り替えや、サーバーとの認証処理を担当する。
  */
 public class LoginController {
     /** ユーザー名入力フィールド */
-    @javafx.fxml.FXML
-    private javafx.scene.control.TextField usernameField;
+    @FXML
+    private TextField usernameField;
     /** パスワード入力フィールド */
-    @javafx.fxml.FXML
-    private javafx.scene.control.PasswordField passwordField;
+    @FXML
+    private PasswordField passwordField;
     /** ログイン/新規登録ボタン */
-    @javafx.fxml.FXML
-    private javafx.scene.control.Button btnLogin;
+    @FXML
+    private Button btnLogin;
     /** モード切替ボタン */
-    @javafx.fxml.FXML
-    private javafx.scene.control.Button btnSwitchMode;
+    @FXML
+    private Button btnSwitchMode;
     /** ステータスメッセージ表示用ラベル */
-    @javafx.fxml.FXML
-    private javafx.scene.control.Label loginStatusLabel;
+    @FXML
+    private Label loginStatusLabel;
 
     /** 新規登録モードかどうかのフラグ */
     private boolean isRegisterMode = false;
@@ -27,7 +33,7 @@ public class LoginController {
     /** サーバから返却されたセッションID */
     private static String sessionId = null;
 
-    /** 現在のセッションIDを取得 */
+    /** 現在のセッションIDを取得するメソッド */
     public static String getSessionId() {
         return sessionId;
     }
@@ -36,7 +42,7 @@ public class LoginController {
      * コントローラー初期化処理。
      * モード切替ボタン押下時の動作を設定する。
      */
-    @javafx.fxml.FXML
+    @FXML
     public void initialize() {
         // モード切替ボタンのアクション設定
         // 初期状態はログインモード
@@ -58,7 +64,7 @@ public class LoginController {
      * ユーザー名とパスワードを取得し、サーバーへ認証リクエストを送信する。
      * 認証結果に応じて、ホーム画面へ遷移する。
      */
-    @javafx.fxml.FXML
+    @FXML
     public void handleLoginButtonAction(javafx.event.ActionEvent event) {
         // ユーザー名とパスワードの取得
         String username = usernameField.getText().trim();
