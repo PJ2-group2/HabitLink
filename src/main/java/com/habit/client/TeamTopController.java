@@ -164,104 +164,31 @@ public class TeamTopController {
     private void loadTeamTasksAndUserTasks() {
         new Thread(() -> {
             try {
-                // HTTPリクエストを送信するためのクライアントオブジェクトを作成
-                HttpClient client = HttpClient.newHttpClient();
-
-                // 1. サーバAPIからチームのタスクID→タスク名マップを取得
-                java.util.Map<String, String> idToName = new java.util.HashMap<>(); // タスクID→タスク名のマップ
-                // URLを作成
-                String mapUrl = "http://localhost:8080/getTaskIdNameMap?id=" + URLEncoder.encode(teamID, "UTF-8");
-                // リクエストを送信
-                HttpRequest mapRequest = HttpRequest.newBuilder()
-                        .uri(URI.create(mapUrl))
-                        .timeout(java.time.Duration.ofSeconds(3))
-                        .GET()
-                        .build();
-                // レスポンスを取得
-                HttpResponse<String> mapResponse = client.send(mapRequest, HttpResponse.BodyHandlers.ofString());
-                // レスポンスのボディをJSONとして解析し、タスクID→タスク名マップを作成
-                String json = mapResponse.body();
-                if (!json.isEmpty() && json.startsWith("{")) {
-                    org.json.JSONObject obj = new org.json.JSONObject(json);
-                    for (String key : obj.keySet()) {
-                        idToName.put(key, obj.getString(key));
-                    }
-                }
-
-                // 2. サーバからチームタスクID一覧取得
-                // URLを作成
-                String tasksUrl = "http://localhost:8080/getTasks?id=" + URLEncoder.encode(teamID, "UTF-8");
-                // リクエストを送信
-                HttpRequest tasksRequest = HttpRequest.newBuilder()
-                        .uri(URI.create(tasksUrl))
-                        .timeout(java.time.Duration.ofSeconds(3))
-                        .GET()
-                        .build();
-                // レスポンスを取得
-                HttpResponse<String> tasksResponse = client.send(tasksRequest, HttpResponse.BodyHandlers.ofString());
-                // レスポンスのボディをタスクIDのリストに変換
-                java.util.List<String> teamTasks = new java.util.ArrayList<>();
-                for (String line : tasksResponse.body().split("\n")) {
-                    if (!line.trim().isEmpty()) {
-                        teamTasks.add(line.trim());
-                    }
-                }
-
-                // 3. ユーザのタスクID一覧取得
-                // LoginControllerからセッションIDを取得
                 String sessionId = LoginController.getSessionId();
-                // URLを作成
-                String userTaskUrl = "http://localhost:8080/getUserTaskIds";
-                // リクエストを送信
-                HttpRequest userTaskRequest = HttpRequest.newBuilder()
-                        .uri(URI.create(userTaskUrl))
+                HttpClient client = HttpClient.newHttpClient();
+                String url = "http://localhost:8080/getUserTeamTasks?teamID=" + URLEncoder.encode(teamID, "UTF-8");
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(url))
                         .timeout(java.time.Duration.ofSeconds(3))
                         .header("SESSION_ID", sessionId)
                         .GET()
                         .build();
-                // レスポンスを取得
-                HttpResponse<String> userTaskResponse = client.send(userTaskRequest, HttpResponse.BodyHandlers.ofString());
-                // レスポンスのボディをタスクIDのセットに変換
-                java.util.Set<String> userTaskIds = new java.util.HashSet<>();
-                String response2 = userTaskResponse.body();
-                if (response2 != null && response2.startsWith("taskIds=")) {
-                    String[] ids = response2.substring(8).split(",");
-                    for (String id : ids) {
-                        if (!id.trim().isEmpty()) {
-                            userTaskIds.add(id.trim());
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                // レスポンスは [{"taskId":"...","taskName":"..."}] のJSON配列
+                java.util.List<String> taskNames = new java.util.ArrayList<>();
+                String json = response.body();
+                if (json != null && json.startsWith("[")) {
+                    org.json.JSONArray arr = new org.json.JSONArray(json);
+                    for (int i = 0; i < arr.length(); i++) {
+                        org.json.JSONObject obj = arr.getJSONObject(i);
+                        String name = obj.optString("taskName", null);
+                        if (name != null) {
+                            taskNames.add(name);
                         }
                     }
                 }
-
-                // 4. 両方に含まれるタスクIDのみ抽出
-                java.util.List<String> filteredTasks = new java.util.ArrayList<>();
-                for (String task : teamTasks) {
-                    if (userTaskIds.contains(task)) {
-                        // 未完了タスクのみ追加
-                        com.habit.server.UserTaskStatusRepository statusRepo = new com.habit.server.UserTaskStatusRepository();
-                        java.time.LocalDate today = java.time.LocalDate.now();
-                        java.util.Optional<com.habit.domain.UserTaskStatus> statusOpt = statusRepo.findByUserIdAndTaskIdAndDate(userId, task, today);
-                        boolean isDone = statusOpt.map(com.habit.domain.UserTaskStatus::isDone).orElse(false);
-                        if (!isDone) {
-                            filteredTasks.add(task);
-                        }
-                    }
-                }
-
-                // 5. タスクID→タスク名変換
-                java.util.List<String> filteredTaskNames = new java.util.ArrayList<>();
-                for (String id : filteredTasks) {
-                    String name = idToName.get(id);
-                    if (name != null) {
-                        filteredTaskNames.add(name);
-                    } else {
-                        filteredTaskNames.add(id); // 名前が取得できなければID表示
-                    }
-                }
-
-                // 6. UIスレッドで表示
                 Platform.runLater(() -> {
-                    todayTaskList.getItems().setAll(filteredTaskNames);
+                    todayTaskList.getItems().setAll(taskNames);
                 });
             } catch (Exception e) {
                 e.printStackTrace();
