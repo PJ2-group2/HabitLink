@@ -12,9 +12,18 @@ import java.util.*;
 import com.habit.server.UserTaskStatusRepository;
 import com.habit.domain.UserTaskStatus;
 
+/**
+ * 個人ページのコントローラークラス。
+ * ユーザーのタスク一覧を表示し、タスクの完了処理を行う。
+ */
 public class PersonalPageController {
+    /** ユーザーIDラベル */
+    @FXML
+    private Label lblUserId;
+    /** タスク一覧を表示するタイルペイン */
     @FXML
     private TilePane taskTilePane;
+    /** チームトップに戻るボタン */
     @FXML
     private Button btnBackToTeam;
 
@@ -55,10 +64,14 @@ public class PersonalPageController {
         this.teamName = teamName;
     }
 
+    /**
+     * コントローラー初期化処理。
+     */
     @FXML
-    public void initialize() {
+    public void initialize() { 
         updateTaskTiles();
-        btnBackToTeam.setOnAction(e -> {
+        // 戻るボタンのアクション設定
+        btnBackToTeam.setOnAction(_ -> {
             try {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/habit/client/gui/TeamTop.fxml"));
                 Parent root = loader.load();
@@ -76,6 +89,10 @@ public class PersonalPageController {
         });
     }
 
+    /**
+     * タスクのタイルを更新するメソッド。
+     * タスク一覧をクリアし、各タスクに対してボタンを生成して表示する。
+     */
     private void updateTaskTiles() {
         taskTilePane.getChildren().clear();
         for (com.habit.domain.Task task : tasks) {
@@ -85,7 +102,7 @@ public class PersonalPageController {
             java.time.LocalTime dueTime = task.getDueTime();
             String remainStr = (dueTime != null) ? "残り: " + getRemainingTimeString(dueTime) : "";
             tileBtn.setText(name + (remainStr.isEmpty() ? "" : "\n" + remainStr));
-            tileBtn.setOnAction(ev -> {
+            tileBtn.setOnAction(_ -> {
                 // 確認ダイアログを表示
                 Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
                 alert.setTitle("タスク消化の確認");

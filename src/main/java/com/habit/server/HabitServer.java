@@ -13,7 +13,7 @@ import java.net.InetSocketAddress;
 import java.util.List;
 
 // JDBC based team management
-import com.habit.server.DatabaseTeamManager;
+// import com.habit.server.DatabaseTeamManager;
 
 /**
  * 習慣化共有アプリのサーバ本体クラス。

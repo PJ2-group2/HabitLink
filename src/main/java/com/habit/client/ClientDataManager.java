@@ -40,7 +40,7 @@ public class ClientDataManager {
     }
 
     public void addMessageToHistory(String teamID, Message message) {
-        cachedChatHistories.computeIfAbsent(teamID, k -> new java.util.ArrayList<>()).add(message);
+        cachedChatHistories.computeIfAbsent(teamID, _ -> new java.util.ArrayList<>()).add(message);
     }
 
     public List<Message> getChatHistory(String teamID) {
