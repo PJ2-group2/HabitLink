@@ -106,6 +106,29 @@ public class UserTaskStatusRepository {
         return Optional.empty();
     }
 
+    // ユーザー・チーム・日付で一括取得
+    public List<UserTaskStatus> findByUserIdAndTeamIdAndDate(String userId, String teamId, LocalDate date) {
+        List<UserTaskStatus> result = new ArrayList<>();
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String sql = "SELECT uts.* FROM user_task_statuses uts " +
+                         "JOIN tasks t ON uts.taskId = t.taskId " +
+                         "WHERE uts.userId = ? AND t.teamID = ? AND uts.date = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, userId);
+                pstmt.setString(2, teamId);
+                pstmt.setString(3, date.toString());
+                ResultSet rs = pstmt.executeQuery();
+                while (rs.next()) {
+                    UserTaskStatus status = mapRowToStatus(rs);
+                    result.add(status);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
     // 保存・更新
     public void save(UserTaskStatus status) {
         try (Connection conn = DriverManager.getConnection(DB_URL)) {

@@ -206,48 +206,46 @@ public class TeamTopController {
      */
     private java.util.List<com.habit.domain.Task> getUserTasksForPersonalPage() {
         try {
-            com.habit.server.TaskRepository repo = new com.habit.server.TaskRepository();
-            java.util.List<com.habit.domain.Task> teamTaskObjs = repo.findTeamTasksByTeamID(teamID);
             String sessionId = LoginController.getSessionId();
-
-            // HTTPリクエストを送信するためのクライアントオブジェクトを作成
+            java.time.LocalDate today = java.time.LocalDate.now();
             HttpClient client = HttpClient.newHttpClient();
-            // URLを作成
-            String userTaskUrl = "http://localhost:8080/getUserTaskIds";
-            // リクエストを送信
-            HttpRequest userTaskRequest = HttpRequest.newBuilder()
-                    .uri(URI.create(userTaskUrl))
-                    .timeout(java.time.Duration.ofSeconds(3))
+            String url = "http://localhost:8080/getUserIncompleteTasks?teamID=" + URLEncoder.encode(teamID, "UTF-8")
+                       + "&date=" + today.toString();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .timeout(java.time.Duration.ofSeconds(10))
                     .header("SESSION_ID", sessionId)
                     .GET()
                     .build();
-            // レスポンスを取得
-            HttpResponse<String> userTaskResponse = client.send(userTaskRequest, HttpResponse.BodyHandlers.ofString());
-            // レスポンスのボディをタスクIDのセットに変換
-            java.util.Set<String> userTaskIds = new java.util.HashSet<>();
-            String response2 = userTaskResponse.body();
-            if (response2 != null && response2.startsWith("taskIds=")) {
-                String[] ids = response2.substring(8).split(",");
-                for (String id : ids) {
-                    if (!id.trim().isEmpty()) {
-                        userTaskIds.add(id.trim());
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            String json = response.body();
+            java.util.List<com.habit.domain.Task> tasks = new java.util.ArrayList<>();
+            if (json != null && json.startsWith("[")) {
+                org.json.JSONArray arr = new org.json.JSONArray(json);
+                for (int i = 0; i < arr.length(); i++) {
+                    org.json.JSONObject obj = arr.getJSONObject(i);
+                    String taskId = obj.optString("taskId", null);
+                    String taskName = obj.optString("taskName", null);
+                    String dueTimeStr = obj.optString("dueTime", null);
+                    java.time.LocalTime dueTime = null;
+                    if (dueTimeStr != null && !dueTimeStr.isEmpty() && !dueTimeStr.equals("null")) {
+                        try {
+                            dueTime = java.time.LocalTime.parse(dueTimeStr);
+                        } catch (Exception ignore) {}
+                    }
+                    if (taskId != null && taskName != null) {
+                        com.habit.domain.Task t = new com.habit.domain.Task(taskId, taskName);
+                        // dueTimeをリフレクションでセット（コンストラクタが2引数しかない場合）
+                        try {
+                            java.lang.reflect.Field f = t.getClass().getDeclaredField("dueTime");
+                            f.setAccessible(true);
+                            f.set(t, dueTime);
+                        } catch (Exception ignore) {}
+                        tasks.add(t);
                     }
                 }
             }
-
-            java.util.List<com.habit.domain.Task> filteredTasks = new java.util.ArrayList<>();
-            for (com.habit.domain.Task t : teamTaskObjs) {
-                if (userTaskIds.contains(t.getTaskId())) {
-                    com.habit.server.UserTaskStatusRepository statusRepo = new com.habit.server.UserTaskStatusRepository();
-                    java.time.LocalDate today = java.time.LocalDate.now();
-                    java.util.Optional<com.habit.domain.UserTaskStatus> statusOpt = statusRepo.findByUserIdAndTaskIdAndDate(userId, t.getTaskId(), today);
-                    boolean isDone = statusOpt.map(com.habit.domain.UserTaskStatus::isDone).orElse(false);
-                    if (!isDone) {
-                        filteredTasks.add(t);
-                    }
-                }
-            }
-            return filteredTasks;
+            return tasks;
         } catch (Exception e) {
             e.printStackTrace();
             return new java.util.ArrayList<>();
