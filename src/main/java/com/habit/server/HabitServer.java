@@ -55,6 +55,8 @@ public class HabitServer {
     server.createContext("/getUserIncompleteTasks", new GetUserIncompleteTasksHandler());
     // ユーザー・チーム・日付ごとの全UserTaskStatus（taskId, isDone）を返すAPI
     server.createContext("/getUserTaskStatusList", new GetUserTaskStatusListHandler());
+    // ユーザーのタスク完了API
+    server.createContext("/completeUserTask", new CompleteUserTaskHandler());
     server.start();
     System.out.println("サーバが起動しました: http://localhost:8080/hello");
   }
@@ -903,6 +905,65 @@ public class HabitServer {
                 exchange.sendResponseHeaders(500, errJson.getBytes("UTF-8").length);
                 os = exchange.getResponseBody();
                 os.write(errJson.getBytes("UTF-8"));
+            } finally {
+                if (os != null) {
+                    try { os.close(); } catch (Exception ignore) {}
+                }
+            }
+        }
+    }
+    // --- ユーザーのタスク完了API ---
+    static class CompleteUserTaskHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            OutputStream os = null;
+            try {
+                if (!"POST".equals(exchange.getRequestMethod())) {
+                    String response = "POSTメソッドのみ対応";
+                    exchange.sendResponseHeaders(405, response.getBytes().length);
+                    os = exchange.getResponseBody();
+                    os.write(response.getBytes());
+                    return;
+                }
+                byte[] bodyBytes = exchange.getRequestBody().readAllBytes();
+                String bodyStr = (bodyBytes != null) ? new String(bodyBytes, java.nio.charset.StandardCharsets.UTF_8) : "";
+                final String[] userId = {null};
+                final String[] taskId = {null};
+                String dateStr = null;
+                if (bodyStr != null && !bodyStr.isEmpty()) {
+                    String[] params = bodyStr.split("&");
+                    for (String param : params) {
+                        String[] kv = param.split("=", 2);
+                        if (kv.length < 2) continue;
+                        if (kv[0].equals("userId")) userId[0] = java.net.URLDecoder.decode(kv[1], "UTF-8");
+                        if (kv[0].equals("taskId")) taskId[0] = java.net.URLDecoder.decode(kv[1], "UTF-8");
+                        if (kv[0].equals("date")) dateStr = java.net.URLDecoder.decode(kv[1], "UTF-8");
+                    }
+                }
+                String response;
+                if (userId[0] != null && taskId[0] != null && dateStr != null) {
+                    java.time.LocalDate date = java.time.LocalDate.parse(dateStr);
+                    UserTaskStatusRepository repo = new UserTaskStatusRepository();
+                    // 既存のステータスがあれば取得、なければ新規作成
+                    java.util.Optional<com.habit.domain.UserTaskStatus> optStatus = repo.findByUserIdAndTaskIdAndDate(userId[0], taskId[0], date);
+                    com.habit.domain.UserTaskStatus status = optStatus.orElseGet(() ->
+                        new com.habit.domain.UserTaskStatus(userId[0], taskId[0], date, false)
+                    );
+                    status.setDone(true);
+                    repo.save(status);
+                    response = "タスク完了: userId=" + userId[0] + ", taskId=" + taskId[0] + ", date=" + dateStr;
+                } else {
+                    response = "パラメータが不正です";
+                }
+                exchange.sendResponseHeaders(200, response.getBytes().length);
+                os = exchange.getResponseBody();
+                os.write(response.getBytes());
+            } catch (Exception e) {
+                e.printStackTrace();
+                String err = "サーバーエラー: " + e.getMessage();
+                exchange.sendResponseHeaders(500, err.getBytes().length);
+                os = exchange.getResponseBody();
+                os.write(err.getBytes());
             } finally {
                 if (os != null) {
                     try { os.close(); } catch (Exception ignore) {}

@@ -9,8 +9,6 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import java.time.*;
 import java.util.*;
-import com.habit.server.UserTaskStatusRepository;
-import com.habit.domain.UserTaskStatus;
 
 /**
  * 個人ページのコントローラークラス。
@@ -136,7 +134,7 @@ public class PersonalPageController {
                 alert.setContentText("このタスクを消化しますか？");
                 Optional<ButtonType> result = alert.showAndWait();
                 if (result.isPresent() && result.get() == ButtonType.OK) {
-                    // タスク完了処理
+                    // タスク完了処理（API経由）
                     try {
                         if (userId == null || userId.isEmpty()) {
                             System.err.println("エラー: userIdが未設定です。タスク完了処理を中止します。");
@@ -144,28 +142,37 @@ public class PersonalPageController {
                         }
                         String taskId = task.getTaskId();
                         LocalDate date = LocalDate.now();
-                        UserTaskStatusRepository repo = new UserTaskStatusRepository();
-                        Optional<UserTaskStatus> optStatus = repo.findByUserIdAndTaskIdAndDate(userId, taskId, date);
-                        UserTaskStatus status = optStatus.orElseGet(() ->
-                            new UserTaskStatus(userId, taskId, date, false)
-                        );
-                        status.setDone(true);
-                        repo.save(status);
-                        System.out.println("タスク完了: userId=" + userId + ", taskId=" + taskId + ", 完了時刻=" + status.getCompletionTimestamp());
-                            // 個人画面を再読み込み
-                            try {
-                                javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/PersonalPage.fxml"));
-                                javafx.scene.Parent root = loader.load();
-                                PersonalPageController controller = loader.getController();
-                                controller.setUserId(userId);
-                                controller.setTeamID(teamID);
-                                controller.setTeamName(teamName);
-                                javafx.stage.Stage stage = (javafx.stage.Stage) taskTilePane.getScene().getWindow();
-                                stage.setScene(new javafx.scene.Scene(root));
-                                stage.setTitle("個人ページ");
-                            } catch (Exception ex) {
-                                ex.printStackTrace();
-                            }
+                        String sessionId = com.habit.client.LoginController.getSessionId();
+                        java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+                        String url = "http://localhost:8080/completeUserTask";
+                        String params = "userId=" + java.net.URLEncoder.encode(userId, "UTF-8") +
+                                       "&taskId=" + java.net.URLEncoder.encode(taskId, "UTF-8") +
+                                       "&date=" + java.net.URLEncoder.encode(date.toString(), "UTF-8");
+                        java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                                .uri(java.net.URI.create(url))
+                                .timeout(java.time.Duration.ofSeconds(10))
+                                .header("SESSION_ID", sessionId)
+                                .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+                                .POST(java.net.http.HttpRequest.BodyPublishers.ofString(params))
+                                .build();
+                        java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+                        System.out.println("タスク完了APIレスポンス: " + response.body());
+                        // 個人画面を再読み込み
+                        try {
+                            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/PersonalPage.fxml"));
+                            javafx.scene.Parent root = loader.load();
+                            PersonalPageController controller = loader.getController();
+                            controller.setUserId(userId);
+                            controller.setTeamID(teamID);
+                            controller.setTeamName(teamName);
+                            // タスク一覧を再取得してセット
+                            controller.setUserTasks(fetchUserTasksForPersonalPage());
+                            javafx.stage.Stage stage = (javafx.stage.Stage) taskTilePane.getScene().getWindow();
+                            stage.setScene(new javafx.scene.Scene(root));
+                            stage.setTitle("個人ページ");
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                        }
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -184,5 +191,53 @@ public class PersonalPageController {
         long hours = totalMinutes / 60;
         long minutes = totalMinutes % 60;
         return String.format("%d時間%d分", hours, minutes);
+    }
+    // タスク一覧をAPIから取得する（TeamTopControllerのgetUserTasksForPersonalPage()相当）
+    private List<com.habit.domain.Task> fetchUserTasksForPersonalPage() {
+        try {
+            String sessionId = com.habit.client.LoginController.getSessionId();
+            java.time.LocalDate today = java.time.LocalDate.now();
+            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+            String url = "http://localhost:8080/getUserIncompleteTasks?teamID=" + java.net.URLEncoder.encode(teamID, "UTF-8")
+                       + "&date=" + today.toString();
+            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create(url))
+                    .timeout(java.time.Duration.ofSeconds(10))
+                    .header("SESSION_ID", sessionId)
+                    .GET()
+                    .build();
+            java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+            String json = response.body();
+            java.util.List<com.habit.domain.Task> tasks = new java.util.ArrayList<>();
+            if (json != null && json.startsWith("[")) {
+                org.json.JSONArray arr = new org.json.JSONArray(json);
+                for (int i = 0; i < arr.length(); i++) {
+                    org.json.JSONObject obj = arr.getJSONObject(i);
+                    String taskId = obj.optString("taskId", null);
+                    String taskName = obj.optString("taskName", null);
+                    String dueTimeStr = obj.optString("dueTime", null);
+                    java.time.LocalTime dueTime = null;
+                    if (dueTimeStr != null && !dueTimeStr.isEmpty() && !"null".equals(dueTimeStr)) {
+                        try {
+                            dueTime = java.time.LocalTime.parse(dueTimeStr);
+                        } catch (Exception ignore) {}
+                    }
+                    if (taskId != null && taskName != null) {
+                        com.habit.domain.Task t = new com.habit.domain.Task(taskId, taskName);
+                        // dueTimeをリフレクションでセット
+                        try {
+                            java.lang.reflect.Field f = t.getClass().getDeclaredField("dueTime");
+                            f.setAccessible(true);
+                            f.set(t, dueTime);
+                        } catch (Exception ignore) {}
+                        tasks.add(t);
+                    }
+                }
+            }
+            return tasks;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new java.util.ArrayList<>();
+        }
     }
 }
