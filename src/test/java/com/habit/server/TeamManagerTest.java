@@ -3,6 +3,9 @@ package com.habit.server;
 import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
+import com.habit.server.manager.TaskManager;
+import com.habit.server.manager.TeamManager;
+
 public class TeamManagerTest {
 
   @Test

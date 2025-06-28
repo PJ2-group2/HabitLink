@@ -5,6 +5,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import com.habit.server.manager.DatabaseTeamManager;
+import com.habit.server.manager.TaskManager;
+
 /** Tests for the SQLite backed team manager. */
 public class DatabaseTeamManagerTest {
   private DatabaseTeamManager mgr =

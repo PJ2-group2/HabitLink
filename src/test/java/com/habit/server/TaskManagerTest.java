@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
 
+import com.habit.server.manager.TaskManager;
+
 public class TaskManagerTest {
 
   @Test

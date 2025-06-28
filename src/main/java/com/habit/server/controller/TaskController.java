@@ -1,8 +1,9 @@
 package com.habit.server.controller;
 
+import com.habit.server.manager.DatabaseTeamManager;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import com.habit.server.DatabaseTeamManager;
+
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -123,7 +124,7 @@ public class TaskController {
            if (teamID == null || teamID.isEmpty()) {
                response = "{}";
            } else {
-               com.habit.server.TaskRepository repo = new com.habit.server.TaskRepository();
+               com.habit.server.repository.TaskRepository repo = new com.habit.server.repository.TaskRepository();
                java.util.List<com.habit.domain.Task> tasks = repo.findTeamTasksByTeamID(teamID);
                StringBuilder sb = new StringBuilder("{");
                for (int i = 0; i < tasks.size(); i++) {
@@ -143,14 +144,14 @@ public class TaskController {
        }
     }
     // --- チーム内で自分に紐づくタスク取得API ---
-    public HttpHandler getUserTeamTasksHandler(com.habit.server.AuthService authService) {
+    public HttpHandler getUserTeamTasksHandler(com.habit.server.service.AuthService authService) {
         return new GetUserTeamTasksHandler(authService);
     }
 
     public static class GetUserTeamTasksHandler implements HttpHandler {
-        private final com.habit.server.AuthService authService;
+        private final com.habit.server.service.AuthService authService;
 
-        public GetUserTeamTasksHandler(com.habit.server.AuthService authService) {
+        public GetUserTeamTasksHandler(com.habit.server.service.AuthService authService) {
             this.authService = authService;
         }
 
@@ -171,8 +172,8 @@ public class TaskController {
                 var user = authService.getUserBySession(sessionId);
                 if (user != null) {
                     String userId = user.getUserId();
-                    com.habit.server.UserTaskStatusRepository utsRepo = new com.habit.server.UserTaskStatusRepository();
-                    com.habit.server.TaskRepository taskRepo = new com.habit.server.TaskRepository();
+                    com.habit.server.repository.UserTaskStatusRepository utsRepo = new com.habit.server.repository.UserTaskStatusRepository();
+                    com.habit.server.repository.TaskRepository taskRepo = new com.habit.server.repository.TaskRepository();
                     java.util.List<String> taskIds = utsRepo.findTaskIdsByUserIdAndTeamId(userId, teamID);
                     java.util.List<com.habit.domain.Task> teamTasks = taskRepo.findTeamTasksByTeamID(teamID);
                     java.util.List<com.habit.domain.Task> filtered = new java.util.ArrayList<>();
@@ -239,7 +240,7 @@ public class TaskController {
                     taskId, taskName, description, estimatedMinutes,
                     java.util.Collections.emptyList(), isTeamTask, dueTime, cycleType
                 );
-                new com.habit.server.TaskRepository().saveTask(task, teamID);
+                new com.habit.server.repository.TaskRepository().saveTask(task, teamID);
                 response = "タスク保存成功";
             } catch (Exception ex) {
                 response = "タスク保存失敗: " + ex.getMessage();

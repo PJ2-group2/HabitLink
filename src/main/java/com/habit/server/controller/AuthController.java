@@ -2,8 +2,9 @@ package com.habit.server.controller;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import com.habit.server.AuthService;
-import com.habit.server.UserRepository;
+import com.habit.server.repository.UserRepository;
+import com.habit.server.service.AuthService;
+
 import java.io.IOException;
 import java.io.OutputStream;
 

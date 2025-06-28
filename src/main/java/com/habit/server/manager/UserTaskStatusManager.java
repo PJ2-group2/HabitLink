@@ -1,6 +1,8 @@
-package com.habit.server;
+package com.habit.server.manager;
 
 import com.habit.domain.UserTaskStatus;
+import com.habit.server.repository.UserTaskStatusRepository;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;

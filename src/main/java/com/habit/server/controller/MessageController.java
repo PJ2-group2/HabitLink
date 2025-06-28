@@ -2,8 +2,8 @@ package com.habit.server.controller;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import com.habit.server.MessageRepository;
-import com.habit.server.UserRepository;
+import com.habit.server.repository.MessageRepository;
+import com.habit.server.repository.UserRepository;
 import com.habit.domain.Message;
 import com.habit.domain.User;
 

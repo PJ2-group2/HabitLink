@@ -1,6 +1,7 @@
-package com.habit.server;
+package com.habit.server.service;
 
 import com.habit.domain.User;
+import com.habit.server.repository.UserRepository;
 
 import java.util.Map;
 import java.util.UUID;

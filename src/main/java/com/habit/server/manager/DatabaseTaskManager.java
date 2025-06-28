@@ -1,4 +1,4 @@
-package com.habit.server;
+package com.habit.server.manager;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

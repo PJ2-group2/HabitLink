@@ -2,8 +2,8 @@ package com.habit.server.controller;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import com.habit.server.AuthService;
-import com.habit.server.UserTaskStatusRepository;
+import com.habit.server.repository.UserTaskStatusRepository;
+import com.habit.server.service.AuthService;
 import com.habit.domain.UserTaskStatus;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -64,14 +64,14 @@ public class UserTaskStatusController {
         }
     }
     // --- ユーザーの未完了タスク一覧取得API ---
-    public HttpHandler getUserIncompleteTasksHandler(com.habit.server.AuthService authService) {
+    public HttpHandler getUserIncompleteTasksHandler(com.habit.server.service.AuthService authService) {
         return new GetUserIncompleteTasksHandler(authService);
     }
 
     public static class GetUserIncompleteTasksHandler implements com.sun.net.httpserver.HttpHandler {
-        private final com.habit.server.AuthService authService;
+        private final com.habit.server.service.AuthService authService;
 
-        public GetUserIncompleteTasksHandler(com.habit.server.AuthService authService) {
+        public GetUserIncompleteTasksHandler(com.habit.server.service.AuthService authService) {
             this.authService = authService;
         }
 
@@ -99,8 +99,8 @@ public class UserTaskStatusController {
                     var user = authService.getUserBySession(sessionId);
                     if (user != null) {
                         String userId = user.getUserId();
-                        com.habit.server.UserTaskStatusRepository utsRepo = new com.habit.server.UserTaskStatusRepository();
-                        com.habit.server.TaskRepository taskRepo = new com.habit.server.TaskRepository();
+                        com.habit.server.repository.UserTaskStatusRepository utsRepo = new com.habit.server.repository.UserTaskStatusRepository();
+                        com.habit.server.repository.TaskRepository taskRepo = new com.habit.server.repository.TaskRepository();
                         java.time.LocalDate date = java.time.LocalDate.parse(dateStr);
                         java.util.List<String> taskIds = utsRepo.findTaskIdsByUserIdAndTeamId(userId, teamID);
                         java.util.List<com.habit.domain.Task> teamTasks = taskRepo.findTeamTasksByTeamID(teamID);
@@ -184,7 +184,7 @@ public class UserTaskStatusController {
                 java.time.LocalDate date = java.time.LocalDate.parse(map.get("date"));
                 boolean isDone = Boolean.parseBoolean(map.getOrDefault("isDone", "false"));
                 com.habit.domain.UserTaskStatus status = new com.habit.domain.UserTaskStatus(userId, taskId, date, isDone);
-                new com.habit.server.UserTaskStatusRepository().save(status);
+                new com.habit.server.repository.UserTaskStatusRepository().save(status);
                 response = "UserTaskStatus保存成功";
             } catch (Exception ex) {
                 response = "UserTaskStatus保存失敗: " + ex.getMessage();
