@@ -133,7 +133,28 @@ public class TaskCreateController {
             ", cycleType=" + task.getCycleType() +
             ", teamID=" + teamID
         );
-        new com.habit.server.TaskRepository().saveTask(task, teamID);
+        // --- API経由でタスク保存 ---
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            String body = "taskId=" + java.net.URLEncoder.encode(task.getTaskId(), "UTF-8")
+                + "&taskName=" + java.net.URLEncoder.encode(task.getTaskName(), "UTF-8")
+                + "&description=" + java.net.URLEncoder.encode(task.getDescription(), "UTF-8")
+                + "&estimatedMinutes=" + task.getEstimatedMinutes()
+                + "&isTeamTask=" + task.isTeamTask()
+                + "&dueTime=" + java.net.URLEncoder.encode(task.getDueTime().toString(), "UTF-8")
+                + "&cycleType=" + java.net.URLEncoder.encode(task.getCycleType(), "UTF-8")
+                + "&teamID=" + java.net.URLEncoder.encode(teamID, "UTF-8");
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/saveTask"))
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            System.out.println("タスク保存APIレスポンス: " + response.body());
+        } catch (Exception e) {
+            showAlert("タスク保存APIエラー: " + e.getMessage());
+            return;
+        }
 
         // --- ここからUserTaskStatus保存処理 ---
         try {
@@ -167,8 +188,23 @@ public class TaskCreateController {
                         false
                     );
                     // DB保存
-                    new com.habit.server.UserTaskStatusRepository().save(status);
-                    System.out.println("UserTaskStatus保存: userId=" + userId + ", taskId=" + task.getTaskId());
+                    // --- API経由でUserTaskStatus保存 ---
+                    try {
+                        HttpClient client2 = HttpClient.newHttpClient();
+                        String body2 = "userId=" + java.net.URLEncoder.encode(userId, "UTF-8")
+                            + "&taskId=" + java.net.URLEncoder.encode(task.getTaskId(), "UTF-8")
+                            + "&date=" + java.net.URLEncoder.encode(java.time.LocalDate.now().toString(), "UTF-8")
+                            + "&isDone=false";
+                        HttpRequest request2 = HttpRequest.newBuilder()
+                            .uri(URI.create("http://localhost:8080/saveUserTaskStatus"))
+                            .header("Content-Type", "application/x-www-form-urlencoded")
+                            .POST(HttpRequest.BodyPublishers.ofString(body2))
+                            .build();
+                        HttpResponse<String> response2 = client2.send(request2, HttpResponse.BodyHandlers.ofString());
+                        System.out.println("UserTaskStatus保存APIレスポンス: " + response2.body());
+                    } catch (Exception ex) {
+                        System.out.println("UserTaskStatus保存APIエラー: " + ex.getMessage());
+                    }
                 } else {
                     System.out.println("ユーザーID取得失敗: " + body);
                 }
