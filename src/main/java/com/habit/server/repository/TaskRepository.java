@@ -1,4 +1,4 @@
-package com.habit.server;
+package com.habit.server.repository;
 
 import com.habit.domain.UserTaskStatus;
 import com.habit.domain.Task;

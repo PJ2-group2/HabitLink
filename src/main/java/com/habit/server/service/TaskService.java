@@ -1,7 +1,11 @@
-package com.habit.server;
+package com.habit.server.service;
 
 import com.habit.domain.Task;
 import com.habit.domain.UserTaskStatus;
+import com.habit.server.repository.TaskRepository;
+import com.habit.server.repository.TeamRepository;
+import com.habit.server.repository.UserRepository;
+
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
