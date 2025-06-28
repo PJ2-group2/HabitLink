@@ -138,4 +138,63 @@ public class TaskController {
            os.close();
        }
     }
+    // --- チーム内で自分に紐づくタスク取得API ---
+    public HttpHandler getUserTeamTasksHandler(com.habit.server.AuthService authService) {
+        return new GetUserTeamTasksHandler(authService);
+    }
+
+    public static class GetUserTeamTasksHandler implements HttpHandler {
+        private final com.habit.server.AuthService authService;
+
+        public GetUserTeamTasksHandler(com.habit.server.AuthService authService) {
+            this.authService = authService;
+        }
+
+        @Override
+        public void handle(com.sun.net.httpserver.HttpExchange exchange) throws java.io.IOException {
+            String sessionId = null;
+            var headers = exchange.getRequestHeaders();
+            if (headers.containsKey("SESSION_ID")) {
+                sessionId = headers.getFirst("SESSION_ID");
+            }
+            String query = exchange.getRequestURI().getQuery();
+            String teamID = null;
+            if (query != null && query.startsWith("teamID=")) {
+                teamID = java.net.URLDecoder.decode(query.substring(7), "UTF-8");
+            }
+            String response = "[]";
+            if (sessionId != null && teamID != null) {
+                var user = authService.getUserBySession(sessionId);
+                if (user != null) {
+                    String userId = user.getUserId();
+                    com.habit.server.UserTaskStatusRepository utsRepo = new com.habit.server.UserTaskStatusRepository();
+                    com.habit.server.TaskRepository taskRepo = new com.habit.server.TaskRepository();
+                    java.util.List<String> taskIds = utsRepo.findTaskIdsByUserIdAndTeamId(userId, teamID);
+                    java.util.List<com.habit.domain.Task> teamTasks = taskRepo.findTeamTasksByTeamID(teamID);
+                    java.util.List<com.habit.domain.Task> filtered = new java.util.ArrayList<>();
+                    for (com.habit.domain.Task t : teamTasks) {
+                        if (taskIds.contains(t.getTaskId())) {
+                            filtered.add(t);
+                        }
+                    }
+                    StringBuilder sb = new StringBuilder("[");
+                    for (int i = 0; i < filtered.size(); i++) {
+                        com.habit.domain.Task t = filtered.get(i);
+                        sb.append("{");
+                        sb.append("\"taskId\":\"").append(t.getTaskId().replace("\"", "\\\"")).append("\",");
+                        sb.append("\"taskName\":\"").append(t.getTaskName().replace("\"", "\\\"")).append("\"");
+                        sb.append("}");
+                        if (i < filtered.size() - 1) sb.append(",");
+                    }
+                    sb.append("]");
+                    response = sb.toString();
+                }
+            }
+            exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+            exchange.sendResponseHeaders(200, response.getBytes("UTF-8").length);
+            java.io.OutputStream os = exchange.getResponseBody();
+            os.write(response.getBytes("UTF-8"));
+            os.close();
+        }
+    }
 }
