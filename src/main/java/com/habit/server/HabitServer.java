@@ -4,8 +4,6 @@ package com.habit.server;
 // クライアントからのHTTPリクエストを受けて、チームやタスクの情報を管理します
 // サーバはSQLiteを用いてチーム・タスク情報を永続化します
 
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 import com.habit.server.controller.HelloController;
 import com.habit.server.controller.TaskController;
@@ -14,12 +12,7 @@ import com.habit.server.controller.AuthController;
 import com.habit.server.controller.MessageController;
 import com.habit.server.controller.UserController;
 import com.habit.server.controller.UserTaskStatusController;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.net.InetSocketAddress;
-import java.util.List;
-import java.util.Set;
-import java.util.HashSet;
 
 // JDBC based team management
 // import com.habit.server.DatabaseTeamManager;
@@ -72,13 +65,13 @@ public class HabitServer {
     // ユーザーの未完了タスク一覧取得API
     server.createContext("/getUserIncompleteTasks", userTaskStatusController.getUserIncompleteTasksHandler(authService));
     // ユーザー・チーム・日付ごとの全UserTaskStatus（taskId, isDone）を返すAPI
-    server.createContext("/getUserTaskStatusList", new GetUserTaskStatusListHandler());
+    server.createContext("/getUserTaskStatusList", userTaskStatusController.getGetUserTaskStatusListHandler());
     // ユーザーのタスク完了API
-    server.createContext("/completeUserTask", new CompleteUserTaskHandler());
+    server.createContext("/completeUserTask", userTaskStatusController.getCompleteUserTaskHandler());
     // タスク保存API
-    server.createContext("/saveTask", new SaveTaskHandler());
+    server.createContext("/saveTask", taskController.getSaveTaskHandler());
     // UserTaskStatus保存API
-    server.createContext("/saveUserTaskStatus", new SaveUserTaskStatusHandler());
+    server.createContext("/saveUserTaskStatus", userTaskStatusController.getSaveUserTaskStatusHandler());
     server.start();
     System.out.println("サーバが起動しました: http://localhost:8080/hello");
   }
@@ -159,211 +152,10 @@ public class HabitServer {
     // --- ユーザーの未完了タスク一覧取得API ---
     // このハンドラーはUserTaskStatusControllerに移行済み
     // --- ユーザー・チーム・日付ごとの全UserTaskStatus（taskId, isDone）を返すAPI ---
-    static class GetUserTaskStatusListHandler implements HttpHandler {
-        @Override
-        public void handle(HttpExchange exchange) throws IOException {
-            OutputStream os = null;
-            try {
-                String sessionId = null;
-                var headers = exchange.getRequestHeaders();
-                if (headers.containsKey("SESSION_ID")) {
-                    sessionId = headers.getFirst("SESSION_ID");
-                }
-                String query = exchange.getRequestURI().getQuery();
-                String teamID = null;
-                String dateStr = null;
-                if (query != null) {
-                    String[] params = query.split("&");
-                    for (String param : params) {
-                        if (param.startsWith("teamID=")) teamID = java.net.URLDecoder.decode(param.substring(7), "UTF-8");
-                        if (param.startsWith("date=")) dateStr = java.net.URLDecoder.decode(param.substring(5), "UTF-8");
-                    }
-                }
-                String response = "[]";
-                if (sessionId != null && teamID != null && dateStr != null) {
-                    var user = authService.getUserBySession(sessionId);
-                    if (user != null) {
-                        String userId = user.getUserId();
-                        UserTaskStatusRepository utsRepo = new UserTaskStatusRepository();
-                        java.time.LocalDate date = java.time.LocalDate.parse(dateStr);
-                        List<com.habit.domain.UserTaskStatus> statusList = utsRepo.findByUserIdAndTeamIdAndDate(userId, teamID, date);
-                        StringBuilder sb = new StringBuilder("[");
-                        for (int i = 0; i < statusList.size(); i++) {
-                            com.habit.domain.UserTaskStatus s = statusList.get(i);
-                            sb.append("{");
-                            sb.append("\"taskId\":\"").append(s.getTaskId().replace("\"", "\\\"")).append("\",");
-                            sb.append("\"isDone\":").append(s.isDone());
-                            sb.append("}");
-                            if (i < statusList.size() - 1) sb.append(",");
-                        }
-                        sb.append("]");
-                        response = sb.toString();
-                    }
-                }
-                exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
-                exchange.sendResponseHeaders(200, response.getBytes("UTF-8").length);
-                os = exchange.getResponseBody();
-                os.write(response.getBytes("UTF-8"));
-            } catch (Exception e) {
-                e.printStackTrace();
-                String errJson = "{\"error\":\"" + e.getClass().getSimpleName() + ": " + e.getMessage() + "\"}";
-                exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
-                exchange.sendResponseHeaders(500, errJson.getBytes("UTF-8").length);
-                os = exchange.getResponseBody();
-                os.write(errJson.getBytes("UTF-8"));
-            } finally {
-                if (os != null) {
-                    try { os.close(); } catch (Exception ignore) {}
-                }
-            }
-        }
-    }
     // --- ユーザーのタスク完了API ---
-    static class CompleteUserTaskHandler implements HttpHandler {
-        @Override
-        public void handle(HttpExchange exchange) throws IOException {
-            OutputStream os = null;
-            try {
-                if (!"POST".equals(exchange.getRequestMethod())) {
-                    String response = "POSTメソッドのみ対応";
-                    exchange.sendResponseHeaders(405, response.getBytes().length);
-                    os = exchange.getResponseBody();
-                    os.write(response.getBytes());
-                    return;
-                }
-                byte[] bodyBytes = exchange.getRequestBody().readAllBytes();
-                String bodyStr = (bodyBytes != null) ? new String(bodyBytes, java.nio.charset.StandardCharsets.UTF_8) : "";
-                final String[] userId = {null};
-                final String[] taskId = {null};
-                String dateStr = null;
-                if (bodyStr != null && !bodyStr.isEmpty()) {
-                    String[] params = bodyStr.split("&");
-                    for (String param : params) {
-                        String[] kv = param.split("=", 2);
-                        if (kv.length < 2) continue;
-                        if (kv[0].equals("userId")) userId[0] = java.net.URLDecoder.decode(kv[1], "UTF-8");
-                        if (kv[0].equals("taskId")) taskId[0] = java.net.URLDecoder.decode(kv[1], "UTF-8");
-                        if (kv[0].equals("date")) dateStr = java.net.URLDecoder.decode(kv[1], "UTF-8");
-                    }
-                }
-                String response;
-                if (userId[0] != null && taskId[0] != null && dateStr != null) {
-                    java.time.LocalDate date = java.time.LocalDate.parse(dateStr);
-                    UserTaskStatusRepository repo = new UserTaskStatusRepository();
-                    // 既存のステータスがあれば取得、なければ新規作成
-                    java.util.Optional<com.habit.domain.UserTaskStatus> optStatus = repo.findByUserIdAndTaskIdAndDate(userId[0], taskId[0], date);
-                    com.habit.domain.UserTaskStatus status = optStatus.orElseGet(() ->
-                        new com.habit.domain.UserTaskStatus(userId[0], taskId[0], date, false)
-                    );
-                    status.setDone(true);
-                    repo.save(status);
-                    response = "タスク完了: userId=" + userId[0] + ", taskId=" + taskId[0] + ", date=" + dateStr;
-                } else {
-                    response = "パラメータが不正です";
-                }
-                exchange.sendResponseHeaders(200, response.getBytes().length);
-                os = exchange.getResponseBody();
-                os.write(response.getBytes());
-            } catch (Exception e) {
-                e.printStackTrace();
-                String err = "サーバーエラー: " + e.getMessage();
-                exchange.sendResponseHeaders(500, err.getBytes().length);
-                os = exchange.getResponseBody();
-                os.write(err.getBytes());
-            } finally {
-                if (os != null) {
-                    try { os.close(); } catch (Exception ignore) {}
-                }
-            }
-        }
-    }
+    
     // --- タスク保存API ---
-    static class SaveTaskHandler implements HttpHandler {
-        @Override
-        public void handle(com.sun.net.httpserver.HttpExchange exchange) throws java.io.IOException {
-            if (!"POST".equals(exchange.getRequestMethod())) {
-                String response = "POSTメソッドのみ対応";
-                exchange.sendResponseHeaders(405, response.getBytes().length);
-                try (java.io.OutputStream os = exchange.getResponseBody()) {
-                    os.write(response.getBytes());
-                }
-                return;
-            }
-            byte[] bodyBytes = exchange.getRequestBody().readAllBytes();
-            String bodyStr = (bodyBytes != null) ? new String(bodyBytes, java.nio.charset.StandardCharsets.UTF_8) : "";
-            String response;
-            try {
-                // key=value&...形式で受信
-                String[] params = bodyStr.split("&");
-                java.util.Map<String, String> map = new java.util.HashMap<>();
-                for (String param : params) {
-                    String[] kv = param.split("=", 2);
-                    if (kv.length < 2) continue;
-                    map.put(kv[0], java.net.URLDecoder.decode(kv[1], "UTF-8"));
-                }
-                String taskId = map.get("taskId");
-                String taskName = map.get("taskName");
-                String description = map.getOrDefault("description", "");
-                int estimatedMinutes = Integer.parseInt(map.getOrDefault("estimatedMinutes", "0"));
-                boolean isTeamTask = Boolean.parseBoolean(map.getOrDefault("isTeamTask", "false"));
-                String dueTimeStr = map.get("dueTime");
-                java.time.LocalTime dueTime = dueTimeStr != null && !dueTimeStr.isEmpty() ? java.time.LocalTime.parse(dueTimeStr) : null;
-                String cycleType = map.getOrDefault("cycleType", "daily");
-                String teamID = map.get("teamID");
-                // repeatDaysは未対応
-                com.habit.domain.Task task = new com.habit.domain.Task(
-                    taskId, taskName, description, estimatedMinutes,
-                    java.util.Collections.emptyList(), isTeamTask, dueTime, cycleType
-                );
-                new com.habit.server.TaskRepository().saveTask(task, teamID);
-                response = "タスク保存成功";
-            } catch (Exception ex) {
-                response = "タスク保存失敗: " + ex.getMessage();
-            }
-            exchange.sendResponseHeaders(200, response.getBytes().length);
-            try (java.io.OutputStream os = exchange.getResponseBody()) {
-                os.write(response.getBytes());
-            }
-        }
-    }
 
     // --- UserTaskStatus保存API ---
-    static class SaveUserTaskStatusHandler implements com.sun.net.httpserver.HttpHandler {
-        @Override
-        public void handle(com.sun.net.httpserver.HttpExchange exchange) throws java.io.IOException {
-            if (!"POST".equals(exchange.getRequestMethod())) {
-                String response = "POSTメソッドのみ対応";
-                exchange.sendResponseHeaders(405, response.getBytes().length);
-                try (java.io.OutputStream os = exchange.getResponseBody()) {
-                    os.write(response.getBytes());
-                }
-                return;
-            }
-            byte[] bodyBytes = exchange.getRequestBody().readAllBytes();
-            String bodyStr = (bodyBytes != null) ? new String(bodyBytes, java.nio.charset.StandardCharsets.UTF_8) : "";
-            String response;
-            try {
-                String[] params = bodyStr.split("&");
-                java.util.Map<String, String> map = new java.util.HashMap<>();
-                for (String param : params) {
-                    String[] kv = param.split("=", 2);
-                    if (kv.length < 2) continue;
-                    map.put(kv[0], java.net.URLDecoder.decode(kv[1], "UTF-8"));
-                }
-                String userId = map.get("userId");
-                String taskId = map.get("taskId");
-                java.time.LocalDate date = java.time.LocalDate.parse(map.get("date"));
-                boolean isDone = Boolean.parseBoolean(map.getOrDefault("isDone", "false"));
-                com.habit.domain.UserTaskStatus status = new com.habit.domain.UserTaskStatus(userId, taskId, date, isDone);
-                new com.habit.server.UserTaskStatusRepository().save(status);
-                response = "UserTaskStatus保存成功";
-            } catch (Exception ex) {
-                response = "UserTaskStatus保存失敗: " + ex.getMessage();
-            }
-            exchange.sendResponseHeaders(200, response.getBytes().length);
-            try (java.io.OutputStream os = exchange.getResponseBody()) {
-                os.write(response.getBytes());
-            }
-        }
-    }
+    // 以降済み
   }
