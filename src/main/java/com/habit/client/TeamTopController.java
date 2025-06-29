@@ -354,7 +354,7 @@ public class TeamTopController {
 
                 // 進捗一覧取得（全メンバー×タスク×今日）
                 String date = java.time.LocalDate.now().toString();
-                String statusUrl = "http://localhost:8080/getUserTaskStatusList?teamID=" + URLEncoder.encode(teamID, "UTF-8") + "&date=" + date;
+                String statusUrl = "http://localhost:8080/getTeamTaskStatusList?teamID=" + URLEncoder.encode(teamID, "UTF-8") + "&date=" + date;
                 HttpRequest statusReq = HttpRequest.newBuilder()
                         .uri(URI.create(statusUrl))
                         .timeout(java.time.Duration.ofSeconds(10))
@@ -366,7 +366,7 @@ public class TeamTopController {
                 if (statusBody != null && statusBody.trim().startsWith("[")) {
                     statusArr = new JSONArray(statusBody);
                 } else {
-                    System.out.println("[loadTaskStatusTable] getUserTaskStatusList APIレスポンスが配列形式ではありません: " + statusBody);
+                    System.out.println("[loadTaskStatusTable] getTeamTaskStatusList APIレスポンスが配列形式ではありません: " + statusBody);
                     statusArr = new JSONArray();
                 }
                 // Map<userId+taskId, isDone>

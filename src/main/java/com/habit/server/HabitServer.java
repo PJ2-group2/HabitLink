@@ -74,6 +74,8 @@ public class HabitServer {
     server.setExecutor(null);
     // ユーザーの未完了タスク一覧取得API
     server.createContext("/getUserIncompleteTasks", userTaskStatusController.getUserIncompleteTasksHandler(authService));
+    // チーム全員分のタスク進捗一覧API
+    server.createContext("/getTeamTaskStatusList", userTaskStatusController.getGetTeamTaskStatusListHandler());
     // ユーザー・チーム・日付ごとの全UserTaskStatus（taskId, isDone）を返すAPI
     server.createContext("/getUserTaskStatusList", userTaskStatusController.getGetUserTaskStatusListHandler());
     // ユーザーのタスク完了API
