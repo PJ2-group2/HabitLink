@@ -347,6 +347,10 @@ public class TeamController {
                 response = "[" + String.join(",", taskJsons) + "]";
             }
             exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+            exchange.sendResponseHeaders(200, response.getBytes("UTF-8").length);
+            OutputStream os = exchange.getResponseBody();
+            os.write(response.getBytes("UTF-8"));
+            os.close();
         }
     }
           

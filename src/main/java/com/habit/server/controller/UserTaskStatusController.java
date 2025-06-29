@@ -77,6 +77,7 @@ public class UserTaskStatusController {
 
         @Override
         public void handle(com.sun.net.httpserver.HttpExchange exchange) throws java.io.IOException {
+            System.out.println("[UserTaskStatusController] getUserIncompleteTasks API called");
             java.io.OutputStream os = null;
             try {
                 String sessionId = null;
@@ -94,26 +95,37 @@ public class UserTaskStatusController {
                         if (param.startsWith("date=")) dateStr = java.net.URLDecoder.decode(param.substring(5), "UTF-8");
                     }
                 }
+                System.out.println("[UserTaskStatusController] sessionId: " + sessionId);
+                System.out.println("[UserTaskStatusController] teamID: " + teamID);
+                System.out.println("[UserTaskStatusController] dateStr: " + dateStr);
                 String response = "[]";
                 if (sessionId != null && teamID != null && dateStr != null) {
                     var user = authService.getUserBySession(sessionId);
+                    System.out.println("[UserTaskStatusController] User from session: " + (user != null ? user.getUserId() : "null"));
                     if (user != null) {
                         String userId = user.getUserId();
+                        System.out.println("[UserTaskStatusController] userId: " + userId);
                         com.habit.server.repository.UserTaskStatusRepository utsRepo = new com.habit.server.repository.UserTaskStatusRepository();
                         com.habit.server.repository.TaskRepository taskRepo = new com.habit.server.repository.TaskRepository();
                         java.time.LocalDate date = java.time.LocalDate.parse(dateStr);
+                        System.out.println("[UserTaskStatusController] Parsed date: " + date);
                         java.util.List<String> taskIds = utsRepo.findTaskIdsByUserIdAndTeamId(userId, teamID);
+                        System.out.println("[UserTaskStatusController] User's taskIds: " + taskIds);
                         java.util.List<com.habit.domain.Task> teamTasks = taskRepo.findTeamTasksByTeamID(teamID);
+                        System.out.println("[UserTaskStatusController] Team tasks count: " + teamTasks.size());
                         java.util.List<com.habit.domain.Task> filtered = new java.util.ArrayList<>();
                         java.util.List<com.habit.domain.UserTaskStatus> statusList =
                             utsRepo.findByUserIdAndTeamIdAndDate(userId, teamID, date);
+                        System.out.println("[UserTaskStatusController] Status list count: " + statusList.size());
                         // 1. 既存の未完了タスクIDセット
                         java.util.Set<String> incompleteTaskIds = new java.util.HashSet<>();
                         for (com.habit.domain.UserTaskStatus status : statusList) {
+                            System.out.println("[UserTaskStatusController] Status - taskId: " + status.getTaskId() + ", isDone: " + status.isDone());
                             if (!status.isDone()) {
                                 incompleteTaskIds.add(status.getTaskId());
                             }
                         }
+                        System.out.println("[UserTaskStatusController] Incomplete taskIds: " + incompleteTaskIds);
                         // 2. 既にuser_task_statusesにレコードがない共通タスクも未消化として返す
                         java.util.Set<String> allReturnedTaskIds = new java.util.HashSet<>(incompleteTaskIds);
                         for (com.habit.domain.Task t : teamTasks) {
@@ -123,19 +135,23 @@ public class UserTaskStatusController {
                                 Object val = m.invoke(t);
                                 isTeamTask = Boolean.TRUE.equals(val);
                             } catch (Exception ignore) {}
+                            System.out.println("[UserTaskStatusController] Team task: " + t.getTaskName() + " (ID: " + t.getTaskId() + "), isTeamTask: " + isTeamTask + ", in taskIds: " + taskIds.contains(t.getTaskId()));
                             if (isTeamTask && !taskIds.contains(t.getTaskId())) {
                                 // まだ自分のuser_task_statusesにレコードがない共通タスク
+                                System.out.println("[UserTaskStatusController] Adding team task to filtered: " + t.getTaskName());
                                 filtered.add(t);
                                 allReturnedTaskIds.add(t.getTaskId());
                             }
                         }
                         // 3. 既存の未完了タスクも返す
                         for (com.habit.domain.Task t : teamTasks) {
-                            if (taskIds.contains(t.getTaskId()) && incompleteTaskIds.contains(t.getTaskId()) && !allReturnedTaskIds.contains(t.getTaskId())) {
+                            if (taskIds.contains(t.getTaskId()) && incompleteTaskIds.contains(t.getTaskId())) {
+                                System.out.println("[UserTaskStatusController] Adding incomplete task to filtered: " + t.getTaskName());
                                 filtered.add(t);
                                 allReturnedTaskIds.add(t.getTaskId());
                             }
                         }
+                        System.out.println("[UserTaskStatusController] Final filtered tasks count: " + filtered.size());
                         StringBuilder sb = new StringBuilder("[");
                         for (int i = 0; i < filtered.size(); i++) {
                             com.habit.domain.Task t = filtered.get(i);
@@ -156,6 +172,7 @@ public class UserTaskStatusController {
                         response = sb.toString();
                     }
                 }
+                System.out.println("[UserTaskStatusController] Final response: " + response);
                 exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
                 exchange.sendResponseHeaders(200, response.getBytes("UTF-8").length);
                 os = exchange.getResponseBody();

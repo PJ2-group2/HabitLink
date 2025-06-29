@@ -72,7 +72,6 @@ public class HabitServer {
     // タスクID→タスク名マップ取得API
     server.createContext("/getUserTeamTasks", taskController.getUserTeamTasksHandler(authService)); // チーム内で自分に紐づくタスク取得
     server.createContext("/getTaskIdNameMap", taskController.getTaskIdNameMapHandler());
-    server.setExecutor(null);
     // ユーザーの未完了タスク一覧取得API
     server.createContext("/getUserIncompleteTasks", userTaskStatusController.getUserIncompleteTasksHandler(authService));
     // チーム全員分のタスク進捗一覧API
@@ -87,6 +86,7 @@ public class HabitServer {
     server.createContext("/saveUserTaskStatus", userTaskStatusController.getSaveUserTaskStatusHandler());
     server.createContext("/getTeamMembers", teamController.getGetTeamMembersHandler()); // チームメンバー一覧
     server.createContext("/getTeamTasks", teamController.getGetTeamTasksHandler()); // チームタスク一覧
+    server.setExecutor(null);
     server.start();
     System.out.println("サーバが起動しました: http://localhost:8080/hello");
   }
