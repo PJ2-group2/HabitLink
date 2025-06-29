@@ -237,9 +237,20 @@ public class TeamRepository {
                 pstmt.setString(1, team.getTeamID());
                 pstmt.executeUpdate();
             }
+            // creatorIdも必ずメンバーに含める
+            String creatorId = team.getCreatorId();
+            List<String> allMembers = new java.util.ArrayList<>();
+            if (creatorId != null && !creatorId.isEmpty()) {
+                allMembers.add(creatorId);
+            }
+            for (String member : members) {
+                if (member != null && !member.isEmpty() && !allMembers.contains(member)) {
+                    allMembers.add(member);
+                }
+            }
             String insSql = "INSERT INTO team_members (teamID, memberId) VALUES (?, ?)";
             try (PreparedStatement pstmt = conn.prepareStatement(insSql)) {
-                for (String member : members) {
+                for (String member : allMembers) {
                     pstmt.setString(1, team.getTeamID());
                     pstmt.setString(2, member);
                     pstmt.executeUpdate();
@@ -260,5 +271,36 @@ public class TeamRepository {
 
     public void removeMember(String teamID, String userId) {
         // 実装省略
+    }
+
+    // 指定チームIDの全メンバーID一覧を返す
+    public List<String> findMemberIdsByTeamId(String teamId) {
+        List<String> memberIds = new java.util.ArrayList<>();
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            // team_membersから取得
+            String sql = "SELECT memberId FROM team_members WHERE teamID = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, teamId);
+                ResultSet rs = pstmt.executeQuery();
+                while (rs.next()) {
+                    memberIds.add(rs.getString("memberId"));
+                }
+            }
+            // teamsテーブルのcreatorIdも追加（重複しない場合のみ）
+            String creatorSql = "SELECT creatorId FROM teams WHERE id = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(creatorSql)) {
+                pstmt.setString(1, teamId);
+                ResultSet rs = pstmt.executeQuery();
+                if (rs.next()) {
+                    String creatorId = rs.getString("creatorId");
+                    if (creatorId != null && !creatorId.isEmpty() && !memberIds.contains(creatorId)) {
+                        memberIds.add(0, creatorId); // 先頭に追加（任意）
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return memberIds;
     }
 }

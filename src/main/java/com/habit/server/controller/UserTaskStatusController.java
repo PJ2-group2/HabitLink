@@ -107,15 +107,33 @@ public class UserTaskStatusController {
                         java.util.List<com.habit.domain.Task> filtered = new java.util.ArrayList<>();
                         java.util.List<com.habit.domain.UserTaskStatus> statusList =
                             utsRepo.findByUserIdAndTeamIdAndDate(userId, teamID, date);
+                        // 1. 既存の未完了タスクIDセット
                         java.util.Set<String> incompleteTaskIds = new java.util.HashSet<>();
                         for (com.habit.domain.UserTaskStatus status : statusList) {
                             if (!status.isDone()) {
                                 incompleteTaskIds.add(status.getTaskId());
                             }
                         }
+                        // 2. 既にuser_task_statusesにレコードがない共通タスクも未消化として返す
+                        java.util.Set<String> allReturnedTaskIds = new java.util.HashSet<>(incompleteTaskIds);
                         for (com.habit.domain.Task t : teamTasks) {
-                            if (taskIds.contains(t.getTaskId()) && incompleteTaskIds.contains(t.getTaskId())) {
+                            boolean isTeamTask = false;
+                            try {
+                                java.lang.reflect.Method m = t.getClass().getMethod("isTeamTask");
+                                Object val = m.invoke(t);
+                                isTeamTask = Boolean.TRUE.equals(val);
+                            } catch (Exception ignore) {}
+                            if (isTeamTask && !taskIds.contains(t.getTaskId())) {
+                                // まだ自分のuser_task_statusesにレコードがない共通タスク
                                 filtered.add(t);
+                                allReturnedTaskIds.add(t.getTaskId());
+                            }
+                        }
+                        // 3. 既存の未完了タスクも返す
+                        for (com.habit.domain.Task t : teamTasks) {
+                            if (taskIds.contains(t.getTaskId()) && incompleteTaskIds.contains(t.getTaskId()) && !allReturnedTaskIds.contains(t.getTaskId())) {
+                                filtered.add(t);
+                                allReturnedTaskIds.add(t.getTaskId());
                             }
                         }
                         StringBuilder sb = new StringBuilder("[");
@@ -287,6 +305,71 @@ public class UserTaskStatusController {
                         for (int i = 0; i < statusList.size(); i++) {
                             com.habit.domain.UserTaskStatus s = statusList.get(i);
                             sb.append("{");
+                            sb.append("\"userId\":\"").append(s.getUserId().replace("\"", "\\\"")).append("\",");
+                            sb.append("\"taskId\":\"").append(s.getTaskId().replace("\"", "\\\"")).append("\",");
+                            sb.append("\"isDone\":").append(s.isDone());
+                            sb.append("}");
+                            if (i < statusList.size() - 1) sb.append(",");
+                        }
+                        sb.append("]");
+                        response = sb.toString();
+                    }
+                }
+                exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+                exchange.sendResponseHeaders(200, response.getBytes("UTF-8").length);
+                os = exchange.getResponseBody();
+                os.write(response.getBytes("UTF-8"));
+            } catch (Exception e) {
+                e.printStackTrace();
+                String errJson = "{\"error\":\"" + e.getClass().getSimpleName() + ": " + e.getMessage() + "\"}";
+                exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+                exchange.sendResponseHeaders(500, errJson.getBytes("UTF-8").length);
+                os = exchange.getResponseBody();
+                os.write(errJson.getBytes("UTF-8"));
+            } finally {
+                if (os != null) {
+                    try { os.close(); } catch (Exception ignore) {}
+                }
+            }
+        }
+    }
+    // チーム全員分のタスク進捗を返すAPI
+    public HttpHandler getGetTeamTaskStatusListHandler() {
+        return new GetTeamTaskStatusListHandler();
+    }
+
+    class GetTeamTaskStatusListHandler implements com.sun.net.httpserver.HttpHandler {
+        @Override
+        public void handle(com.sun.net.httpserver.HttpExchange exchange) throws java.io.IOException {
+            java.io.OutputStream os = null;
+            try {
+                String sessionId = null;
+                var headers = exchange.getRequestHeaders();
+                if (headers.containsKey("SESSION_ID")) {
+                    sessionId = headers.getFirst("SESSION_ID");
+                }
+                String query = exchange.getRequestURI().getQuery();
+                String teamID = null;
+                String dateStr = null;
+                if (query != null) {
+                    String[] params = query.split("&");
+                    for (String param : params) {
+                        if (param.startsWith("teamID=")) teamID = java.net.URLDecoder.decode(param.substring(7), "UTF-8");
+                        if (param.startsWith("date=")) dateStr = java.net.URLDecoder.decode(param.substring(5), "UTF-8");
+                    }
+                }
+                String response = "[]";
+                if (sessionId != null && teamID != null && dateStr != null) {
+                    var user = authService.getUserBySession(sessionId);
+                    if (user != null) {
+                        UserTaskStatusRepository utsRepo = new UserTaskStatusRepository();
+                        java.time.LocalDate date = java.time.LocalDate.parse(dateStr);
+                        java.util.List<com.habit.domain.UserTaskStatus> statusList = utsRepo.findByTeamIdAndDate(teamID, date);
+                        StringBuilder sb = new StringBuilder("[");
+                        for (int i = 0; i < statusList.size(); i++) {
+                            com.habit.domain.UserTaskStatus s = statusList.get(i);
+                            sb.append("{");
+                            sb.append("\"userId\":\"").append(s.getUserId().replace("\"", "\\\"")).append("\",");
                             sb.append("\"taskId\":\"").append(s.getTaskId().replace("\"", "\\\"")).append("\",");
                             sb.append("\"isDone\":").append(s.isDone());
                             sb.append("}");

@@ -157,22 +157,10 @@ public class PersonalPageController {
                                 .build();
                         java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
                         System.out.println("タスク完了APIレスポンス: " + response.body());
-                        // 個人画面を再読み込み
-                        try {
-                            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/PersonalPage.fxml"));
-                            javafx.scene.Parent root = loader.load();
-                            PersonalPageController controller = loader.getController();
-                            controller.setUserId(userId);
-                            controller.setTeamID(teamID);
-                            controller.setTeamName(teamName);
-                            // タスク一覧を再取得してセット
-                            controller.setUserTasks(fetchUserTasksForPersonalPage());
-                            javafx.stage.Stage stage = (javafx.stage.Stage) taskTilePane.getScene().getWindow();
-                            stage.setScene(new javafx.scene.Scene(root));
-                            stage.setTitle("個人ページ");
-                        } catch (Exception ex) {
-                            ex.printStackTrace();
-                        }
+                        // 個人ページのタイル一覧を再読み込み
+                        this.tasks = fetchUserTasksForPersonalPage();
+                        updateTaskTiles();
+                        return;
                     } catch (Exception e) {
                         e.printStackTrace();
                     }

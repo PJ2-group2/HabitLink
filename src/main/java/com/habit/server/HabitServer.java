@@ -14,6 +14,7 @@ import com.habit.server.controller.UserController;
 import com.habit.server.controller.UserTaskStatusController;
 import com.habit.server.manager.DatabaseTeamManager;
 import com.habit.server.repository.MessageRepository;
+import com.habit.server.repository.TaskRepository;
 import com.habit.server.repository.UserRepository;
 import com.habit.server.repository.UserTaskStatusRepository;
 import com.habit.server.service.AuthService;
@@ -43,6 +44,7 @@ public class HabitServer {
   private static UserTaskStatusController userTaskStatusController = new UserTaskStatusController(authService, userTaskStatusRepository);
   // --- チーム管理用（SQLite でチームIDを保持）---
   private static DatabaseTeamManager teamManager = new DatabaseTeamManager("jdbc:sqlite:habit.db");
+  private static TaskRepository taskRepository = new TaskRepository();
 
   public static void main(String[] args) throws Exception {
     // サーバを8080番ポートで起動
@@ -56,7 +58,7 @@ public class HabitServer {
     AuthController authController = new AuthController(authService, userRepository);
     server.createContext("/login", authController.getLoginHandler());           // ログイン
     server.createContext("/register", authController.getRegisterHandler());     // 新規登録
-    TeamController teamController = new TeamController(authService, userRepository);
+    TeamController teamController = new TeamController(authService, userRepository, taskRepository);
     server.createContext("/createTeam", teamController.getCreateTeamHandler());   // チーム作成
     server.createContext("/joinTeam", teamController.getJoinTeamHandler());     // チーム参加
     server.createContext("/publicTeams", teamController.getPublicTeamsHandler()); // 公開チーム一覧
@@ -73,6 +75,8 @@ public class HabitServer {
     server.setExecutor(null);
     // ユーザーの未完了タスク一覧取得API
     server.createContext("/getUserIncompleteTasks", userTaskStatusController.getUserIncompleteTasksHandler(authService));
+    // チーム全員分のタスク進捗一覧API
+    server.createContext("/getTeamTaskStatusList", userTaskStatusController.getGetTeamTaskStatusListHandler());
     // ユーザー・チーム・日付ごとの全UserTaskStatus（taskId, isDone）を返すAPI
     server.createContext("/getUserTaskStatusList", userTaskStatusController.getGetUserTaskStatusListHandler());
     // ユーザーのタスク完了API
@@ -81,6 +85,8 @@ public class HabitServer {
     server.createContext("/saveTask", taskController.getSaveTaskHandler());
     // UserTaskStatus保存API
     server.createContext("/saveUserTaskStatus", userTaskStatusController.getSaveUserTaskStatusHandler());
+    server.createContext("/getTeamMembers", teamController.getGetTeamMembersHandler()); // チームメンバー一覧
+    server.createContext("/getTeamTasks", teamController.getGetTeamTasksHandler()); // チームタスク一覧
     server.start();
     System.out.println("サーバが起動しました: http://localhost:8080/hello");
   }
