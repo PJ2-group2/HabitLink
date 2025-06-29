@@ -44,6 +44,24 @@ public class CreateTeamController {
     @FXML
     private Button btnBackHome;
 
+    // 遷移元からセットする
+    private String userId;
+    private String teamID;
+    private String teamName = "チーム名未取得";
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+        System.out.println("userId set: " + userId);
+    }
+
+    public void setTeamID(String teamID) {
+        this.teamID = teamID;
+    }
+
+    public void setTeamName(String teamName) {
+        this.teamName = teamName;
+    }
+
     private ToggleGroup scopeGroup = new ToggleGroup(); // チームの公開範囲を選択するためのトグルグループ
     private ObservableList<String> invitedMembers = FXCollections.observableArrayList(); // 招待されたメンバーのリスト
 
