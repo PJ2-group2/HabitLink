@@ -53,7 +53,7 @@ public class TeamController {
     }
     public HttpHandler getGetTeamTasksHandler() {
         return new GetTeamTasksHandler();
-
+    }
     public HttpHandler getGetTeamIdByPasscodeHandler() {
         return new GetTeamIdByPasscodeHandler();
     }
@@ -347,6 +347,8 @@ public class TeamController {
                 response = "[" + String.join(",", taskJsons) + "]";
             }
             exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+        }
+    }
           
     // --- パスコードからチームID取得API ---
     class GetTeamIdByPasscodeHandler implements HttpHandler {
