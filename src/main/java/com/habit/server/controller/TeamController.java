@@ -194,6 +194,25 @@ public class TeamController {
                         if (teamID != null) {
                             user.addJoinedTeamId(teamID);
                             userRepository.save(user);
+                            // --- ここでDB反映を確認し、最大1秒リトライ ---
+                            boolean reflected = false;
+                            for (int i = 0; i < 10; i++) {
+                                var userCheck = userRepository.findById(memberId);
+                                List<String> joined = (userCheck != null) ? userCheck.getJoinedTeamIds() : null;
+                                if (joined != null && joined.contains(teamID)) {
+                                    reflected = true;
+                                    break;
+                                }
+                                try { Thread.sleep(100); } catch (InterruptedException ignore) {}
+                            }
+                            if (!reflected) {
+                                response = "参加情報の反映に失敗しました";
+                                exchange.sendResponseHeaders(500, response.getBytes().length);
+                                OutputStream os = exchange.getResponseBody();
+                                os.write(response.getBytes());
+                                os.close();
+                                return;
+                            }
                         }
                     }
                     response = ok ? "参加成功" : "参加失敗";
