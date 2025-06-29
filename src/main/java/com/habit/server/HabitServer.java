@@ -61,6 +61,7 @@ public class HabitServer {
     server.createContext("/joinTeam", teamController.getJoinTeamHandler());     // チーム参加
     server.createContext("/publicTeams", teamController.getPublicTeamsHandler()); // 公開チーム一覧
     server.createContext("/findTeamByPasscode", teamController.getFindTeamByPasscodeHandler()); // 合言葉検索
+    server.createContext("/getTeamIdByPasscode", teamController.getGetTeamIdByPasscodeHandler()); // 合言葉からチームID取得
     server.createContext("/sendChatMessage", messageController.getSendChatMessageHandler()); // チャット送信
     server.createContext("/getChatLog", messageController.getGetChatLogHandler()); // チャット履歴取得
     server.createContext("/getJoinedTeamInfo", userController.getGetJoinedTeamInfoHandler()); // 参加チーム取得

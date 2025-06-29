@@ -47,7 +47,6 @@ public class CreateTeamController {
     // 遷移元からセットする
     private String userId;
     private String teamID;
-    private String teamName = "チーム名未取得";
 
     public void setUserId(String userId) {
         this.userId = userId;
@@ -56,10 +55,7 @@ public class CreateTeamController {
 
     public void setTeamID(String teamID) {
         this.teamID = teamID;
-    }
-
-    public void setTeamName(String teamName) {
-        this.teamName = teamName;
+        System.out.println("teamID set: " + teamID);
     }
 
     private ToggleGroup scopeGroup = new ToggleGroup(); // チームの公開範囲を選択するためのトグルグループ
@@ -146,13 +142,33 @@ public class CreateTeamController {
                 // レスポンスを受け取る
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
                 String body = response.body();
-                if (body.contains("チーム作成成功")) {
+                // JSONレスポンスかテキストレスポンス両方に対応
+                boolean isSuccess = body.contains("チーム作成成功") || (body.contains("\"message\"") && body.contains("チーム作成成功"));
+                if (isSuccess) {
+                    // サーバーのレスポンスからチームIDを取得
+                    String createdTeamId = null;
+                    try {
+                        // レスポンスがJSONの場合
+                        if (body.trim().startsWith("{")) {
+                            org.json.JSONObject json = new org.json.JSONObject(body);
+                            createdTeamId = json.optString("teamId", null);
+                        }
+                        // JSONでない場合はパスコードをチームIDとして使用
+                        if (createdTeamId == null || createdTeamId.isEmpty()) {
+                            createdTeamId = passcode;
+                        }
+                    } catch (Exception e) {
+                        // JSONパースエラーの場合はパスコードを使用
+                        createdTeamId = passcode;
+                    }
+                    
                     javafx.stage.Stage stage = (javafx.stage.Stage) btnCreateTeam.getScene().getWindow();
                     javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/TeamTop.fxml"));
                     javafx.scene.Parent root = loader.load();
                     TeamTopController controller = loader.getController();
-                    controller.setTeamID(passcode);
+                    controller.setUserId(userId);
                     controller.setTeamName(teamName);
+                    controller.setTeamID(createdTeamId); // チームIDは最後にセット
                     stage.setScene(new javafx.scene.Scene(root));
                     stage.setTitle("チームトップ");
 
