@@ -30,7 +30,8 @@ public class HomeController {
 
     // チーム名→IDのマップ
     private java.util.Map<String, String> teamNameToIdMap = new java.util.HashMap<>();
-    // ユーザーIDを保存
+
+    // 遷移元からセットする
     private String userId;
 
     /**
@@ -156,7 +157,12 @@ public class HomeController {
         btnToCreateTeam.setOnAction(_ -> {
             try {
                 javafx.stage.Stage stage = (javafx.stage.Stage) btnToCreateTeam.getScene().getWindow();
-                javafx.scene.Parent root = javafx.fxml.FXMLLoader.load(getClass().getResource("/com/habit/client/gui/CreateTeam.fxml"));
+                javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/CreateTeam.fxml"));
+                javafx.scene.Parent root = loader.load();
+                com.habit.client.CreateTeamController controller = loader.getController();
+                if (userId != null) {
+                    controller.setUserId(userId);
+                }
                 stage.setScene(new javafx.scene.Scene(root));
                 stage.setTitle("チーム作成");
             } catch (Exception ex) {
@@ -168,7 +174,12 @@ public class HomeController {
         btnToSearchTeam.setOnAction(_ -> {
             try {
                 javafx.stage.Stage stage = (javafx.stage.Stage) btnToSearchTeam.getScene().getWindow();
-                javafx.scene.Parent root = javafx.fxml.FXMLLoader.load(getClass().getResource("/com/habit/client/gui/SearchTeam.fxml"));
+                javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/SearchTeam.fxml"));
+                javafx.scene.Parent root = loader.load();
+                com.habit.client.SearchTeamController controller = loader.getController();
+                if (userId != null) {
+                    controller.setUserId(userId);
+                }
                 stage.setScene(new javafx.scene.Scene(root));
                 stage.setTitle("チーム検索");
             } catch (Exception ex) {

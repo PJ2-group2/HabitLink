@@ -45,6 +45,10 @@ public class TeamController {
         return new GetTeamNameHandler();
     }
 
+    public HttpHandler getGetTeamIdByPasscodeHandler() {
+        return new GetTeamIdByPasscodeHandler();
+    }
+
     // --- チーム作成API ---
     class CreateTeamHandler implements HttpHandler {
         @Override
@@ -115,9 +119,10 @@ public class TeamController {
                         userRepository.save(user);
                     }
                 }
-                response = "チーム作成成功";
+                // JSONレスポンスでチームIDを返す
+                response = "{\"message\":\"チーム作成成功\",\"teamId\":\"" + teamID + "\"}";
             } catch (Exception ex) {
-                response = "チーム作成失敗: " + ex.getMessage();
+                response = "{\"message\":\"チーム作成失敗: " + ex.getMessage() + "\"}";
             }
             exchange.sendResponseHeaders(200, response.getBytes().length);
             OutputStream os = exchange.getResponseBody();
@@ -233,6 +238,31 @@ public class TeamController {
                 TeamRepository repo = new TeamRepository();
                 String name = repo.findTeamNameById(teamID);
                 response = (name != null) ? name : "";
+            }
+            exchange.getResponseHeaders().set("Content-Type", "text/plain; charset=UTF-8");
+            exchange.sendResponseHeaders(200, response.getBytes("UTF-8").length);
+            OutputStream os = exchange.getResponseBody();
+            os.write(response.getBytes("UTF-8"));
+            os.close();
+        }
+    }
+
+    // --- パスコードからチームID取得API ---
+    class GetTeamIdByPasscodeHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            String query = exchange.getRequestURI().getQuery();
+            String passcode = null;
+            if (query != null && query.startsWith("passcode=")) {
+                passcode = java.net.URLDecoder.decode(query.substring(9), "UTF-8");
+            }
+            String response;
+            if (passcode == null || passcode.isEmpty()) {
+                response = "";
+            } else {
+                TeamRepository repo = new TeamRepository();
+                String teamId = repo.findTeamIdByPasscode(passcode);
+                response = (teamId != null) ? teamId : "";
             }
             exchange.getResponseHeaders().set("Content-Type", "text/plain; charset=UTF-8");
             exchange.sendResponseHeaders(200, response.getBytes("UTF-8").length);

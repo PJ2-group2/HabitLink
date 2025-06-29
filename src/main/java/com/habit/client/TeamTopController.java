@@ -57,11 +57,13 @@ public class TeamTopController {
     private String teamName = "チーム名未取得";
     // ユーザIDのセッター
     public void setUserId(String userId) {
+        System.out.println("userId set: " + userId);
         this.userId = userId;
     }
     // チームIDのセッター
     public void setTeamID(String teamID) {
         this.teamID = teamID;
+        System.out.println("teamID set: " + teamID);
         // teamIDがセットされたタイミングでタスク、チャットを読み込む。
         loadTeamTasksAndUserTasks();
         loadChatLog();
@@ -69,6 +71,7 @@ public class TeamTopController {
     // チーム名のセッター
     public void setTeamName(String teamName) {
         this.teamName = teamName;
+        System.out.println("teamName set: " + teamName);
         if (teamNameLabel != null) {
             teamNameLabel.setText(teamName);
         }
@@ -164,6 +167,11 @@ public class TeamTopController {
     private void loadTeamTasksAndUserTasks() {
         new Thread(() -> {
             try {
+                // teamIDがnullの場合は処理をスキップ
+                if (teamID == null) {
+                    System.err.println("teamID is null, skipping loadTeamTasksAndUserTasks");
+                    return;
+                }
                 String sessionId = LoginController.getSessionId();
                 HttpClient client = HttpClient.newHttpClient();
                 String url = "http://localhost:8080/getUserTeamTasks?teamID=" + URLEncoder.encode(teamID, "UTF-8");
@@ -206,6 +214,11 @@ public class TeamTopController {
      */
     private java.util.List<com.habit.domain.Task> getUserTasksForPersonalPage() {
         try {
+            // teamIDがnullの場合は空のリストを返す
+            if (teamID == null) {
+                System.err.println("teamID is null, returning empty task list");
+                return new java.util.ArrayList<>();
+            }
             String sessionId = LoginController.getSessionId();
             java.time.LocalDate today = java.time.LocalDate.now();
             HttpClient client = HttpClient.newHttpClient();
@@ -259,6 +272,11 @@ public class TeamTopController {
     private void loadChatLog() {
         new Thread(() -> {
             try {
+                // teamIDがnullの場合は処理をスキップ
+                if (teamID == null) {
+                    System.err.println("teamID is null, skipping loadChatLog");
+                    return;
+                }
                 // HTTPリクエストを送信するためのクライアントオブジェクトを作成
                 HttpClient client = HttpClient.newHttpClient();
                 // チャットログのURLを作成
@@ -295,6 +313,11 @@ public class TeamTopController {
     private void sendChatMessage(String message) {
         new Thread(() -> {
             try {
+                // teamIDがnullの場合は処理をスキップ
+                if (teamID == null) {
+                    System.err.println("teamID is null, skipping sendChatMessage");
+                    return;
+                }
                 HttpClient client = HttpClient.newHttpClient();
                 String params = "senderId=user1&teamID=" + URLEncoder.encode(teamID, "UTF-8") + "&content=" + URLEncoder.encode(message, "UTF-8");
                 HttpRequest request = HttpRequest.newBuilder()

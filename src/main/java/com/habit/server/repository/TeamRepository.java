@@ -146,6 +146,23 @@ public class TeamRepository {
         return null;
     }
 
+    // 合言葉でチームIDを検索
+    public String findTeamIdByPasscode(String passcode) {
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String sql = "SELECT id FROM teams WHERE passcode = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, passcode);
+                ResultSet rs = pstmt.executeQuery();
+                if (rs.next()) {
+                    return rs.getString("id");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     // teamIDからチーム名を取得
     public String findTeamNameById(String teamID) {
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
