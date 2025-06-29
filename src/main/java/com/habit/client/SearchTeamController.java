@@ -30,6 +30,25 @@ public class SearchTeamController {
 
     private String foundTeamName = null;
 
+    // 遷移元からセットする
+    private String userId;
+    private String teamID;
+    private String teamName = "チーム名未取得";
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+        System.out.println("userId set: " + userId);
+    }
+
+    public void setTeamID(String teamID) {
+        System.out.println("teamID set: " + teamID);
+        this.teamID = teamID;
+    }
+
+    public void setTeamName(String teamName) {
+        this.teamName = teamName;
+    }
+
     /**
      * コントローラー初期化メソッド。
      * 合言葉入力フィールドの初期化や、ボタンのアクション設定を行う。
@@ -103,14 +122,18 @@ public class SearchTeamController {
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
                 String body = response.body();
                 if (body.contains("参加成功")) {
+                    // パスコードから正しいチームIDを取得
+                    String passcode = passcodeField.getText().trim();
+                    String actualTeamId = getTeamIdByPasscode(passcode);
+                    
                     // チームトップ画面へ遷移
                     Stage stage = (Stage) btnJoin.getScene().getWindow();
                     FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/habit/client/gui/TeamTop.fxml"));
                     Parent root = loader.load();
                     TeamTopController controller = loader.getController();
                     controller.setTeamName(foundTeamName);
-                    // passcodeをteamIDとして渡す（本来はサーバからIDを取得するのが理想だが、現状はpasscodeで代用）
-                    controller.setTeamID(passcodeField.getText().trim());
+                    controller.setUserId(userId);
+                    controller.setTeamID(actualTeamId); // 正しいチームIDを設定
                     stage.setScene(new Scene(root));
                     stage.setTitle("チームトップ");
                 } else {
@@ -132,5 +155,30 @@ public class SearchTeamController {
                 resultLabel.setText("画面遷移エラー: " + ex.getMessage());
             }
         });
+    }
+
+    /**
+     * パスコードから正しいチームIDを取得するメソッド
+     * @param passcode パスコード
+     * @return チームID（取得できない場合はパスコードを返す）
+     */
+    private String getTeamIdByPasscode(String passcode) {
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            String url = "http://localhost:8080/getTeamIdByPasscode?passcode=" + java.net.URLEncoder.encode(passcode, "UTF-8");
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .GET()
+                .build();
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            String teamId = response.body();
+            if (teamId != null && !teamId.trim().isEmpty()) {
+                return teamId.trim();
+            }
+        } catch (Exception ex) {
+            System.err.println("チームID取得エラー: " + ex.getMessage());
+        }
+        // 取得できない場合はパスコードをフォールバックとして使用
+        return passcode;
     }
 }
