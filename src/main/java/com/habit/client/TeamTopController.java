@@ -5,6 +5,8 @@ import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.Image;
 import javafx.application.Platform;
+import javafx.collections.ObservableList;
+import javafx.scene.control.cell.CheckBoxTableCell;
 import java.net.*;
 import java.util.*;
 import org.json.*;
@@ -32,9 +34,9 @@ public class TeamTopController {
     /* チャットページへ遷移するボタン */
     @FXML
     private Button btnToChat;
-    /* チームタスク一覧テーブル */
+    /* チームタスク一覧テーブル（型を汎用化） */
     @FXML
-    private TableView<?> taskTable;
+    private TableView<ObservableList<Object>> taskTable;
     /* 今日のタスクリスト */
     @FXML
     private ListView<String> todayTaskList;
@@ -154,6 +156,9 @@ public class TeamTopController {
                 ex.printStackTrace();
             }
         });
+
+        // タスク進捗表の表示
+        loadTaskStatusTable();
     }
 
 
@@ -284,6 +289,129 @@ public class TeamTopController {
 
                 Platform.runLater(() -> {
                     chatList.getItems().setAll(messages);
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    /**
+     * チームタスク×メンバーの進捗表を作成し表示する
+     */
+    private void loadTaskStatusTable() {
+        new Thread(() -> {
+            try {
+                String sessionId = LoginController.getSessionId();
+                HttpClient client = HttpClient.newHttpClient();
+                // チームメンバー一覧取得
+                String membersUrl = "http://localhost:8080/getTeamMembers?teamID=" + URLEncoder.encode(teamID, "UTF-8");
+                HttpRequest membersReq = HttpRequest.newBuilder()
+                        .uri(URI.create(membersUrl))
+                        .timeout(java.time.Duration.ofSeconds(5))
+                        .header("SESSION_ID", sessionId)
+                        .GET().build();
+                HttpResponse<String> membersRes = client.send(membersReq, HttpResponse.BodyHandlers.ofString());
+                String membersBody = membersRes.body();
+                JSONArray membersArr;
+                if (membersBody != null && membersBody.trim().startsWith("[")) {
+                    membersArr = new JSONArray(membersBody);
+                } else {
+                    System.out.println("[loadTaskStatusTable] getTeamMembers APIレスポンスが配列形式ではありません: " + membersBody);
+                    membersArr = new JSONArray();
+                }
+                List<String> memberIds = new ArrayList<>();
+                List<String> memberNames = new ArrayList<>();
+                for (int i = 0; i < membersArr.length(); i++) {
+                    JSONObject obj = membersArr.getJSONObject(i);
+                    memberIds.add(obj.optString("userId"));
+                    memberNames.add(obj.optString("username"));
+                }
+
+                // タスク一覧取得
+                String tasksUrl = "http://localhost:8080/getTeamTasks?teamID=" + URLEncoder.encode(teamID, "UTF-8");
+                HttpRequest tasksReq = HttpRequest.newBuilder()
+                        .uri(URI.create(tasksUrl))
+                        .timeout(java.time.Duration.ofSeconds(5))
+                        .header("SESSION_ID", sessionId)
+                        .GET().build();
+                HttpResponse<String> tasksRes = client.send(tasksReq, HttpResponse.BodyHandlers.ofString());
+                String tasksBody = tasksRes.body();
+                JSONArray tasksArr;
+                if (tasksBody != null && tasksBody.trim().startsWith("[")) {
+                    tasksArr = new JSONArray(tasksBody);
+                } else {
+                    System.out.println("[loadTaskStatusTable] getTeamTasks APIレスポンスが配列形式ではありません: " + tasksBody);
+                    tasksArr = new JSONArray();
+                }
+                List<String> taskIds = new ArrayList<>();
+                List<String> taskNames = new ArrayList<>();
+                for (int i = 0; i < tasksArr.length(); i++) {
+                    JSONObject obj = tasksArr.getJSONObject(i);
+                    taskIds.add(obj.optString("taskId"));
+                    taskNames.add(obj.optString("taskName"));
+                }
+
+                // 進捗一覧取得（全メンバー×タスク×今日）
+                String date = java.time.LocalDate.now().toString();
+                String statusUrl = "http://localhost:8080/getUserTaskStatusList?teamID=" + URLEncoder.encode(teamID, "UTF-8") + "&date=" + date;
+                HttpRequest statusReq = HttpRequest.newBuilder()
+                        .uri(URI.create(statusUrl))
+                        .timeout(java.time.Duration.ofSeconds(10))
+                        .header("SESSION_ID", sessionId)
+                        .GET().build();
+                HttpResponse<String> statusRes = client.send(statusReq, HttpResponse.BodyHandlers.ofString());
+                String statusBody = statusRes.body();
+                JSONArray statusArr;
+                if (statusBody != null && statusBody.trim().startsWith("[")) {
+                    statusArr = new JSONArray(statusBody);
+                } else {
+                    System.out.println("[loadTaskStatusTable] getUserTaskStatusList APIレスポンスが配列形式ではありません: " + statusBody);
+                    statusArr = new JSONArray();
+                }
+                // Map<userId+taskId, isDone>
+                Map<String, Boolean> statusMap = new HashMap<>();
+                for (int i = 0; i < statusArr.length(); i++) {
+                    JSONObject obj = statusArr.getJSONObject(i);
+                    String uid = obj.optString("userId");
+                    String tid = obj.optString("taskId");
+                    boolean isDone = obj.optBoolean("isDone", false);
+                    statusMap.put(uid + "_" + tid, isDone);
+                }
+
+                // TableViewのカラム生成
+                Platform.runLater(() -> {
+                    taskTable.getColumns().clear();
+                    // 1列目: タスク名
+                    TableColumn<ObservableList<Object>, String> taskCol = new TableColumn<>("タスク名");
+                    taskCol.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty((String)data.getValue().get(0)));
+                    taskTable.getColumns().add(taskCol);
+                    // 2列目以降: メンバーごと
+                    for (int i = 0; i < memberNames.size(); i++) {
+                        final int colIdx = i + 1;
+                        TableColumn<ObservableList<Object>, Boolean> memCol = new TableColumn<>(memberNames.get(i));
+                        memCol.setCellValueFactory(data -> {
+                            Object v = data.getValue().get(colIdx);
+                            return new javafx.beans.property.SimpleBooleanProperty(v instanceof Boolean ? (Boolean)v : false);
+                        });
+                        memCol.setCellFactory(tc -> new CheckBoxTableCell<>());
+                        memCol.setEditable(true);
+                        taskTable.getColumns().add(memCol);
+                    }
+                    // データ行生成（行＝タスク、列＝[タスク名, 各メンバーのisDone]）
+                    javafx.collections.ObservableList<ObservableList<Object>> rows = javafx.collections.FXCollections.observableArrayList();
+                    for (int t = 0; t < taskIds.size(); t++) {
+                        ObservableList<Object> row = javafx.collections.FXCollections.observableArrayList();
+                        row.add(taskNames.get(t)); // 1列目: タスク名
+                        String tid = taskIds.get(t);
+                        for (String uid : memberIds) {
+                            boolean isDone = statusMap.getOrDefault(uid + "_" + tid, false);
+                            row.add(isDone);
+                        }
+                        rows.add(row);
+                    }
+                    taskTable.setItems(rows);
+                    taskTable.setEditable(false); // 編集不可
                 });
             } catch (Exception e) {
                 e.printStackTrace();
