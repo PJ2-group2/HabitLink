@@ -11,7 +11,7 @@
             <Button fx:id="btnBackHome" text="ホームに戻る"/>
             <Button fx:id="btnCreateTask" text="タスク作成"/>
             <Label fx:id="teamNameLabel" text="チーム名" style="-fx-font-size: 22px; -fx-font-weight: bold;"/>
-            <Button fx:id="btnToPersonal" text="個人画面へ"/>
+            <Button fx:id="btnToPersonal" text="タスク消化ページへ"/>
             <Button fx:id="btnToChat" text="チャットページへ"/>
         </HBox>
     </top>
