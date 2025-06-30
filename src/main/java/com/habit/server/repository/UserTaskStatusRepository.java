@@ -18,15 +18,47 @@ public class UserTaskStatusRepository {
             String sql = "CREATE TABLE IF NOT EXISTS user_task_statuses (" +
                     "userId TEXT," +
                     "taskId TEXT," +
+                    "originalTaskId TEXT," +
                     "date TEXT," +
                     "isDone INTEGER," +
                     "completionTimestamp TEXT," +
                     "PRIMARY KEY(userId, taskId, date)" +
                     ")";
             stmt.execute(sql);
+            
+            // 既存レコードのoriginalTaskIdを更新（nullの場合のみ）
+            String updateSql = "UPDATE user_task_statuses SET originalTaskId = ? WHERE originalTaskId IS NULL AND taskId = ?";
+            try (PreparedStatement updateStmt = conn.prepareStatement("SELECT DISTINCT taskId FROM user_task_statuses WHERE originalTaskId IS NULL");
+                 ResultSet rs = updateStmt.executeQuery()) {
+                
+                while (rs.next()) {
+                    String taskId = rs.getString("taskId");
+                    String originalTaskId = extractOriginalTaskId(taskId);
+                    
+                    try (PreparedStatement pstmt = conn.prepareStatement(updateSql)) {
+                        pstmt.setString(1, originalTaskId);
+                        pstmt.setString(2, taskId);
+                        pstmt.executeUpdate();
+                    }
+                }
+            } catch (SQLException ex) {
+                System.err.println("originalTaskId更新エラー: " + ex.getMessage());
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+    
+    /**
+     * TaskIDから元のTaskIDを抽出（UserTaskStatusクラスと同じロジック）
+     */
+    private String extractOriginalTaskId(String taskId) {
+        if (taskId.contains("_")) {
+            // 自動生成されたTaskIDの場合（例: "dailyTask_20250630"）
+            return taskId.substring(0, taskId.indexOf("_"));
+        }
+        // 元のTaskIDの場合はそのまま返す
+        return taskId;
     }
 
     // ユーザIDで検索
@@ -94,6 +126,25 @@ public class UserTaskStatusRepository {
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setString(1, userId);
                 pstmt.setString(2, taskId);
+                pstmt.setString(3, date.toString());
+                ResultSet rs = pstmt.executeQuery();
+                if (rs.next()) {
+                    return Optional.of(mapRowToStatus(rs));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return Optional.empty();
+    }
+
+    // ユーザID・元のTaskID・日付で検索（自動再設定の重複チェック用）
+    public Optional<UserTaskStatus> findByUserIdAndOriginalTaskIdAndDate(String userId, String originalTaskId, LocalDate date) {
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String sql = "SELECT * FROM user_task_statuses WHERE userId = ? AND originalTaskId = ? AND date = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, userId);
+                pstmt.setString(2, originalTaskId);
                 pstmt.setString(3, date.toString());
                 ResultSet rs = pstmt.executeQuery();
                 if (rs.next()) {
@@ -177,13 +228,14 @@ public class UserTaskStatusRepository {
     // 保存・更新
     public void save(UserTaskStatus status) {
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
-            String sql = "INSERT OR REPLACE INTO user_task_statuses (userId, taskId, date, isDone, completionTimestamp) VALUES (?, ?, ?, ?, ?)";
+            String sql = "INSERT OR REPLACE INTO user_task_statuses (userId, taskId, originalTaskId, date, isDone, completionTimestamp) VALUES (?, ?, ?, ?, ?, ?)";
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setString(1, status.getUserId());
                 pstmt.setString(2, status.getTaskId());
-                pstmt.setString(3, status.getDate().toString());
-                pstmt.setInt(4, status.isDone() ? 1 : 0);
-                pstmt.setString(5, status.getCompletionTimestamp() != null ? status.getCompletionTimestamp().toString() : null);
+                pstmt.setString(3, status.getOriginalTaskId());
+                pstmt.setString(4, status.getDate().toString());
+                pstmt.setInt(5, status.isDone() ? 1 : 0);
+                pstmt.setString(6, status.getCompletionTimestamp() != null ? status.getCompletionTimestamp().toString() : null);
                 pstmt.executeUpdate();
             }
         } catch (SQLException e) {
@@ -217,6 +269,13 @@ public class UserTaskStatusRepository {
                 LocalDate.parse(rs.getString("date")),
                 rs.getInt("isDone") == 1
         );
+        
+        // originalTaskIdを設定（既存データとの互換性のためnullチェック）
+        String originalTaskId = rs.getString("originalTaskId");
+        if (originalTaskId != null) {
+            status.setOriginalTaskId(originalTaskId);
+        }
+        
         String ts = rs.getString("completionTimestamp");
         if (ts != null) {
             status.setDone(true); // completionTimestampはsetDoneで自動設定

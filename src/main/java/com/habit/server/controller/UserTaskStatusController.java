@@ -109,25 +109,21 @@ public class UserTaskStatusController {
                         com.habit.server.repository.TaskRepository taskRepo = new com.habit.server.repository.TaskRepository();
                         java.time.LocalDate date = java.time.LocalDate.parse(dateStr);
                         System.out.println("[UserTaskStatusController] Parsed date: " + date);
-                        java.util.List<String> taskIds = utsRepo.findTaskIdsByUserIdAndTeamId(userId, teamID);
-                        System.out.println("[UserTaskStatusController] User's taskIds: " + taskIds);
                         java.util.List<com.habit.domain.Task> teamTasks = taskRepo.findTeamTasksByTeamID(teamID);
                         System.out.println("[UserTaskStatusController] Team tasks count: " + teamTasks.size());
                         java.util.List<com.habit.domain.Task> filtered = new java.util.ArrayList<>();
                         java.util.List<com.habit.domain.UserTaskStatus> statusList =
                             utsRepo.findByUserIdAndTeamIdAndDate(userId, teamID, date);
                         System.out.println("[UserTaskStatusController] Status list count: " + statusList.size());
-                        // 1. 既存の未完了タスクIDセット
-                        java.util.Set<String> incompleteTaskIds = new java.util.HashSet<>();
+                        
+                        // 指定日のユーザーのタスク状況をマップ化
+                        java.util.Map<String, com.habit.domain.UserTaskStatus> statusMap = new java.util.HashMap<>();
                         for (com.habit.domain.UserTaskStatus status : statusList) {
+                            statusMap.put(status.getTaskId(), status);
                             System.out.println("[UserTaskStatusController] Status - taskId: " + status.getTaskId() + ", isDone: " + status.isDone());
-                            if (!status.isDone()) {
-                                incompleteTaskIds.add(status.getTaskId());
-                            }
                         }
-                        System.out.println("[UserTaskStatusController] Incomplete taskIds: " + incompleteTaskIds);
-                        // 2. 既にuser_task_statusesにレコードがない共通タスクも未消化として返す
-                        java.util.Set<String> allReturnedTaskIds = new java.util.HashSet<>(incompleteTaskIds);
+                        
+                        // チームのすべてのタスクを確認
                         for (com.habit.domain.Task t : teamTasks) {
                             boolean isTeamTask = false;
                             try {
@@ -135,20 +131,14 @@ public class UserTaskStatusController {
                                 Object val = m.invoke(t);
                                 isTeamTask = Boolean.TRUE.equals(val);
                             } catch (Exception ignore) {}
-                            System.out.println("[UserTaskStatusController] Team task: " + t.getTaskName() + " (ID: " + t.getTaskId() + "), isTeamTask: " + isTeamTask + ", in taskIds: " + taskIds.contains(t.getTaskId()));
-                            if (isTeamTask && !taskIds.contains(t.getTaskId())) {
-                                // まだ自分のuser_task_statusesにレコードがない共通タスク
-                                System.out.println("[UserTaskStatusController] Adding team task to filtered: " + t.getTaskName());
-                                filtered.add(t);
-                                allReturnedTaskIds.add(t.getTaskId());
-                            }
-                        }
-                        // 3. 既存の未完了タスクも返す
-                        for (com.habit.domain.Task t : teamTasks) {
-                            if (taskIds.contains(t.getTaskId()) && incompleteTaskIds.contains(t.getTaskId())) {
-                                System.out.println("[UserTaskStatusController] Adding incomplete task to filtered: " + t.getTaskName());
-                                filtered.add(t);
-                                allReturnedTaskIds.add(t.getTaskId());
+                            
+                            if (isTeamTask) {
+                                com.habit.domain.UserTaskStatus status = statusMap.get(t.getTaskId());
+                                // タスク状況がないか、未完了の場合のみ返す
+                                if (status == null || !status.isDone()) {
+                                    System.out.println("[UserTaskStatusController] Adding task to filtered: " + t.getTaskName() + " (status: " + (status == null ? "none" : "incomplete") + ")");
+                                    filtered.add(t);
+                                }
                             }
                         }
                         System.out.println("[UserTaskStatusController] Final filtered tasks count: " + filtered.size());

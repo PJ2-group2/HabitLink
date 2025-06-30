@@ -64,12 +64,24 @@ public class TaskRepository {
             String sql2 = "CREATE TABLE IF NOT EXISTS user_task_statuses (" +
                     "userId TEXT," +
                     "taskId TEXT," +
+                    "originalTaskId TEXT," +
                     "date TEXT," +
                     "isDone INTEGER," +
                     "completionTimestamp TEXT," +
                     "PRIMARY KEY(userId, taskId, date)" +
                     ")";
             stmt.execute(sql2);
+            
+            // 既存テーブルにoriginalTaskIdカラムを追加（存在しない場合）
+            ResultSet rs3 = stmt.executeQuery("PRAGMA table_info(user_task_statuses)");
+            boolean hasOriginalTaskId = false;
+            while (rs3.next()) {
+                String col = rs3.getString("name");
+                if ("originalTaskId".equalsIgnoreCase(col)) hasOriginalTaskId = true;
+            }
+            if (!hasOriginalTaskId) {
+                stmt.execute("ALTER TABLE user_task_statuses ADD COLUMN originalTaskId TEXT");
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }

@@ -48,8 +48,10 @@ public class HabitServer {
   private static DatabaseTeamManager teamManager = new DatabaseTeamManager("jdbc:sqlite:habit.db");
   private static TaskRepository taskRepository = new TaskRepository();
   
-  // タスク自動再設定スケジューラー
+  // タスク自動再設定関連コンポーネント
+  // スケジューラー: 1時間ごとの自動実行を担当
   private static TaskAutoResetScheduler taskAutoResetScheduler = new TaskAutoResetScheduler();
+  // コントローラー: 手動実行API(/manualTaskReset, /manualTaskResetTeam)を提供
   private static TaskAutoResetController taskAutoResetController = new TaskAutoResetController();
 
   public static void main(String[] args) throws Exception {
@@ -98,17 +100,21 @@ public class HabitServer {
     server.setExecutor(null);
     server.start();
     
-    // タスク自動再設定スケジューラーを開始
+    // === タスク自動再設定機能の開始 ===
+    // 1時間ごとの自動実行スケジューラーを開始
     taskAutoResetScheduler.start();
     
-    // シャットダウンフック追加
+    // サーバーシャットダウン時の処理を登録
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
         System.out.println("サーバをシャットダウンしています...");
+        // スケジューラーを安全に停止
         taskAutoResetScheduler.stop();
+        // HTTPサーバーを停止
         server.stop(0);
     }));
     
     System.out.println("サーバが起動しました: http://localhost:8080/hello");
-    System.out.println("タスク自動再設定機能が有効になりました");
+    System.out.println("タスク自動再設定機能が有効になりました（1時間ごと実行）");
+    System.out.println("手動実行API: /manualTaskReset, /manualTaskResetTeam?teamId=xxx");
   }
 }

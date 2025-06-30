@@ -304,7 +304,18 @@ public class TeamRepository {
         return memberIds;
     }
     
-    // 全チームID一覧を取得（自動再設定用）
+    /**
+     * 全チームID一覧を取得（タスク自動再設定用）
+     *
+     * @return 全チームのID一覧
+     *
+     * 【用途】
+     * TaskAutoResetServiceから呼び出され、
+     * 全チームのタスクを自動再設定する際に使用される
+     *
+     * 【取得対象】
+     * teamsテーブルの全レコードのidカラム
+     */
     public List<String> findAllTeamIds() {
         List<String> teamIds = new java.util.ArrayList<>();
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
