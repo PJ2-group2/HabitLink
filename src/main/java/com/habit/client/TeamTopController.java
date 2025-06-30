@@ -364,10 +364,15 @@ public class TeamTopController {
                 }
                 List<String> taskIds = new ArrayList<>();
                 List<String> taskNames = new ArrayList<>();
+                Map<String, String> taskPeriodMap = new HashMap<>(); // taskId→period
                 for (int i = 0; i < tasksArr.length(); i++) {
                     JSONObject obj = tasksArr.getJSONObject(i);
-                    taskIds.add(obj.optString("taskId"));
-                    taskNames.add(obj.optString("taskName"));
+                    String taskId = obj.optString("taskId");
+                    String taskName = obj.optString("taskName");
+                    String period = obj.optString("period", "");
+                    taskIds.add(taskId);
+                    taskNames.add(taskName);
+                    taskPeriodMap.put(taskId, period);
                 }
 
                 // 進捗一覧取得（全メンバー×タスク×過去7日）
@@ -423,19 +428,35 @@ public class TeamTopController {
                                     setText("");
                                     setStyle("");
                                 } else {
-                                    setText(daysDone + "/7");
-                                    String color;
-                                    switch (daysDone) {
-                                        case 0: color = "#ffffff"; break; // 白
-                                        case 1: color = "#e0f8e0"; break; // 薄い緑
-                                        case 2: color = "#b2e5b2"; break;
-                                        case 3: color = "#7fd87f"; break;
-                                        case 4: color = "#4fc24f"; break; // 普通の緑
-                                        case 5: color = "#2e9e2e"; break;
-                                        case 6: color = "#176b17"; break;
-                                        case 7: color = "#0a2d0a"; break; // 黒に近い緑
-                                        default: color = "#ffffff";
+                                    // タスクIDとユーザーIDを取得
+                                    int rowIdx = getIndex();
+                                    if (rowIdx < 0 || rowIdx >= taskIds.size()) {
+                                        setText(""); setStyle(""); return;
                                     }
+                                    String tid = taskIds.get(rowIdx);
+                                    String period = taskPeriodMap.getOrDefault(tid, "");
+                                    String color = "#ffffff";
+                                    if ("毎週".equals(period)) {
+                                        // 今週分にisDone==trueが1つでもあれば緑、なければ白
+                                        String key = memberIds.get(colIdx-1) + "_" + tid;
+                                        List<Boolean> doneList = statusMap.getOrDefault(key, Collections.emptyList());
+                                        boolean anyDone = false;
+                                        for (Boolean b : doneList) if (b) anyDone = true;
+                                        color = anyDone ? "#4fc24f" : "#ffffff";
+                                    } else {
+                                        switch (daysDone) {
+                                            case 0: color = "#ffffff"; break;
+                                            case 1: color = "#e0f8e0"; break;
+                                            case 2: color = "#b2e5b2"; break;
+                                            case 3: color = "#7fd87f"; break;
+                                            case 4: color = "#4fc24f"; break; // 普通の緑
+                                            case 5: color = "#2e9e2e"; break;
+                                            case 6: color = "#176b17"; break;
+                                            case 7: color = "#0a2d0a"; break; // 黒に近い緑
+                                            default: color = "#ffffff";
+                                        }
+                                    }
+                                    setText("");
                                     setStyle("-fx-background-color: " + color + "; -fx-alignment: center;");
                                 }
                             }
