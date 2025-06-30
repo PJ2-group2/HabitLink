@@ -370,9 +370,10 @@ public class TeamTopController {
                     taskNames.add(obj.optString("taskName"));
                 }
 
-                // 進捗一覧取得（全メンバー×タスク×今日）
+                // 進捗一覧取得（全メンバー×タスク×過去7日）
                 String date = java.time.LocalDate.now().toString();
-                String statusUrl = "http://localhost:8080/getTeamTaskStatusList?teamID=" + URLEncoder.encode(teamID, "UTF-8") + "&date=" + date;
+                int days = 7;
+                String statusUrl = "http://localhost:8080/getTeamTaskStatusList?teamID=" + URLEncoder.encode(teamID, "UTF-8") + "&date=" + date + "&days=" + days;
                 HttpRequest statusReq = HttpRequest.newBuilder()
                         .uri(URI.create(statusUrl))
                         .timeout(java.time.Duration.ofSeconds(10))
@@ -387,14 +388,15 @@ public class TeamTopController {
                     System.out.println("[loadTaskStatusTable] getTeamTaskStatusList APIレスポンスが配列形式ではありません: " + statusBody);
                     statusArr = new JSONArray();
                 }
-                // Map<userId+taskId, isDone>
-                Map<String, Boolean> statusMap = new HashMap<>();
+                // Map<userId+taskId, List<isDone>>
+                Map<String, List<Boolean>> statusMap = new HashMap<>();
                 for (int i = 0; i < statusArr.length(); i++) {
                     JSONObject obj = statusArr.getJSONObject(i);
                     String uid = obj.optString("userId");
                     String tid = obj.optString("taskId");
                     boolean isDone = obj.optBoolean("isDone", false);
-                    statusMap.put(uid + "_" + tid, isDone);
+                    String key = uid + "_" + tid;
+                    statusMap.computeIfAbsent(key, k -> new ArrayList<>()).add(isDone);
                 }
 
                 // TableViewのカラム生成
@@ -407,24 +409,52 @@ public class TeamTopController {
                     // 2列目以降: メンバーごと
                     for (int i = 0; i < memberNames.size(); i++) {
                         final int colIdx = i + 1;
-                        TableColumn<ObservableList<Object>, Boolean> memCol = new TableColumn<>(memberNames.get(i));
+                        TableColumn<ObservableList<Object>, Integer> memCol = new TableColumn<>(memberNames.get(i));
                         memCol.setCellValueFactory(data -> {
                             Object v = data.getValue().get(colIdx);
-                            return new javafx.beans.property.SimpleBooleanProperty(v instanceof Boolean ? (Boolean)v : false);
+                            return new javafx.beans.property.SimpleIntegerProperty((Integer)v).asObject();
                         });
-                        memCol.setCellFactory(tc -> new CheckBoxTableCell<>());
-                        memCol.setEditable(true);
+                        // カスタムセル: 日数に応じて色を変化
+                        memCol.setCellFactory(tc -> new TableCell<>() {
+                            @Override
+                            protected void updateItem(Integer daysDone, boolean empty) {
+                                super.updateItem(daysDone, empty);
+                                if (empty || daysDone == null) {
+                                    setText("");
+                                    setStyle("");
+                                } else {
+                                    setText(daysDone + "/7");
+                                    String color;
+                                    switch (daysDone) {
+                                        case 0: color = "#ffffff"; break; // 白
+                                        case 1: color = "#e0f8e0"; break; // 薄い緑
+                                        case 2: color = "#b2e5b2"; break;
+                                        case 3: color = "#7fd87f"; break;
+                                        case 4: color = "#4fc24f"; break; // 普通の緑
+                                        case 5: color = "#2e9e2e"; break;
+                                        case 6: color = "#176b17"; break;
+                                        case 7: color = "#0a2d0a"; break; // 黒に近い緑
+                                        default: color = "#ffffff";
+                                    }
+                                    setStyle("-fx-background-color: " + color + "; -fx-alignment: center;");
+                                }
+                            }
+                        });
+                        memCol.setEditable(false);
                         taskTable.getColumns().add(memCol);
                     }
-                    // データ行生成（行＝タスク、列＝[タスク名, 各メンバーのisDone]）
+                    // データ行生成（行＝タスク、列＝[タスク名, 各メンバーの7日間達成日数]）
                     javafx.collections.ObservableList<ObservableList<Object>> rows = javafx.collections.FXCollections.observableArrayList();
                     for (int t = 0; t < taskIds.size(); t++) {
                         ObservableList<Object> row = javafx.collections.FXCollections.observableArrayList();
                         row.add(taskNames.get(t)); // 1列目: タスク名
                         String tid = taskIds.get(t);
                         for (String uid : memberIds) {
-                            boolean isDone = statusMap.getOrDefault(uid + "_" + tid, false);
-                            row.add(isDone);
+                            String key = uid + "_" + tid;
+                            List<Boolean> doneList = statusMap.getOrDefault(key, Collections.emptyList());
+                            int daysDone = 0;
+                            for (Boolean b : doneList) if (b) daysDone++;
+                            row.add(daysDone);
                         }
                         rows.add(row);
                     }

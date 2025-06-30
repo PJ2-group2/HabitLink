@@ -368,11 +368,13 @@ public class UserTaskStatusController {
                 String query = exchange.getRequestURI().getQuery();
                 String teamID = null;
                 String dateStr = null;
+                int days = 1;
                 if (query != null) {
                     String[] params = query.split("&");
                     for (String param : params) {
                         if (param.startsWith("teamID=")) teamID = java.net.URLDecoder.decode(param.substring(7), "UTF-8");
                         if (param.startsWith("date=")) dateStr = java.net.URLDecoder.decode(param.substring(5), "UTF-8");
+                        if (param.startsWith("days=")) days = Integer.parseInt(param.substring(5));
                     }
                 }
                 String response = "[]";
@@ -381,13 +383,15 @@ public class UserTaskStatusController {
                     if (user != null) {
                         UserTaskStatusRepository utsRepo = new UserTaskStatusRepository();
                         java.time.LocalDate date = java.time.LocalDate.parse(dateStr);
-                        java.util.List<com.habit.domain.UserTaskStatus> statusList = utsRepo.findByTeamIdAndDate(teamID, date);
+                        java.time.LocalDate from = date.minusDays(days - 1);
+                        java.util.List<com.habit.domain.UserTaskStatus> statusList = utsRepo.findByTeamIdAndDateRange(teamID, from, date);
                         StringBuilder sb = new StringBuilder("[");
                         for (int i = 0; i < statusList.size(); i++) {
                             com.habit.domain.UserTaskStatus s = statusList.get(i);
                             sb.append("{");
                             sb.append("\"userId\":\"").append(s.getUserId().replace("\"", "\\\"")).append("\",");
                             sb.append("\"taskId\":\"").append(s.getTaskId().replace("\"", "\\\"")).append("\",");
+                            sb.append("\"date\":\"").append(s.getDate().toString()).append("\",");
                             sb.append("\"isDone\":").append(s.isDone());
                             sb.append("}");
                             if (i < statusList.size() - 1) sb.append(",");
