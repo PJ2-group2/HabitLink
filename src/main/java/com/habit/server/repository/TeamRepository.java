@@ -303,4 +303,21 @@ public class TeamRepository {
         }
         return memberIds;
     }
+    
+    // 全チームID一覧を取得（自動再設定用）
+    public List<String> findAllTeamIds() {
+        List<String> teamIds = new java.util.ArrayList<>();
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String sql = "SELECT id FROM teams";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                ResultSet rs = pstmt.executeQuery();
+                while (rs.next()) {
+                    teamIds.add(rs.getString("id"));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return teamIds;
+    }
 }

@@ -12,12 +12,14 @@ import com.habit.server.controller.AuthController;
 import com.habit.server.controller.MessageController;
 import com.habit.server.controller.UserController;
 import com.habit.server.controller.UserTaskStatusController;
+import com.habit.server.controller.TaskAutoResetController;
 import com.habit.server.manager.DatabaseTeamManager;
 import com.habit.server.repository.MessageRepository;
 import com.habit.server.repository.TaskRepository;
 import com.habit.server.repository.UserRepository;
 import com.habit.server.repository.UserTaskStatusRepository;
 import com.habit.server.service.AuthService;
+import com.habit.server.scheduler.TaskAutoResetScheduler;
 
 import java.net.InetSocketAddress;
 
@@ -45,6 +47,10 @@ public class HabitServer {
   // --- チーム管理用（SQLite でチームIDを保持）---
   private static DatabaseTeamManager teamManager = new DatabaseTeamManager("jdbc:sqlite:habit.db");
   private static TaskRepository taskRepository = new TaskRepository();
+  
+  // タスク自動再設定スケジューラー
+  private static TaskAutoResetScheduler taskAutoResetScheduler = new TaskAutoResetScheduler();
+  private static TaskAutoResetController taskAutoResetController = new TaskAutoResetController();
 
   public static void main(String[] args) throws Exception {
     // サーバを8080番ポートで起動
@@ -86,8 +92,23 @@ public class HabitServer {
     server.createContext("/saveUserTaskStatus", userTaskStatusController.getSaveUserTaskStatusHandler());
     server.createContext("/getTeamMembers", teamController.getGetTeamMembersHandler()); // チームメンバー一覧
     server.createContext("/getTeamTasks", teamController.getGetTeamTasksHandler()); // チームタスク一覧
+    // タスク自動再設定手動実行API
+    server.createContext("/manualTaskReset", taskAutoResetController.getManualResetHandler()); // 全チーム手動実行
+    server.createContext("/manualTaskResetTeam", taskAutoResetController.getManualResetTeamHandler()); // 特定チーム手動実行
     server.setExecutor(null);
     server.start();
+    
+    // タスク自動再設定スケジューラーを開始
+    taskAutoResetScheduler.start();
+    
+    // シャットダウンフック追加
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+        System.out.println("サーバをシャットダウンしています...");
+        taskAutoResetScheduler.stop();
+        server.stop(0);
+    }));
+    
     System.out.println("サーバが起動しました: http://localhost:8080/hello");
+    System.out.println("タスク自動再設定機能が有効になりました");
   }
 }
