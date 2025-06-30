@@ -32,6 +32,7 @@
     </bottom>
     <left>
         <VBox alignment="BOTTOM_LEFT">
+            <Label fx:id="cheerMessageLabel" text="" style="-fx-font-size: 14px; -fx-background-color: #fffbe7; -fx-border-color: #cccccc; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 8; -fx-text-fill: #3a3a3a;" wrapText="true" maxWidth="250" alignment="CENTER_LEFT"/>
             <ImageView fx:id="teamCharView" fitWidth="60" fitHeight="90"/>
         </VBox>
     </left>

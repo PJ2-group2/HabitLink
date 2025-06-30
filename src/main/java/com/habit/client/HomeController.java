@@ -6,6 +6,7 @@ import java.net.http.HttpResponse;
 import java.net.URI;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.image.ImageView;
 
@@ -27,6 +28,9 @@ public class HomeController {
     /* チーム検索ボタン */
     @FXML
     private Button btnToSearchTeam;
+    /* 応援セリフ表示用ラベル */
+    @FXML
+    private Label cheerMessageLabel;
 
     // チーム名→IDのマップ
     private java.util.Map<String, String> teamNameToIdMap = new java.util.HashMap<>();
@@ -186,5 +190,23 @@ public class HomeController {
                 ex.printStackTrace();
             }
         });
+
+        // 応援セリフリスト
+        String[] cheers = {
+            "今日も一歩前進だね！",
+            "君なら絶対できるよ！",
+            "小さな積み重ねが大きな力になるよ！",
+            "焦らずコツコツいこう！",
+            "昨日の自分を超えよう！",
+            "休むのも大事、無理しないでね！",
+            "一緒に頑張ろう！応援してるよ！",
+            "できたことをしっかり褒めてあげて！",
+            "継続は力なり、君はすごい！",
+            "どんな日も君の味方だよ！"
+        };
+        java.util.Random rand = new java.util.Random();
+        if (cheerMessageLabel != null) {
+            cheerMessageLabel.setText(cheers[rand.nextInt(cheers.length)]);
+        }
     }
 }
