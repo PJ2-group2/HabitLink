@@ -158,4 +158,62 @@ public class TeamTaskServiceTest {
             assertEquals("user001", status.getUserId());
         }
     }
+
+    @Test
+    void testDuplicatePreventionWithOriginalTaskId() {
+        // チーム共通タスクを作成
+        Task originalTask = new Task(
+            "task006",
+            "元のタスク",
+            "元のタスク説明",
+            20,
+            Arrays.asList(DayOfWeek.values()),
+            true,
+            "team001",
+            LocalTime.of(15, 0),
+            "daily"
+        );
+        teamTaskService.createTeamTask(originalTask);
+        
+        // 再設定されたタスクを作成（originalTaskIdが設定済み）
+        Task resetTask = new Task(
+            "task006_20250701",  // 再設定されたTaskID
+            "元のタスク",
+            "元のタスク説明",
+            20,
+            Arrays.asList(DayOfWeek.values()),
+            true,
+            "team001",
+            LocalTime.of(15, 0),
+            "daily"
+        );
+        resetTask.setOriginalTaskId("task006");  // 元のTaskIDを設定
+        
+        // タスクを直接保存（自動再設定のシミュレート）
+        taskRepository.saveTask(resetTask, "team001");
+        
+        LocalDate today = LocalDate.now();
+        
+        // 最初の作成前のカウント
+        List<UserTaskStatus> beforeStatuses = userTaskStatusRepository.findByUserIdAndDateAndTeamIdNotNull("user001", today);
+        int beforeCount = beforeStatuses.size();
+        
+        // UserTaskStatusを作成（成功するはず）
+        teamTaskService.createUserTaskStatusForAllMembers(resetTask);
+        
+        List<UserTaskStatus> afterFirstStatuses = userTaskStatusRepository.findByUserIdAndDateAndTeamIdNotNull("user001", today);
+        int afterFirstCount = afterFirstStatuses.size();
+        
+        // 重複作成の試行（スキップされるはず）
+        teamTaskService.createUserTaskStatusForAllMembers(resetTask);
+        
+        List<UserTaskStatus> afterSecondStatuses = userTaskStatusRepository.findByUserIdAndDateAndTeamIdNotNull("user001", today);
+        int afterSecondCount = afterSecondStatuses.size();
+        
+        // 最初の作成で増加し、2回目の作成では変化しないことを確認
+        assertTrue(afterFirstCount > beforeCount, "最初の作成でUserTaskStatusが追加されるべき");
+        assertEquals(afterFirstCount, afterSecondCount, "重複作成が正しく防止されるべき");
+        
+        System.out.println("Before: " + beforeCount + ", After First: " + afterFirstCount + ", After Second: " + afterSecondCount);
+    }
 }

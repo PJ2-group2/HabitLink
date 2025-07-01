@@ -198,28 +198,41 @@ public class TaskAutoResetService {
             
             // TaskをDBに保存（teamIDも必要）
             String teamId = findTeamIdByOriginalTask(originalTask.getTaskId());
+            newTask.setTeamId(teamId); // チーム共通タスクのためteamIdを設定
             taskRepository.saveTask(newTask, teamId);
             
-            // 2. 新しいUserTaskStatusインスタンスを作成
-            UserTaskStatus newStatus = new UserTaskStatus(
-                userId,     // 対象ユーザー
-                newTaskId,  // 新しいTaskID
-                nextDate,   // 次回実行日
-                false       // 初期状態は未完了
-            );
+            // 2. 特定ユーザーのみに対してUserTaskStatusを作成
+            // 既存のUserTaskStatusがないことを確認（taskIdでのみチェック、originalTaskIdでの重複チェックは行わない）
+            boolean existsByTaskId = userTaskStatusRepository.findByUserIdAndTaskIdAndDate(
+                userId, newTaskId, nextDate).isPresent();
+                
+            if (!existsByTaskId) {
+                UserTaskStatus newStatus = new UserTaskStatus(
+                    userId,     // 対象ユーザー
+                    newTaskId,  // 新しいTaskID
+                    teamId,     // チームID
+                    nextDate,   // 次回実行日
+                    false       // 初期状態は未完了
+                );
+                
+                // 元のTaskIDを明示的に設定
+                newStatus.setOriginalTaskId(originalTask.getTaskId());
+                
+                // ★重要★ データベースにUserTaskStatusを保存・永続化
+                userTaskStatusRepository.save(newStatus);
+            }
             
-            // 元のTaskIDを明示的に設定
-            newStatus.setOriginalTaskId(originalTask.getTaskId());
-            
-            // ★重要★ データベースにUserTaskStatusを保存・永続化
-            userTaskStatusRepository.save(newStatus);
-            
-            System.out.println("自動再設定完了: userId=" + userId +
-                ", newTaskId=" + newTaskId +
-                ", originalTaskId=" + originalTask.getTaskId() +
-                ", originalTaskIdFromStatus=" + newStatus.getOriginalTaskId() +
-                ", teamId=" + teamId +
-                ", date=" + nextDate);
+            if (!existsByTaskId) {
+                System.out.println("自動再設定完了: userId=" + userId +
+                    ", newTaskId=" + newTaskId +
+                    ", originalTaskId=" + originalTask.getTaskId() +
+                    ", teamId=" + teamId +
+                    ", date=" + nextDate);
+            } else {
+                System.out.println("自動再設定スキップ（既存あり）: userId=" + userId +
+                    ", originalTaskId=" + originalTask.getTaskId() +
+                    ", date=" + nextDate);
+            }
                 
             // 作成されたタスクが正しく保存されているかを確認
             var savedTask = taskRepository.findTeamTasksByTeamID(teamId).stream()
@@ -284,28 +297,40 @@ public class TaskAutoResetService {
             
             // TaskをDBに保存
             String teamId = findTeamIdByOriginalTask(originalTask.getTaskId());
+            newTask.setTeamId(teamId); // チーム共通タスクのためteamIdを設定
             taskRepository.saveTask(newTask, teamId);
             
-            // 2. 新しいUserTaskStatusインスタンスを作成
-            UserTaskStatus newStatus = new UserTaskStatus(
-                userId,     // 対象ユーザー
-                newTaskId,  // 新しいTaskID
-                adjustedDueDate,   // 調整された期限日付
-                false       // 初期状態は未完了
-            );
-            
-            // 元のTaskIDを明示的に設定
-            newStatus.setOriginalTaskId(originalTask.getTaskId());
-            
-            // データベースにUserTaskStatusを保存・永続化
-            userTaskStatusRepository.save(newStatus);
-            
-            System.out.println("期限切れ自動再設定完了: userId=" + userId +
-                ", newTaskId=" + newTaskId +
-                ", originalTaskId=" + originalTask.getTaskId() +
-                ", adjustedDueDate=" + adjustedDueDate +
-                ", adjustedDueTime=" + adjustedDueTime +
-                ", teamId=" + teamId);
+            // 2. 特定ユーザーのみに対してUserTaskStatusを作成
+            // 既存のUserTaskStatusがないことを確認（taskIdでのみチェック）
+            boolean existsByTaskIdOverdue = userTaskStatusRepository.findByUserIdAndTaskIdAndDate(
+                userId, newTaskId, adjustedDueDate).isPresent();
+                
+            if (!existsByTaskIdOverdue) {
+                UserTaskStatus newStatus = new UserTaskStatus(
+                    userId,     // 対象ユーザー
+                    newTaskId,  // 新しいTaskID
+                    teamId,     // チームID
+                    adjustedDueDate,   // 調整された期限日付
+                    false       // 初期状態は未完了
+                );
+                
+                // 元のTaskIDを明示的に設定
+                newStatus.setOriginalTaskId(originalTask.getTaskId());
+                
+                // データベースにUserTaskStatusを保存・永続化
+                userTaskStatusRepository.save(newStatus);
+                
+                System.out.println("期限切れ自動再設定完了: userId=" + userId +
+                    ", newTaskId=" + newTaskId +
+                    ", originalTaskId=" + originalTask.getTaskId() +
+                    ", adjustedDueDate=" + adjustedDueDate +
+                    ", adjustedDueTime=" + adjustedDueTime +
+                    ", teamId=" + teamId);
+            } else {
+                System.out.println("期限切れ自動再設定スキップ（既存あり）: userId=" + userId +
+                    ", originalTaskId=" + originalTask.getTaskId() +
+                    ", adjustedDueDate=" + adjustedDueDate);
+            }
                 
             return true;  // 新規作成成功
         }
