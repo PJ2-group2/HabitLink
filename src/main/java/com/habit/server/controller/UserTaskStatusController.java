@@ -168,14 +168,14 @@ public class UserTaskStatusController {
                             String originalTaskId = entry.getKey();
                             java.util.List<com.habit.domain.Task> tasksForOriginalId = entry.getValue();
                             
-                            // 日付順でソート（新しい順）
+                            // 日付順でソート（古い順）
                             tasksForOriginalId.sort((t1, t2) -> {
                                 java.time.LocalDate date1 = t1.getDueDate();
                                 java.time.LocalDate date2 = t2.getDueDate();
                                 if (date1 == null && date2 == null) return 0;
                                 if (date1 == null) return 1;
                                 if (date2 == null) return -1;
-                                return date2.compareTo(date1); // 降順（新しい順）
+                                return date1.compareTo(date2); // 昇順（古い順）
                             });
                             
                             // 元タスクが完了済みかどうかを確認
