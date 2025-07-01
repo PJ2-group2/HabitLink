@@ -96,7 +96,7 @@ public class ChatController {
         }
 
         // チャット送信ボタンのアクション設定
-        btnSend.setOnAction(_ -> {
+        btnSend.setOnAction(unused -> {
             String msg = chatInput.getText();
             if (msg != null && !msg.isEmpty()) {
                 sendChatMessage(msg);
@@ -105,7 +105,7 @@ public class ChatController {
         });
 
         // チームトップに戻るボタンのアクション設定
-        btnBackToTeamTop.setOnAction(_ -> {
+        btnBackToTeamTop.setOnAction(unused -> {
             try {
                 javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/TeamTop.fxml"));
                 javafx.scene.Parent root = loader.load();

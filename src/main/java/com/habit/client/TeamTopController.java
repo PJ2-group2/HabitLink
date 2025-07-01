@@ -94,7 +94,7 @@ public class TeamTopController {
             "https://raw.githubusercontent.com/google/material-design-icons/master/png/social/mood/materialicons/48dp/2x/baseline_mood_black_48dp.png", true));
 
         // ホームへ戻るボタンのアクション設定
-        btnBackHome.setOnAction(_ -> {
+        btnBackHome.setOnAction(unused -> {
             try {
                 javafx.stage.Stage stage = (javafx.stage.Stage) btnBackHome.getScene().getWindow();
                 javafx.scene.Parent root = javafx.fxml.FXMLLoader.load(getClass().getResource("/com/habit/client/gui/Home.fxml"));
@@ -106,7 +106,7 @@ public class TeamTopController {
         });
 
         // 個人ページへ遷移するボタンのアクション設定
-        btnToPersonal.setOnAction(_ -> {
+        btnToPersonal.setOnAction(unused -> {
             try {
                 javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/PersonalPage.fxml"));
                 javafx.scene.Parent root = loader.load();
@@ -126,7 +126,7 @@ public class TeamTopController {
         });
 
         // チャットページへ遷移するボタンのアクション設定
-        btnToChat.setOnAction(_ -> {
+        btnToChat.setOnAction(unused -> {
             try {
                 javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/Chat.fxml"));
                 javafx.scene.Parent root = loader.load();
@@ -145,7 +145,7 @@ public class TeamTopController {
         });
 
         // タスク作成ボタンのアクション設定
-        btnCreateTask.setOnAction(_ -> {
+        btnCreateTask.setOnAction(unused -> {
             try {
                 javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/TaskCreate.fxml"));
                 javafx.scene.Parent root = loader.load();

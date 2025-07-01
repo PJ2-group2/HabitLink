@@ -1,6 +1,6 @@
 package com.habit.server.controller;
 
-import com.habit.server.manager.DatabaseTeamManager;
+import com.habit.server.repository.TaskRepository;
 import com.habit.server.repository.TeamRepository;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -11,104 +11,26 @@ import java.io.OutputStream;
  * タスク関連APIのコントローラ
  */
 public class TaskController {
-  private final DatabaseTeamManager teamManager;
   private final TeamRepository teamRepository;
+  private final TaskRepository taskRepository;
 
-  public TaskController(DatabaseTeamManager teamManager,
-                        TeamRepository teamRepository) {
-    this.teamManager = teamManager;
+  public TaskController(TeamRepository teamRepository,
+                        TaskRepository taskRepository) {
     this.teamRepository = teamRepository;
+    this.taskRepository = taskRepository;
   }
 
   public HttpHandler getSaveTaskHandler() { return new SaveTaskHandler(); }
 
-  public HttpHandler getAddTaskHandler() { return new AddTaskHandler(); }
-
-  public HttpHandler getGetTasksHandler() { return new GetTasksHandler(); }
-
-  // --- タスク追加API ---
-  class AddTaskHandler implements HttpHandler {
-    @Override
-    public void handle(HttpExchange exchange) throws IOException {
-      String query = exchange.getRequestURI().getQuery();
-      String response;
-      if (query != null && query.contains("id=") && query.contains("task=")) {
-        String[] params = query.split("&");
-        String teamID = null, task = null;
-        for (String param : params) {
-          if (param.startsWith("id="))
-            teamID = param.substring(3);
-          if (param.startsWith("task="))
-            task = param.substring(5);
-        }
-        if (teamID != null && task != null) {
-          synchronized (teamManager) {
-            if (!teamManager.teamExists(teamID)) {
-              response = "チーム『" + teamID + "』は存在しません。";
-            } else {
-              var team = teamManager.getTaskManager(teamID);
-              team.addTask(task);
-              response = "タスクを追加しました。";
-            }
-          }
-        } else {
-          response = "パラメータが不正です。";
-        }
-      } else {
-        response = "パラメータが不正です。";
-      }
-      exchange.sendResponseHeaders(200, response.getBytes().length);
-      OutputStream os = exchange.getResponseBody();
-      os.write(response.getBytes());
-      os.close();
-    }
-  }
-
-  // --- タスク一覧取得API ---
-  class GetTasksHandler implements HttpHandler {
-    @Override
-    public void handle(HttpExchange exchange) throws IOException {
-      String response;
-      try {
-        String query = exchange.getRequestURI().getQuery();
-        if (query != null && query.startsWith("id=")) {
-          String teamID = query.substring(3);
-          synchronized (teamManager) {
-            if (!teamManager.teamExists(teamID)) {
-              response = "チーム『" + teamID + "』は存在しません。";
-            } else {
-              var team = teamManager.getTaskManager(teamID);
-              var tasks = team.getTasks();
-              if (tasks.isEmpty())
-                response = "タスクはありません。";
-              else
-                response = String.join("\n", tasks);
-            }
-          }
-        } else {
-          response = "チームIDが指定されていません。";
-        }
-        exchange.getResponseHeaders().set("Content-Type",
-                                          "text/plain; charset=UTF-8");
-        exchange.sendResponseHeaders(200, response.getBytes("UTF-8").length);
-        OutputStream os = exchange.getResponseBody();
-        os.write(response.getBytes("UTF-8"));
-        os.close();
-      } catch (Exception e) {
-        String err = "サーバーエラー: " + e.getMessage();
-        exchange.getResponseHeaders().set("Content-Type",
-                                          "text/plain; charset=UTF-8");
-        exchange.sendResponseHeaders(500, err.getBytes("UTF-8").length);
-        OutputStream os = exchange.getResponseBody();
-        os.write(err.getBytes("UTF-8"));
-        os.close();
-        e.printStackTrace();
-      }
-    }
-  }
   // --- タスクID→タスク名マップ取得API ---
   public HttpHandler getTaskIdNameMapHandler() {
     return new GetTaskIdNameMapHandler();
+  }
+
+  // --- チーム内で自分に紐づくタスク取得API ---
+  public HttpHandler
+  getUserTeamTasksHandler(com.habit.server.service.AuthService authService) {
+    return new GetUserTeamTasksHandler(authService);
   }
 
   class GetTaskIdNameMapHandler implements HttpHandler {
@@ -149,11 +71,6 @@ public class TaskController {
       os.write(response.getBytes("UTF-8"));
       os.close();
     }
-  }
-  // --- チーム内で自分に紐づくタスク取得API ---
-  public HttpHandler
-  getUserTeamTasksHandler(com.habit.server.service.AuthService authService) {
-    return new GetUserTeamTasksHandler(authService);
   }
 
   public static class GetUserTeamTasksHandler implements HttpHandler {
@@ -223,6 +140,7 @@ public class TaskController {
       os.close();
     }
   }
+
   // --- タスク保存API ---
   class SaveTaskHandler implements com.sun.net.httpserver.HttpHandler {
     @Override

@@ -28,8 +28,6 @@ mvn exec:java -Dexec.mainClass=com.habit.server.HabitServer
 - `GET  /getTeamName?teamID=<ID>` – チーム名取得
 - `GET  /getTeamMembers?teamID=<ID>` – チームメンバー一覧
 - `GET  /getTeamTasks?teamID=<ID>` – チームタスク一覧
-- `POST /addTask` – タスク追加 (`teamID` と `task` パラメータ)
-- `GET  /getTasks?id=<ID>` – チームタスク一覧取得（旧形式）
 - `GET  /getTaskIdNameMap?id=<ID>` – タスクIDと名前のマッピング
 - `GET  /getUserTeamTasks?teamID=<ID>` – 自分のタスクのみ取得（`SESSION_ID` 使用）
 - `POST /saveTask` – タスク情報を保存

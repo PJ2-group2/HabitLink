@@ -60,7 +60,7 @@ public class SearchTeamController {
         resultLabel.setText("");
 
         // 検索ボタンのアクション設定
-        btnSearch.setOnAction(_ -> {
+        btnSearch.setOnAction(unused -> {
             String passcode = passcodeField.getText().trim();
             // 合言葉が空の場合はエラーメッセージを表示
             if (passcode.isEmpty()) {
@@ -98,7 +98,7 @@ public class SearchTeamController {
         });
 
         // 参加ボタンのアクション設定
-        btnJoin.setOnAction(_ -> {
+        btnJoin.setOnAction(unused -> {
             if (foundTeamName == null) return;
             // 仮のユーザID: 実際はログインユーザ名等を使う
             try {
@@ -145,7 +145,7 @@ public class SearchTeamController {
         });
 
         // ホームに戻るボタンのアクション設定
-        btnBackHome.setOnAction(_ -> {
+        btnBackHome.setOnAction(unused -> {
             try {
                 Stage stage = (Stage) btnBackHome.getScene().getWindow();
                 Parent root = FXMLLoader.load(getClass().getResource("/com/habit/client/gui/Home.fxml"));

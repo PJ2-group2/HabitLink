@@ -77,7 +77,7 @@ public class CreateTeamController {
         inviteList.setItems(invitedMembers);
 
         // メンバー追加ボタンのアクション設定
-        btnAddMember.setOnAction(_ -> {
+        btnAddMember.setOnAction(unused -> {
             String id = inviteMemberField.getText().trim();
             if (!id.isEmpty() && !invitedMembers.contains(id)) {
                 invitedMembers.add(id);
@@ -86,7 +86,7 @@ public class CreateTeamController {
         });
 
         // 戻るボタンのアクション設定
-        btnBackHome.setOnAction(_ -> {
+        btnBackHome.setOnAction(unused -> {
             try {
                 javafx.stage.Stage stage = (javafx.stage.Stage) btnBackHome.getScene().getWindow();
                 javafx.scene.Parent root = javafx.fxml.FXMLLoader.load(getClass().getResource("/com/habit/client/gui/Home.fxml"));
@@ -98,7 +98,7 @@ public class CreateTeamController {
         });
 
         // チーム作成ボタンのアクション設定
-        btnCreateTeam.setOnAction(_ -> {
+        btnCreateTeam.setOnAction(unused -> {
             // 入力値取得
             String teamName = teamNameField.getText().trim();
             String passcode = passcodeField.getText().trim();

@@ -14,6 +14,7 @@ import com.habit.server.controller.UserTaskStatusController;
 import com.habit.server.manager.DatabaseTeamManager;
 import com.habit.server.repository.MessageRepository;
 import com.habit.server.repository.TaskRepository;
+import com.habit.server.repository.TeamRepository;
 import com.habit.server.repository.UserRepository;
 import com.habit.server.repository.UserTaskStatusRepository;
 import com.habit.server.service.AuthService;
@@ -33,13 +34,17 @@ public class HabitServer {
   // ユーザ認証用サービス
   private static UserRepository userRepository = new UserRepository();
   private static AuthService authService = new AuthService(userRepository);
+
+  private static TaskRepository taskRepository = new TaskRepository();
+  private static TeamRepository teamRepository = new TeamRepository();
+
   // チャットサービス用リポジトリ
   private static MessageRepository messageRepository = new MessageRepository();
   private static MessageController messageController =
       new MessageController(messageRepository, userRepository);
 
   private static UserController userController =
-      new UserController(authService, userRepository);
+      new UserController(authService, teamRepository);
 
   private static UserTaskStatusRepository userTaskStatusRepository =
       new UserTaskStatusRepository();
@@ -48,7 +53,6 @@ public class HabitServer {
   // --- チーム管理用（SQLite でチームIDを保持）---
   private static DatabaseTeamManager teamManager =
       new DatabaseTeamManager("jdbc:sqlite:habit.db");
-  private static TaskRepository taskRepository = new TaskRepository();
 
   public static void main(String[] args) throws Exception {
     // サーバを8080番ポートで起動
@@ -56,11 +60,8 @@ public class HabitServer {
     // 各APIエンドポイントを登録
     server.createContext("/hello", new HelloController()); // 動作確認用
 
-    taskController = new TaskController(teamManager);
-    server.createContext("/addTask",
-                         taskController.getAddTaskHandler()); // タスク追加
-    server.createContext("/getTasks",
-                         taskController.getGetTasksHandler()); // タスク一覧取得
+    taskController = new TaskController(teamRepository, taskRepository);
+
     AuthController authController =
         new AuthController(authService, userRepository);
     server.createContext("/login",
