@@ -47,6 +47,7 @@ public class MessageController {
                     response = "[]";
                 } else {
                     List<Message> messages = messageRepository.findMessagesByteamID(teamID, limit);
+                    java.util.Collections.reverse(messages); // 新しいメッセージが下側になるよう反転
                     StringBuilder sb = new StringBuilder("[");
                     for (int i = 0; i < messages.size(); i++) {
                         Message msg = messages.get(i);

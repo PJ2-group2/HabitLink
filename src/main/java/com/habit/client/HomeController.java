@@ -129,7 +129,7 @@ public class HomeController {
 
         // チームリストビューのクリックイベント設定
         // チーム名を選択したらチームトップへ遷移
-        teamListView.setOnMouseClicked(_ -> {
+        teamListView.setOnMouseClicked(unused -> {
             String selected = teamListView.getSelectionModel().getSelectedItem();
             if (selected != null && !selected.equals("サーバ接続エラー")) {
                 try {
@@ -158,7 +158,7 @@ public class HomeController {
         });
 
         // チーム作成画面遷移ボタンのアクション設定
-        btnToCreateTeam.setOnAction(_ -> {
+        btnToCreateTeam.setOnAction(unused -> {
             try {
                 javafx.stage.Stage stage = (javafx.stage.Stage) btnToCreateTeam.getScene().getWindow();
                 javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/CreateTeam.fxml"));
@@ -175,7 +175,7 @@ public class HomeController {
         });
 
         // チーム検索画面遷移ボタンのアクション設定
-        btnToSearchTeam.setOnAction(_ -> {
+        btnToSearchTeam.setOnAction(unused -> {
             try {
                 javafx.stage.Stage stage = (javafx.stage.Stage) btnToSearchTeam.getScene().getWindow();
                 javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/SearchTeam.fxml"));
