@@ -95,7 +95,7 @@ public class PersonalPageController {
     public void initialize() { 
         updateTaskTiles();
         // 戻るボタンのアクション設定
-        btnBackToTeam.setOnAction(_ -> {
+        btnBackToTeam.setOnAction(unused -> {
             try {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/habit/client/gui/TeamTop.fxml"));
                 Parent root = loader.load();
@@ -126,7 +126,7 @@ public class PersonalPageController {
             java.time.LocalTime dueTime = task.getDueTime();
             String remainStr = (dueTime != null) ? "残り: " + getRemainingTimeString(dueTime) : "";
             tileBtn.setText(name + (remainStr.isEmpty() ? "" : "\n" + remainStr));
-            tileBtn.setOnAction(_ -> {
+            tileBtn.setOnAction(unused -> {
                 // 確認ダイアログを表示
                 Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
                 alert.setTitle("タスク消化の確認");
