@@ -84,14 +84,18 @@ public class MessageController {
   }
 
   private class SendChatMessageHandler implements HttpHandler {
+    public void respond(HttpExchange exchange, int code, String response)
+        throws IOException {
+      exchange.sendResponseHeaders(code, response.getBytes().length);
+      OutputStream os = exchange.getResponseBody();
+      os.write(response.getBytes());
+      os.close();
+    }
+
     @Override
     public void handle(HttpExchange exchange) throws IOException {
       if (!"POST".equals(exchange.getRequestMethod())) {
-        String response = "POSTメソッドのみ対応";
-        exchange.sendResponseHeaders(405, response.getBytes().length);
-        OutputStream os = exchange.getResponseBody();
-        os.write(response.getBytes());
-        os.close();
+        respond(exchange, 405, "POSTメソッドのみ対応");
         return;
       }
       byte[] bodyBytes = exchange.getRequestBody().readAllBytes();
@@ -123,38 +127,30 @@ public class MessageController {
         }
       }
       if (teamID == null || senderId == null || content == null) {
-        response = "パラメータが不正です";
-        exchange.sendResponseHeaders(400, response.getBytes().length);
-      } else {
-        String username = senderId;
-        try {
-          sender = userRepository.findById(senderId);
-
-          // TODO: wtf is this?
-          var user = sender;
-          if (user != null) {
-            String uname = user.getUsername();
-            if (uname != null && !uname.trim().isEmpty()) {
-              username = uname;
-            }
-          }
-        } catch (Exception ex) {
-          ex.printStackTrace();
-        }
-
-        Message message = new Message(content, sender, teamID, content,
-                                      com.habit.domain.MessageType.NORMAL);
-        messageRepository.save(message);
-
-        System.out.println("[チャット] teamID=" + teamID +
-                           ", senderId=" + senderId +
-                           ", username=" + username + ", content=" + content);
-        response = "チャット送信成功";
-        exchange.sendResponseHeaders(200, response.getBytes().length);
+        respond(exchange, 400, "パラメータが不正です");
+        return;
       }
-      OutputStream os = exchange.getResponseBody();
-      os.write(response.getBytes());
-      os.close();
+      try {
+        sender = userRepository.findById(senderId);
+        if (sender == null) {
+          respond(exchange, 400, "送信者が存在しません");
+          return;
+        }
+      } catch (Exception ex) {
+        ex.printStackTrace();
+        respond(exchange, 500, "サーバ内部エラー");
+        return;
+      }
+
+      Message message = new Message("not set yet", sender, teamID, content,
+                                    com.habit.domain.MessageType.NORMAL);
+      messageRepository.save(message);
+
+      System.out.println(
+          "[チャット] teamID=" + teamID + ", senderId=" + senderId +
+          ", username=" + sender.getUsername() + ", content=" + content);
+
+      respond(exchange, 200, "チャット送信成功");
     }
   }
 }
