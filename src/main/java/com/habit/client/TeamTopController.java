@@ -446,9 +446,12 @@ public class TeamTopController {
                 // TableViewのカラム生成
                 Platform.runLater(() -> {
                     taskTable.getColumns().clear();
+                    taskTable.setFixedCellSize(32); // セルの高さを狭く
                     // 1列目: タスク名
                     TableColumn<ObservableList<Object>, String> taskCol = new TableColumn<>("タスク名");
                     taskCol.setCellValueFactory(data -> new javafx.beans.property.SimpleStringProperty((String)data.getValue().get(0)));
+                    taskCol.setStyle("-fx-font-size: 15px; -fx-alignment: center; -fx-padding: 4 0;");
+                    taskCol.setPrefWidth(90); // 横幅を半分に
                     taskTable.getColumns().add(taskCol);
                     // 2列目以降: メンバーごと
                     for (int i = 0; i < memberNames.size(); i++) {
@@ -458,6 +461,7 @@ public class TeamTopController {
                             Object v = data.getValue().get(colIdx);
                             return new javafx.beans.property.SimpleIntegerProperty((Integer)v).asObject();
                         });
+                        memCol.setPrefWidth(45); // 横幅を半分に
                         // カスタムセル: 日数に応じて色を変化
                         memCol.setCellFactory(tc -> new TableCell<>() {
                             @Override
@@ -496,7 +500,7 @@ public class TeamTopController {
                                         }
                                     }
                                     setText("");
-                                    setStyle("-fx-background-color: " + color + "; -fx-alignment: center;");
+                                    setStyle("-fx-background-color: " + color + "; -fx-alignment: center; -fx-font-size: 15px; -fx-padding: 4 0;");
                                 }
                             }
                         });
