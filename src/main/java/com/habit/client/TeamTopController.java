@@ -1,12 +1,19 @@
 package com.habit.client;
 
 import javafx.fxml.FXML;
+import javafx.scene.Cursor;
 import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.BackgroundFill;
 import javafx.scene.image.Image;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.scene.control.cell.CheckBoxTableCell;
+import javafx.geometry.Orientation;
+import javafx.geometry.Insets;
+import javafx.scene.layout.*;
+import javafx.scene.paint.*;
+import javafx.util.Callback;
 import java.net.*;
 import java.util.*;
 import org.json.*;
@@ -166,6 +173,9 @@ public class TeamTopController {
         // タスク進捗表の表示
         loadTaskStatusTable();
 
+        //未消化タスクを横並びにする
+        todayTaskList.setOrientation(Orientation.HORIZONTAL);
+        
         // 応援セリフリスト
         String[] cheers = {
             "今日も一歩前進だね！",
@@ -222,6 +232,51 @@ public class TeamTopController {
                     }
                 }
                 Platform.runLater(() -> {
+                    Callback<ListView<String>,ListCell<String>> cellFactory = p ->
+                    {
+                        ListCell<String> cell = new ListCell<String>()
+                        {
+                            @Override
+                            public void updateItem(String item,boolean empty)
+                            {
+                                super.updateItem(item,empty);
+
+                                if(item == null){
+                                    setText("");
+                                    setCursor(Cursor.DEFAULT);
+                                    setOnMouseClicked(null);
+                                    return;
+                                }
+                                setCursor(Cursor.CLOSED_HAND);
+                                setOnMouseClicked(event ->{
+                                    try {
+                                        javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/PersonalPage.fxml"));
+                                        javafx.scene.Parent root = loader.load();
+                                        PersonalPageController controller = loader.getController();
+                                        // 各データを渡す
+                                        controller.setUserId(userId);
+                                        controller.setTeamID(teamID);
+                                        controller.setTeamName(teamName);
+                                        // ユーザーのタスク一覧を渡す
+                                        controller.setUserTasks(getUserTasksForPersonalPage());
+                                        javafx.stage.Stage stage = (javafx.stage.Stage) btnToPersonal.getScene().getWindow();
+                                        stage.setScene(new javafx.scene.Scene(root));
+                                        stage.setTitle("個人ページ");
+                                    } catch (Exception ex) {
+                                        ex.printStackTrace();
+                                    }
+                                    });
+                                setText(item);
+                                String white = "#FF00FF";
+                                setStyle("-fx-background-color: " + white + "; -fx-background-radius: 10;-fx-alignment: center;-fx-background-insets:5 5 5 5;");
+                            }
+                        };
+                        int cellSize=80;
+                        cell.setPrefWidth(cellSize+20);
+                        cell.setPrefHeight(cellSize);
+                        return cell;
+                    }; 
+                    todayTaskList.setCellFactory(cellFactory);
                     todayTaskList.getItems().setAll(taskNames);
                 });
             } catch (Exception e) {
