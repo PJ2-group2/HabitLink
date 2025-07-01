@@ -149,12 +149,19 @@ public class UserTaskStatusController {
                             sb.append("\"taskId\":\"").append(t.getTaskId().replace("\"", "\\\"")).append("\",");
                             sb.append("\"taskName\":\"").append(t.getTaskName().replace("\"", "\\\"")).append("\",");
                             String dueTime = "";
+                            String dueDate = "";
                             try {
                                 java.lang.reflect.Method m = t.getClass().getMethod("getDueTime");
                                 Object val = m.invoke(t);
                                 if (val != null) dueTime = val.toString();
                             } catch (Exception ignore) {}
-                            sb.append("\"dueTime\":\"").append(dueTime.replace("\"", "\\\"")).append("\"");
+                            try {
+                                java.lang.reflect.Method m = t.getClass().getMethod("getDueDate");
+                                Object val = m.invoke(t);
+                                if (val != null) dueDate = val.toString();
+                            } catch (Exception ignore) {}
+                            sb.append("\"dueTime\":\"").append(dueTime.replace("\"", "\\\"")).append("\",");
+                            sb.append("\"dueDate\":\"").append(dueDate.replace("\"", "\\\"")).append("\"");
                             sb.append("}");
                             if (i < filtered.size() - 1) sb.append(",");
                         }

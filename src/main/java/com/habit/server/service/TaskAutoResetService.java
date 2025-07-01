@@ -93,7 +93,7 @@ public class TaskAutoResetService {
             
             // 2. 期限切れチェック
             else if (!status.isDone() && isOverdue(task, taskDate, today)) {
-                createNextTaskInstance(task, status.getUserId(), today);
+                createNextTaskInstanceForOverdue(task, status.getUserId(), today);
             }
         }
     }
@@ -192,6 +192,7 @@ public class TaskAutoResetService {
                 originalTask.getRepeatDays(),       // 同じ繰り返し曜日
                 originalTask.isTeamTask(),          // 同じチーム設定
                 originalTask.getDueTime(),          // 同じ期限時刻
+                nextDate,                           // 新しい期限日付
                 originalTask.getCycleType()         // 同じサイクルタイプ
             );
             
@@ -232,6 +233,123 @@ public class TaskAutoResetService {
             return true;  // 新規作成成功
         }
         return false;     // 既存のため作成せず
+    }
+    
+    /**
+     * 期限切れタスクの新しいインスタンスを作成（期限時刻を調整）
+     *
+     * @param originalTask 元のタスク（テンプレートとして使用）
+     * @param userId 対象ユーザーID
+     * @param nextDate 次回タスク日
+     * @return true: 新規作成された, false: 既存のため作成されず
+     *
+     * 【期限切れ時の期限時刻調整ロジック】
+     * - 当日の場合：現在時刻より後の適切な時刻に調整
+     * - 翌日の場合：元の期限時刻をそのまま使用
+     */
+    private boolean createNextTaskInstanceForOverdue(Task originalTask, String userId, LocalDate nextDate) {
+        // 元のTaskIDを使用して重複チェック
+        var existingStatus = userTaskStatusRepository
+            .findByUserIdAndOriginalTaskIdAndDate(userId, originalTask.getTaskId(), nextDate);
+            
+        if (existingStatus.isEmpty()) {
+            // 新しいTaskIDを生成
+            String newTaskId = generateNewTaskId(originalTask.getTaskId(), nextDate);
+            
+            // 期限時刻を調整
+            LocalTime adjustedDueTime = adjustDueTimeForOverdue(originalTask.getDueTime(), nextDate);
+            LocalDate adjustedDueDate = nextDate;
+            
+            // 期限時刻が翌日になった場合は日付も調整
+            if (adjustedDueTime == null ||
+                (nextDate.equals(LocalDate.now()) &&
+                 adjustedDueTime.isBefore(LocalTime.now()))) {
+                // 翌日に設定
+                adjustedDueDate = nextDate.plusDays(1);
+                adjustedDueTime = originalTask.getDueTime() != null ? originalTask.getDueTime() : LocalTime.of(23, 59);
+            }
+            
+            // 1. 新しいTaskを作成・保存
+            Task newTask = new Task(
+                newTaskId,                          // 新しいTaskID
+                originalTask.getTaskName(),         // 同じタスク名
+                originalTask.getDescription(),      // 同じ説明
+                originalTask.getEstimatedMinutes(), // 同じ推定時間
+                originalTask.getRepeatDays(),       // 同じ繰り返し曜日
+                originalTask.isTeamTask(),          // 同じチーム設定
+                adjustedDueTime,                    // 調整された期限時刻
+                adjustedDueDate,                    // 調整された期限日付
+                originalTask.getCycleType()         // 同じサイクルタイプ
+            );
+            
+            // TaskをDBに保存
+            String teamId = findTeamIdByOriginalTask(originalTask.getTaskId());
+            taskRepository.saveTask(newTask, teamId);
+            
+            // 2. 新しいUserTaskStatusインスタンスを作成
+            UserTaskStatus newStatus = new UserTaskStatus(
+                userId,     // 対象ユーザー
+                newTaskId,  // 新しいTaskID
+                adjustedDueDate,   // 調整された期限日付
+                false       // 初期状態は未完了
+            );
+            
+            // 元のTaskIDを明示的に設定
+            newStatus.setOriginalTaskId(originalTask.getTaskId());
+            
+            // データベースにUserTaskStatusを保存・永続化
+            userTaskStatusRepository.save(newStatus);
+            
+            System.out.println("期限切れ自動再設定完了: userId=" + userId +
+                ", newTaskId=" + newTaskId +
+                ", originalTaskId=" + originalTask.getTaskId() +
+                ", adjustedDueDate=" + adjustedDueDate +
+                ", adjustedDueTime=" + adjustedDueTime +
+                ", teamId=" + teamId);
+                
+            return true;  // 新規作成成功
+        }
+        return false;     // 既存のため作成せず
+    }
+    
+    /**
+     * 期限切れ時の期限時刻を調整
+     *
+     * @param originalDueTime 元の期限時刻
+     * @param targetDate 対象日付
+     * @return 調整された期限時刻
+     */
+    private LocalTime adjustDueTimeForOverdue(LocalTime originalDueTime, LocalDate targetDate) {
+        LocalDate today = LocalDate.now();
+        LocalTime now = LocalTime.now();
+        
+        // 元の期限時刻が設定されていない場合はデフォルト
+        if (originalDueTime == null) {
+            return LocalTime.of(23, 59);
+        }
+        
+        // 当日の場合は時刻調整が必要
+        if (targetDate.equals(today)) {
+            // 現在時刻が元の期限時刻を過ぎている場合
+            if (now.isAfter(originalDueTime)) {
+                // 3時間後か、23:59のいずれか早い方に設定
+                LocalTime threeHoursLater = now.plusHours(3);
+                LocalTime endOfDay = LocalTime.of(23, 59);
+                
+                if (threeHoursLater.isAfter(endOfDay)) {
+                    // 3時間後が翌日になる場合はnullを返して翌日扱いにする
+                    return null;
+                } else {
+                    return threeHoursLater;
+                }
+            } else {
+                // まだ期限時刻前の場合はそのまま使用
+                return originalDueTime;
+            }
+        } else {
+            // 翌日以降の場合は元の時刻をそのまま使用
+            return originalDueTime;
+        }
     }
     
     /**
@@ -374,7 +492,7 @@ public class TaskAutoResetService {
             
             // 2. 期限切れチェック
             else if (!status.isDone() && isOverdue(task, taskDate, today)) {
-                if (createNextTaskInstance(task, status.getUserId(), today)) {
+                if (createNextTaskInstanceForOverdue(task, status.getUserId(), today)) {
                     resetCount++;
                 }
             }

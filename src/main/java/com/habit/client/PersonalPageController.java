@@ -124,7 +124,8 @@ public class PersonalPageController {
             tileBtn.setStyle("-fx-border-color: #aaa; -fx-padding: 30; -fx-background-color: #f9f9f9; -fx-min-width: 320px; -fx-min-height: 150px; -fx-alignment: center; -fx-font-size: 22px; -fx-font-weight: bold;");
             String name = task.getTaskName();
             java.time.LocalTime dueTime = task.getDueTime();
-            String remainStr = (dueTime != null) ? "残り: " + getRemainingTimeString(dueTime) : "";
+            java.time.LocalDate dueDate = task.getDueDate();
+            String remainStr = getRemainingTimeAndDaysString(dueTime, dueDate);
             tileBtn.setText(name + (remainStr.isEmpty() ? "" : "\n" + remainStr));
             tileBtn.setOnAction(_ -> {
                 // 確認ダイアログを表示
@@ -171,7 +172,7 @@ public class PersonalPageController {
         }
     }
 
-    // LocalTime（本日分の締切時刻）までの残り時間を表示
+    // LocalTime（本日分の締切時刻）までの残り時間を表示（従来版）
     private String getRemainingTimeString(java.time.LocalTime dueTime) {
         java.time.LocalTime now = java.time.LocalTime.now();
         if (dueTime.isBefore(now)) return "期限切れ";
@@ -179,6 +180,42 @@ public class PersonalPageController {
         long hours = totalMinutes / 60;
         long minutes = totalMinutes % 60;
         return String.format("%d時間%d分", hours, minutes);
+    }
+
+    // 期限日付と時刻の両方を考慮した残り時間・日数表示
+    private String getRemainingTimeAndDaysString(java.time.LocalTime dueTime, java.time.LocalDate dueDate) {
+        java.time.LocalDate today = java.time.LocalDate.now();
+        java.time.LocalTime now = java.time.LocalTime.now();
+        
+        // 期限日付が設定されていない場合は従来通り時間のみ表示
+        if (dueDate == null) {
+            if (dueTime == null) return "";
+            return "残り: " + getRemainingTimeString(dueTime);
+        }
+        
+        // 期限日付が設定されている場合
+        java.time.LocalDateTime deadline = dueDate.atTime(dueTime != null ? dueTime : java.time.LocalTime.of(23, 59));
+        java.time.LocalDateTime nowDateTime = today.atTime(now);
+        
+        if (nowDateTime.isAfter(deadline)) {
+            return "期限切れ";
+        }
+        
+        long totalDays = java.time.temporal.ChronoUnit.DAYS.between(today, dueDate);
+        
+        if (totalDays > 0) {
+            // 1日以上残っている場合は日数を表示
+            return String.format("残り: %d日", totalDays);
+        } else if (totalDays == 0) {
+            // 当日の場合は時間を表示
+            if (dueTime != null) {
+                return "残り: " + getRemainingTimeString(dueTime);
+            } else {
+                return "残り: 本日中";
+            }
+        } else {
+            return "期限切れ";
+        }
     }
     // タスク一覧をAPIから取得する（TeamTopControllerのgetUserTasksForPersonalPage()相当）
     private List<com.habit.domain.Task> fetchUserTasksForPersonalPage() {
@@ -210,13 +247,25 @@ public class PersonalPageController {
                             dueTime = java.time.LocalTime.parse(dueTimeStr);
                         } catch (Exception ignore) {}
                     }
+                    String dueDateStr = obj.optString("dueDate", null);
+                    java.time.LocalDate dueDate = null;
+                    if (dueDateStr != null && !dueDateStr.isEmpty() && !"null".equals(dueDateStr)) {
+                        try {
+                            dueDate = java.time.LocalDate.parse(dueDateStr);
+                        } catch (Exception ignore) {}
+                    }
+                    
                     if (taskId != null && taskName != null) {
                         com.habit.domain.Task t = new com.habit.domain.Task(taskId, taskName);
-                        // dueTimeをリフレクションでセット
+                        // dueTimeとdueDateをリフレクションでセット
                         try {
                             java.lang.reflect.Field f = t.getClass().getDeclaredField("dueTime");
                             f.setAccessible(true);
                             f.set(t, dueTime);
+                            
+                            java.lang.reflect.Field f2 = t.getClass().getDeclaredField("dueDate");
+                            f2.setAccessible(true);
+                            f2.set(t, dueDate);
                         } catch (Exception ignore) {}
                         tasks.add(t);
                     }

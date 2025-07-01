@@ -22,6 +22,7 @@ public class TaskRepository {
                     "isTeamTask INTEGER," +
                     "teamID TEXT," +
                     "dueTime TEXT," +
+                    "dueDate TEXT," +
                     "cycleType TEXT" +
                     ")";
             stmt.execute(sql);
@@ -30,11 +31,13 @@ public class TaskRepository {
             ResultSet rs = stmt.executeQuery("PRAGMA table_info(tasks)");
             boolean hasTaskId = false;
             boolean hasDueTime = false;
+            boolean hasDueDate = false;
             boolean hasCycleType = false;
             while (rs.next()) {
                 String col = rs.getString("name");
                 if ("taskId".equalsIgnoreCase(col)) hasTaskId = true;
                 if ("dueTime".equalsIgnoreCase(col)) hasDueTime = true;
+                if ("dueDate".equalsIgnoreCase(col)) hasDueDate = true;
                 if ("cycleType".equalsIgnoreCase(col)) hasCycleType = true;
             }
             if (!hasTaskId) {
@@ -42,6 +45,9 @@ public class TaskRepository {
             }
             if (!hasDueTime) {
                 stmt.execute("ALTER TABLE tasks ADD COLUMN dueTime TEXT");
+            }
+            if (!hasDueDate) {
+                stmt.execute("ALTER TABLE tasks ADD COLUMN dueDate TEXT");
             }
             if (!hasCycleType) {
                 stmt.execute("ALTER TABLE tasks ADD COLUMN cycleType TEXT");
@@ -184,6 +190,7 @@ public class TaskRepository {
                             repeatDays,
                             rs.getInt("isTeamTask") == 1,
                             rs.getString("dueTime") != null ? java.time.LocalTime.parse(rs.getString("dueTime")) : null,
+                            rs.getString("dueDate") != null ? java.time.LocalDate.parse(rs.getString("dueDate")) : null,
                             rs.getString("cycleType")
                     );
                     list.add(task);
@@ -197,7 +204,7 @@ public class TaskRepository {
     // タスク保存
     public void saveTask(Task task, String teamID) {
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
-            String sql = "INSERT OR REPLACE INTO tasks (taskId, taskName, description, estimatedMinutes, repeatDays, isTeamTask, teamID, dueTime, cycleType) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            String sql = "INSERT OR REPLACE INTO tasks (taskId, taskName, description, estimatedMinutes, repeatDays, isTeamTask, teamID, dueTime, dueDate, cycleType) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setString(1, task.getTaskId());
                 pstmt.setString(2, task.getTaskName());
@@ -212,7 +219,8 @@ public class TaskRepository {
                 pstmt.setInt(6, task.isTeamTask() ? 1 : 0);
                 pstmt.setString(7, teamID);
                 pstmt.setString(8, task.getDueTime() != null ? task.getDueTime().toString() : null);
-                pstmt.setString(9, task.getCycleType());
+                pstmt.setString(9, task.getDueDate() != null ? task.getDueDate().toString() : null);
+                pstmt.setString(10, task.getCycleType());
                 pstmt.executeUpdate();
             }
         } catch (SQLException e) {
