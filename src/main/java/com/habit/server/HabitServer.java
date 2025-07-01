@@ -73,7 +73,7 @@ public class HabitServer {
     server.createContext("/hello", new HelloController()); // 動作確認用
 
     taskController =
-        new TaskController(taskRepository, userTaskStatusRepository);
+        new TaskController(taskRepository, teamRepository,userTaskStatusRepository);
 
     AuthController authController = new AuthController(authService);
     server.createContext("/login",

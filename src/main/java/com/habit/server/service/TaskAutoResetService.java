@@ -184,6 +184,20 @@ public class TaskAutoResetService {
         if (existingStatus.isEmpty()) {
             // 新しいTaskIDを生成（重複がない場合のみ）
             String newTaskId = generateNewTaskId(originalTask.getTaskId(), nextDate);
+            
+            // 期限日付の適切な設定
+            LocalDate taskDueDate = nextDate;
+            LocalTime taskDueTime = originalTask.getDueTime();
+            
+            // サイクルタイプに応じた期限日付の調整
+            if ("daily".equals(originalTask.getCycleType())) {
+                // 日次タスクの場合、nextDateをそのまま使用
+                taskDueDate = nextDate;
+            } else if ("weekly".equals(originalTask.getCycleType())) {
+                // 週次タスクの場合、nextDateをそのまま使用
+                taskDueDate = nextDate;
+            }
+            
             // 1. 新しいTaskを作成・保存
             Task newTask = new Task(
                 newTaskId,                          // 新しいTaskID
@@ -192,8 +206,8 @@ public class TaskAutoResetService {
                 originalTask.getEstimatedMinutes(), // 同じ推定時間
                 originalTask.getRepeatDays(),       // 同じ繰り返し曜日
                 originalTask.isTeamTask(),          // 同じチーム設定
-                originalTask.getDueTime(),          // 同じ期限時刻
-                nextDate,                           // 新しい期限日付
+                taskDueTime,                        // 同じ期限時刻
+                taskDueDate,                        // 適切に設定された期限日付
                 originalTask.getCycleType()         // 同じサイクルタイプ
             );
             
@@ -228,11 +242,14 @@ public class TaskAutoResetService {
                     ", newTaskId=" + newTaskId +
                     ", originalTaskId=" + originalTask.getTaskId() +
                     ", teamId=" + teamId +
-                    ", date=" + nextDate);
+                    ", nextDate=" + nextDate +
+                    ", taskDueDate=" + taskDueDate +
+                    ", taskDueTime=" + taskDueTime +
+                    ", cycleType=" + originalTask.getCycleType());
             } else {
                 System.out.println("自動再設定スキップ（既存あり）: userId=" + userId +
                     ", originalTaskId=" + originalTask.getTaskId() +
-                    ", date=" + nextDate);
+                    ", nextDate=" + nextDate);
             }
                 
             // 作成されたタスクが正しく保存されているかを確認
@@ -259,7 +276,7 @@ public class TaskAutoResetService {
      *
      * 【期限切れ時の期限時刻調整ロジック】
      * - 当日の場合：現在時刻より後の適切な時刻に調整
-     * - 翌日の場合：元の期限時刻をそのまま使用
+     * - 翌日以降の場合：元の期限時刻をそのまま使用
      */
     private boolean createNextTaskInstanceForOverdue(Task originalTask, String userId, LocalDate nextDate) {
         // 元のTaskIDを使用して重複チェック
@@ -274,12 +291,13 @@ public class TaskAutoResetService {
             LocalTime adjustedDueTime = adjustDueTimeForOverdue(originalTask.getDueTime(), nextDate);
             LocalDate adjustedDueDate = nextDate;
             
-            // 期限時刻が翌日になった場合は日付も調整
-            if (adjustedDueTime == null ||
-                (nextDate.equals(LocalDate.now()) &&
-                 adjustedDueTime.isBefore(LocalTime.now()))) {
+            // 当日で時刻調整が不可能な場合のみ翌日に設定
+            if (adjustedDueTime == null && nextDate.equals(LocalDate.now())) {
                 // 翌日に設定
                 adjustedDueDate = nextDate.plusDays(1);
+                adjustedDueTime = originalTask.getDueTime() != null ? originalTask.getDueTime() : LocalTime.of(23, 59);
+            } else if (adjustedDueTime == null) {
+                // 翌日以降の場合は元の時刻をそのまま使用
                 adjustedDueTime = originalTask.getDueTime() != null ? originalTask.getDueTime() : LocalTime.of(23, 59);
             }
             
@@ -354,28 +372,33 @@ public class TaskAutoResetService {
             return LocalTime.of(23, 59);
         }
         
-        // 当日の場合は時刻調整が必要
+        // 翌日以降の場合は元の時刻をそのまま使用（調整不要）
+        if (targetDate.isAfter(today)) {
+            return originalDueTime;
+        }
+        
+        // 当日の場合のみ時刻調整
         if (targetDate.equals(today)) {
             // 現在時刻が元の期限時刻を過ぎている場合
             if (now.isAfter(originalDueTime)) {
-                // 3時間後か、23:59のいずれか早い方に設定
-                LocalTime threeHoursLater = now.plusHours(3);
+                // 2時間後に設定（翌日への調整は呼び出し元で判断）
+                LocalTime twoHoursLater = now.plusHours(2);
                 LocalTime endOfDay = LocalTime.of(23, 59);
                 
-                if (threeHoursLater.isAfter(endOfDay)) {
-                    // 3時間後が翌日になる場合はnullを返して翌日扱いにする
+                if (twoHoursLater.isAfter(endOfDay)) {
+                    // 当日内で調整不可能な場合はnullを返す
                     return null;
                 } else {
-                    return threeHoursLater;
+                    return twoHoursLater;
                 }
             } else {
                 // まだ期限時刻前の場合はそのまま使用
                 return originalDueTime;
             }
-        } else {
-            // 翌日以降の場合は元の時刻をそのまま使用
-            return originalDueTime;
         }
+        
+        // その他の場合は元の時刻をそのまま使用
+        return originalDueTime;
     }
     
     /**

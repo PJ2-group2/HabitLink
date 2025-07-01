@@ -141,7 +141,8 @@ public class UserTaskStatusController {
                         // originalTaskIdで重複を排除するためのセット
                         java.util.Set<String> addedOriginalTaskIds = new java.util.HashSet<>();
                         
-                        // チームのすべてのタスクを確認
+                        // 同じoriginalTaskIdのタスクを日付順にソート（新しいタスクを優先）
+                        java.util.Map<String, java.util.List<com.habit.domain.Task>> tasksByOriginalId = new java.util.HashMap<>();
                         for (com.habit.domain.Task t : teamTasks) {
                             boolean isTeamTask = false;
                             try {
@@ -151,58 +152,70 @@ public class UserTaskStatusController {
                             } catch (Exception ignore) {}
                             
                             if (isTeamTask) {
-                                // ★修正：ユーザーが担当しているタスクかどうかをチェック
+                                // ユーザーが担当しているタスクかどうかをチェック
                                 boolean isUserTask = userTaskIds.contains(t.getTaskId()) ||
                                                    userTaskIds.contains(t.getOriginalTaskId());
                                 
                                 if (isUserTask) {
                                     String originalTaskId = t.getOriginalTaskId();
-                                    
-                                    // 同じoriginalTaskIdのタスクが既に追加されている場合はスキップ
-                                    if (addedOriginalTaskIds.contains(originalTaskId)) {
-                                        System.out.println("[UserTaskStatusController] Skipping duplicate originalTaskId: " + originalTaskId + " for task: " + t.getTaskName());
-                                        continue;
-                                    }
-                                    
-                                    // originalTaskIdでステータスを確認（最新のタスクを優先）
-                                    com.habit.domain.UserTaskStatus status = statusMapByOriginalId.get(originalTaskId);
-                                    if (status == null) {
-                                        status = statusMapByTaskId.get(t.getTaskId());
-                                    }
-                                    
-                                    // 再設定されたタスクの場合：翌日のタスクでも当日表示する
-                                    // タスクの期限日が翌日以降で、元タスクが完了済みの場合は表示対象とする
-                                    boolean isResetTask = false;
-                                    if (t.getDueDate() != null && t.getDueDate().isAfter(date)) {
-                                        System.out.println("[UserTaskStatusController] Checking reset task: " + t.getTaskName() +
-                                            ", dueDate=" + t.getDueDate() + ", requestDate=" + date);
-                                        // 元タスクが完了済みかどうかを確認
-                                        for (com.habit.domain.UserTaskStatus s : statusList) {
-                                            if (s.getOriginalTaskId().equals(originalTaskId) && s.getDate().equals(date) && s.isDone()) {
-                                                isResetTask = true;
-                                                System.out.println("[UserTaskStatusController] Found completed original task for reset: " +
-                                                    originalTaskId + ", completionDate=" + s.getDate());
-                                                break;
-                                            }
-                                        }
-                                    }
-                                    
-                                    // 未完了の場合、または再設定されたタスクの場合に返す
-                                    if (status == null || !status.isDone() || isResetTask) {
-                                        String statusDesc = status == null ? "new assignment" :
-                                                           (isResetTask ? "reset task" : "incomplete");
-                                        System.out.println("[UserTaskStatusController] Adding user task to filtered: " + t.getTaskName() +
-                                            " (taskId: " + t.getTaskId() + ", originalTaskId: " + originalTaskId +
-                                            ", dueDate: " + t.getDueDate() + ", status: " + statusDesc + ")");
-                                        filtered.add(t);
-                                        addedOriginalTaskIds.add(originalTaskId);
-                                    } else {
-                                        System.out.println("[UserTaskStatusController] Skipping completed user task: " + t.getTaskName() +
-                                            " (taskId: " + t.getTaskId() + ", originalTaskId: " + originalTaskId + ", dueDate: " + t.getDueDate() + ")");
+                                    tasksByOriginalId.computeIfAbsent(originalTaskId, k -> new java.util.ArrayList<>()).add(t);
+                                }
+                            }
+                        }
+                        
+                        // 各originalTaskIdグループから最適なタスクを選択
+                        for (java.util.Map.Entry<String, java.util.List<com.habit.domain.Task>> entry : tasksByOriginalId.entrySet()) {
+                            String originalTaskId = entry.getKey();
+                            java.util.List<com.habit.domain.Task> tasksForOriginalId = entry.getValue();
+                            
+                            // 日付順でソート（新しい順）
+                            tasksForOriginalId.sort((t1, t2) -> {
+                                java.time.LocalDate date1 = t1.getDueDate();
+                                java.time.LocalDate date2 = t2.getDueDate();
+                                if (date1 == null && date2 == null) return 0;
+                                if (date1 == null) return 1;
+                                if (date2 == null) return -1;
+                                return date2.compareTo(date1); // 降順（新しい順）
+                            });
+                            
+                            // 元タスクが完了済みかどうかを確認
+                            boolean originalTaskCompleted = false;
+                            for (com.habit.domain.UserTaskStatus s : statusList) {
+                                if (s.getOriginalTaskId().equals(originalTaskId) && s.getDate().equals(date) && s.isDone()) {
+                                    originalTaskCompleted = true;
+                                    System.out.println("[UserTaskStatusController] Found completed original task: " +
+                                        originalTaskId + ", completionDate=" + s.getDate());
+                                    break;
+                                }
+                            }
+                            
+                            // 最適なタスクを選択
+                            com.habit.domain.Task selectedTask = null;
+                            for (com.habit.domain.Task t : tasksForOriginalId) {
+                                com.habit.domain.UserTaskStatus status = statusMapByTaskId.get(t.getTaskId());
+                                
+                                // 元タスクが完了済みの場合は、未完了の新しいタスクを優先
+                                if (originalTaskCompleted) {
+                                    if (status == null || !status.isDone()) {
+                                        selectedTask = t;
+                                        System.out.println("[UserTaskStatusController] Selected reset task: " + t.getTaskName() +
+                                            " (taskId: " + t.getTaskId() + ", dueDate: " + t.getDueDate() + ")");
+                                        break;
                                     }
                                 } else {
-                                    System.out.println("[UserTaskStatusController] Skipping non-user task: " + t.getTaskName() + " (not assigned to user)");
+                                    // 元タスクが未完了の場合は、当日のタスクまたは未完了タスクを選択
+                                    if (status == null || !status.isDone()) {
+                                        selectedTask = t;
+                                        System.out.println("[UserTaskStatusController] Selected incomplete task: " + t.getTaskName() +
+                                            " (taskId: " + t.getTaskId() + ", dueDate: " + t.getDueDate() + ")");
+                                        break;
+                                    }
                                 }
+                            }
+                            
+                            if (selectedTask != null) {
+                                filtered.add(selectedTask);
+                                addedOriginalTaskIds.add(originalTaskId);
                             }
                         }
                         System.out.println("[UserTaskStatusController] Final filtered tasks count: " + filtered.size());

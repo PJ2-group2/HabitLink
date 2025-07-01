@@ -184,20 +184,21 @@ public class PersonalPageController {
             return "期限切れ";
         }
         
-        long totalDays = java.time.temporal.ChronoUnit.DAYS.between(today, dueDate);
+        // 正確な残り時間を計算（時刻まで考慮）
+        java.time.Duration duration = java.time.Duration.between(nowDateTime, deadline);
+        long totalHours = duration.toHours();
+        long totalDays = totalHours / 24;
         
         if (totalDays > 0) {
             // 1日以上残っている場合は日数を表示
             return String.format("残り: %d日", totalDays);
-        } else if (totalDays == 0) {
-            // 当日の場合は時間を表示
+        } else {
+            // 当日または24時間以内の場合は時間を表示
             if (dueTime != null) {
                 return "残り: " + getRemainingTimeString(dueTime);
             } else {
                 return "残り: 本日中";
             }
-        } else {
-            return "期限切れ";
         }
     }
     // タスク一覧をAPIから取得する（TeamTopControllerのgetUserTasksForPersonalPage()相当）
@@ -261,7 +262,8 @@ public class PersonalPageController {
                             } catch (Exception ignore) {}
                         }
                         
-                        System.out.println("[PersonalPageController] Adding task: " + taskName + " (ID: " + taskId + ")");
+                        System.out.println("[PersonalPageController] Adding task: " + taskName + " (ID: " + taskId +
+                            ", dueDate: " + dueDate + ", dueTime: " + dueTime + ")");
                         tasks.add(t);
                     }
                 }
