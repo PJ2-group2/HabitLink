@@ -7,6 +7,7 @@ package com.habit.server;
 import com.habit.server.controller.AuthController;
 import com.habit.server.controller.HelloController;
 import com.habit.server.controller.MessageController;
+import com.habit.server.controller.TaskAutoResetController;
 import com.habit.server.controller.TaskController;
 import com.habit.server.controller.TeamController;
 import com.habit.server.controller.UserController;
@@ -18,8 +19,8 @@ import com.habit.server.repository.TaskRepository;
 import com.habit.server.repository.TeamRepository;
 import com.habit.server.repository.UserRepository;
 import com.habit.server.repository.UserTaskStatusRepository;
-import com.habit.server.service.AuthService;
 import com.habit.server.scheduler.TaskAutoResetScheduler;
+import com.habit.server.service.AuthService;
 import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
 
@@ -32,13 +33,17 @@ import java.net.InetSocketAddress;
  * SQLiteによる永続化や、チャット・チーム機能も実装。
  */
 public class HabitServer {
-  private static TaskController taskController;
-  // ユーザ認証用サービス
-  private static UserRepository userRepository = new UserRepository();
-  private static AuthService authService = new AuthService(userRepository);
 
+  private static UserRepository userRepository = new UserRepository();
   private static TaskRepository taskRepository = new TaskRepository();
   private static TeamRepository teamRepository = new TeamRepository();
+  private static UserTaskStatusRepository userTaskStatusRepository =
+      new UserTaskStatusRepository();
+
+  private static TaskController taskController;
+
+  // ユーザ認証用サービス
+  private static AuthService authService = new AuthService(userRepository);
 
   // チャットサービス用リポジトリ
   private static MessageRepository messageRepository = new MessageRepository();
@@ -48,18 +53,18 @@ public class HabitServer {
   private static UserController userController =
       new UserController(authService, teamRepository);
 
-  private static UserTaskStatusRepository userTaskStatusRepository = new UserTaskStatusRepository();
-  private static UserTaskStatusController userTaskStatusController = new UserTaskStatusController(authService, userTaskStatusRepository);
-  
-  
+  private static UserTaskStatusController userTaskStatusController =
+      new UserTaskStatusController(authService, userTaskStatusRepository);
+
   // タスク自動再設定関連コンポーネント
   // スケジューラー: 1時間ごとの自動実行を担当
-  private static TaskAutoResetScheduler taskAutoResetScheduler = new TaskAutoResetScheduler();
-  // コントローラー: 手動実行API(/manualTaskReset, /manualTaskResetTeam)を提供
-  private static TaskAutoResetController taskAutoResetController = new TaskAutoResetController();
+  private static TaskAutoResetScheduler taskAutoResetScheduler =
+      new TaskAutoResetScheduler();
   
   // チーム共通タスク管理関連コンポーネント
   private static TeamTaskController teamTaskController = new TeamTaskController();
+  private static TaskAutoResetController taskAutoResetController =
+      new TaskAutoResetController();
 
   public static void main(String[] args) throws Exception {
     // サーバを8080番ポートで起動
@@ -67,10 +72,10 @@ public class HabitServer {
     // 各APIエンドポイントを登録
     server.createContext("/hello", new HelloController()); // 動作確認用
 
-    taskController = new TaskController(teamRepository, taskRepository);
+    taskController =
+        new TaskController(taskRepository, userTaskStatusRepository);
 
-    AuthController authController =
-        new AuthController(authService, userRepository);
+    AuthController authController = new AuthController(authService);
     server.createContext("/login",
                          authController.getLoginHandler()); // ログイン
     server.createContext("/register",
@@ -131,8 +136,13 @@ public class HabitServer {
     server.createContext("/saveTask", taskController.getSaveTaskHandler());
     // UserTaskStatus保存API
     // タスク自動再設定手動実行API
-    server.createContext("/manualTaskReset", taskAutoResetController.getManualResetHandler()); // 全チーム手動実行
-    server.createContext("/manualTaskResetTeam", taskAutoResetController.getManualResetTeamHandler()); // 特定チーム手動実行
+    server.createContext(
+        "/manualTaskReset",
+        taskAutoResetController.getManualResetHandler()); // 全チーム手動実行
+    server.createContext(
+        "/manualTaskResetTeam",
+        taskAutoResetController
+            .getManualResetTeamHandler()); // 特定チーム手動実行
     server.createContext(
         "/saveUserTaskStatus",
         userTaskStatusController.getSaveUserTaskStatusHandler());
@@ -156,22 +166,24 @@ public class HabitServer {
         
     server.setExecutor(null);
     server.start();
-    
+
     // === タスク自動再設定機能の開始 ===
     // 1時間ごとの自動実行スケジューラーを開始
     taskAutoResetScheduler.start();
-    
+
     // サーバーシャットダウン時の処理を登録
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-        System.out.println("サーバをシャットダウンしています...");
-        // スケジューラーを安全に停止
-        taskAutoResetScheduler.stop();
-        // HTTPサーバーを停止
-        server.stop(0);
+      System.out.println("サーバをシャットダウンしています...");
+      // スケジューラーを安全に停止
+      taskAutoResetScheduler.stop();
+      // HTTPサーバーを停止
+      server.stop(0);
     }));
-    
+
     System.out.println("サーバが起動しました: http://localhost:8080/hello");
-    System.out.println("タスク自動再設定機能が有効になりました（1時間ごと実行）");
-    System.out.println("手動実行API: /manualTaskReset, /manualTaskResetTeam?teamId=xxx");
+    System.out.println(
+        "タスク自動再設定機能が有効になりました（1時間ごと実行）");
+    System.out.println(
+        "手動実行API: /manualTaskReset, /manualTaskResetTeam?teamId=xxx");
   }
 }

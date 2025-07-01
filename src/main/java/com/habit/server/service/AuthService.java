@@ -2,57 +2,56 @@ package com.habit.server.service;
 
 import com.habit.domain.User;
 import com.habit.server.repository.UserRepository;
-
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class AuthService {
-    private UserRepository userRepository;
-    // セッションIDとユーザーIDのマッピング
-    private final Map<String, String> sessionMap = new ConcurrentHashMap<>();
+  private UserRepository userRepository;
+  // セッションIDとユーザーIDのマッピング
+  private final Map<String, String> sessionMap = new ConcurrentHashMap<>();
 
-    public AuthService(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
+  public AuthService(UserRepository userRepository) {
+    this.userRepository = userRepository;
+  }
 
-    /**
-     * ログイン認証し、成功時はセッションIDを発行して返す
-     */
-    public String loginAndCreateSession(String username, String password) {
-        User user = userRepository.findByUsername(username);
-        if (user != null && user.authenticate(password)) {
-            String sessionId = UUID.randomUUID().toString();
-            sessionMap.put(sessionId, user.getUserId());
-            return sessionId;
-        }
-        return null;
+  /**
+   * ログイン認証し、成功時はセッションIDを発行して返す
+   */
+  public String loginAndCreateSession(String username, String password) {
+    User user = userRepository.findByUsername(username);
+    if (user != null && user.authenticate(password)) {
+      String sessionId = UUID.randomUUID().toString();
+      sessionMap.put(sessionId, user.getUserId());
+      return sessionId;
     }
+    return null;
+  }
 
-    /**
-     * セッションIDからユーザーを取得
-     */
-    public User getUserBySession(String sessionId) {
-        String userId = sessionMap.get(sessionId);
-        if (userId == null) return null;
-        return userRepository.findById(userId);
-    }
+  /**
+   * セッションIDからユーザーを取得
+   */
+  public User getUserBySession(String sessionId) {
+    String userId = sessionMap.get(sessionId);
+    if (userId == null)
+      return null;
+    return userRepository.findById(userId);
+  }
 
-    /**
-     * 新規登録し、セッションIDを発行して返す
-     */
-    public String registerAndCreateSession(String username, String password) {
-        User user = new User(java.util.UUID.randomUUID().toString(), username, password);
-        userRepository.save(user);
-        String sessionId = UUID.randomUUID().toString();
-        sessionMap.put(sessionId, user.getUserId());
-        return sessionId;
-    }
+  /**
+   * 新規登録し、セッションIDを発行して返す
+   */
+  public String registerAndCreateSession(String username, String password) {
+    User user =
+        new User(java.util.UUID.randomUUID().toString(), username, password);
+    userRepository.save(user);
+    String sessionId = UUID.randomUUID().toString();
+    sessionMap.put(sessionId, user.getUserId());
+    return sessionId;
+  }
 
-    /**
-     * ログアウト（セッション破棄）
-     */
-    public void logout(String sessionId) {
-        sessionMap.remove(sessionId);
-    }
+  /**
+   * ログアウト（セッション破棄）
+   */
+  public void logout(String sessionId) { sessionMap.remove(sessionId); }
 }
