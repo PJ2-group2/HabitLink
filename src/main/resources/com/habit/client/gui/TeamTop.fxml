@@ -16,24 +16,26 @@
         </HBox>
     </top>
     <center>
-        <TableView fx:id="taskTable" prefHeight="180"/>
+        <VBox spacing="10">
+            <TableView fx:id="taskTable" prefHeight="470"/>
+            <HBox spacing="20">
+                <VBox>
+                    <Label text="本日の未消化タスク一覧"/>
+                    <ListView fx:id="todayTaskList" prefHeight="120" prefWidth="360"/>
+                </VBox>
+                <VBox>
+                    <Label text="チームチャット"/>
+                    <ListView fx:id="chatList" prefHeight="90" prefWidth="90"/>
+                </VBox>
+            </HBox>
+        </VBox>
     </center>
     <bottom>
-        <HBox spacing="20">
-            <VBox>
-                <Label text="本日の未消化タスク一覧"/>
-                <ListView fx:id="todayTaskList" prefHeight="60"/>
-            </VBox>
-            <VBox>
-                <Label text="チームチャット"/>
-                <ListView fx:id="chatList" prefHeight="60"/>
-            </VBox>
-        </HBox>
     </bottom>
     <left>
         <VBox alignment="BOTTOM_LEFT">
             <Label fx:id="cheerMessageLabel" text="" style="-fx-font-size: 14px; -fx-background-color: #fffbe7; -fx-border-color: #cccccc; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 8; -fx-text-fill: #3a3a3a;" wrapText="true" maxWidth="250" alignment="CENTER_LEFT"/>
-            <ImageView fx:id="teamCharView" fitWidth="60" fitHeight="90"/>
+            <ImageView fx:id="teamCharView" fitWidth="100" fitHeight="100"/>
         </VBox>
     </left>
 </BorderPane>
