@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * タスクの自動再設定サービス
@@ -523,5 +524,60 @@ public class TaskAutoResetService {
             }
         }
         return resetCount;
+    }
+    /**
+     * 特定のタスク完了時に即座に次のタスクを再設定する（外部呼び出し用）
+     *
+     * @param completedTask 完了したタスク
+     * @param userId 対象ユーザーID
+     * @param completionDate 完了日
+     * @param teamId チームID
+     * @return true: 再設定実行, false: 対象外またはスキップ
+     */
+    public boolean createNextTaskInstanceImmediately(Task completedTask, String userId, LocalDate completionDate, String teamId) {
+        try {
+            // 自動再設定対象かチェック
+            if (!shouldAutoReset(completedTask)) {
+                System.out.println("即座の再設定スキップ（対象外）: taskId=" + completedTask.getTaskId() +
+                    ", cycleType=" + completedTask.getCycleType());
+                return false;
+            }
+            
+            // 完了したUserTaskStatusを取得して期限内達成かチェック
+            Optional<UserTaskStatus> optStatus = userTaskStatusRepository
+                .findByUserIdAndTaskIdAndDate(userId, completedTask.getTaskId(), completionDate);
+            
+            if (optStatus.isPresent()) {
+                UserTaskStatus status = optStatus.get();
+                
+                // 期限内達成の場合のみ即座に再設定
+                if (status.isDone() && isWithinDeadline(completedTask, status)) {
+                    LocalDate nextDate = getNextDate(completedTask, completionDate);
+                    boolean created = createNextTaskInstance(completedTask, userId, nextDate);
+                    
+                    if (created) {
+                        System.out.println("即座のタスク再設定成功: originalTaskId=" + completedTask.getOriginalTaskId() +
+                            ", userId=" + userId + ", nextDate=" + nextDate);
+                        return true;
+                    } else {
+                        System.out.println("即座のタスク再設定スキップ（既存あり）: originalTaskId=" + completedTask.getOriginalTaskId() +
+                            ", userId=" + userId + ", nextDate=" + nextDate);
+                        return false;
+                    }
+                } else {
+                    System.out.println("即座の再設定スキップ（期限外達成）: taskId=" + completedTask.getTaskId() +
+                        ", userId=" + userId);
+                    return false;
+                }
+            } else {
+                System.out.println("即座の再設定スキップ（ステータス未取得）: taskId=" + completedTask.getTaskId() +
+                    ", userId=" + userId);
+                return false;
+            }
+        } catch (Exception e) {
+            System.err.println("即座のタスク再設定でエラー: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
     }
 }

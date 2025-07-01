@@ -28,48 +28,11 @@ public class PersonalPageController {
     // タスク一覧（Task型で受け取る）
     private List<com.habit.domain.Task> tasks = new ArrayList<>();
 
-    // チームトップからタスク一覧を受け取る用
+    // チームトップからタスク一覧を受け取る用（廃止予定 - 常に最新データを取得）
     public void setUserTasks(List<com.habit.domain.Task> tasks) {
-        List<com.habit.domain.Task> filtered = new ArrayList<>();
-        if (tasks != null) {
-            try {
-                String sessionId = com.habit.client.LoginController.getSessionId();
-                java.time.LocalDate today = java.time.LocalDate.now();
-                java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
-                String url = "http://localhost:8080/getUserTaskStatusList?teamID=" + java.net.URLEncoder.encode(teamID, "UTF-8")
-                        + "&date=" + today.toString();
-                java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
-                        .uri(java.net.URI.create(url))
-                        .timeout(java.time.Duration.ofSeconds(10))
-                        .header("SESSION_ID", sessionId)
-                        .GET()
-                        .build();
-                java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
-                String json = response.body();
-                java.util.Set<String> doneTaskIds = new java.util.HashSet<>();
-                if (json != null && json.startsWith("[")) {
-                    org.json.JSONArray arr = new org.json.JSONArray(json);
-                    for (int i = 0; i < arr.length(); i++) {
-                        org.json.JSONObject obj = arr.getJSONObject(i);
-                        String taskId = obj.optString("taskId", null);
-                        boolean isDone = obj.optBoolean("isDone", false);
-                        if (isDone && taskId != null) {
-                            doneTaskIds.add(taskId);
-                        }
-                    }
-                }
-                for (com.habit.domain.Task t : tasks) {
-                    if (!doneTaskIds.contains(t.getTaskId())) {
-                        filtered.add(t);
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-                // 失敗時は全件表示
-                filtered.addAll(tasks);
-            }
-        }
-        this.tasks = filtered;
+        // 渡されたタスク一覧は無視して、常に最新データをAPIから取得
+        System.out.println("[PersonalPageController] setUserTasks called, but fetching latest data from API");
+        this.tasks = fetchUserTasksForPersonalPage();
         updateTaskTiles();
     }
 
@@ -92,8 +55,8 @@ public class PersonalPageController {
      * コントローラー初期化処理。
      */
     @FXML
-    public void initialize() { 
-        updateTaskTiles();
+    public void initialize() {
+        // 初期化時はタイルは空のまま（setUserTasks or setTeamIDで設定される）
         // 戻るボタンのアクション設定
         btnBackToTeam.setOnAction(unused -> {
             try {
@@ -158,9 +121,29 @@ public class PersonalPageController {
                                 .build();
                         java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
                         System.out.println("タスク完了APIレスポンス: " + response.body());
-                        // 個人ページのタイル一覧を再読み込み
-                        this.tasks = fetchUserTasksForPersonalPage();
-                        updateTaskTiles();
+                        
+                        // タスク完了成功の場合のみタイル一覧を再読み込み
+                        if (response.statusCode() == 200) {
+                            // 少し待機してから再読み込み（即座のタスク再設定処理完了を待つ）
+                            new Thread(() -> {
+                                try {
+                                    Thread.sleep(500); // 0.5秒待機
+                                    javafx.application.Platform.runLater(() -> {
+                                        try {
+                                            this.tasks = fetchUserTasksForPersonalPage();
+                                            updateTaskTiles();
+                                            System.out.println("個人ページのタスク一覧を更新しました");
+                                        } catch (Exception ex) {
+                                            System.err.println("タスク一覧更新エラー: " + ex.getMessage());
+                                        }
+                                    });
+                                } catch (InterruptedException ie) {
+                                    Thread.currentThread().interrupt();
+                                }
+                            }).start();
+                        } else {
+                            System.err.println("タスク完了APIエラー: statusCode=" + response.statusCode());
+                        }
                         return;
                     } catch (Exception e) {
                         e.printStackTrace();

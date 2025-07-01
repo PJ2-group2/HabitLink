@@ -115,8 +115,8 @@ public class TeamTopController {
                 controller.setUserId(userId);
                 controller.setTeamID(teamID);
                 controller.setTeamName(teamName);
-                // ユーザーのタスク一覧を渡す
-                controller.setUserTasks(getUserTasksForPersonalPage());
+                // ★修正：空のリストを渡してAPIから最新データを取得させる
+                controller.setUserTasks(new java.util.ArrayList<>());
                 javafx.stage.Stage stage = (javafx.stage.Stage) btnToPersonal.getScene().getWindow();
                 stage.setScene(new javafx.scene.Scene(root));
                 stage.setTitle("個人ページ");
