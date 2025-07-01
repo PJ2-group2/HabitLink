@@ -112,18 +112,37 @@ public class UserTaskStatusController {
                         java.util.List<com.habit.domain.Task> teamTasks = taskRepo.findTeamTasksByTeamID(teamID);
                         System.out.println("[UserTaskStatusController] Team tasks count: " + teamTasks.size());
                         java.util.List<com.habit.domain.Task> filtered = new java.util.ArrayList<>();
-                        java.util.List<com.habit.domain.UserTaskStatus> statusList =
-                            utsRepo.findByUserIdAndTeamIdAndDate(userId, teamID, date);
-                        System.out.println("[UserTaskStatusController] Status list count: " + statusList.size());
                         
-                        // 指定日のユーザーのタスク状況をマップ化
-                        java.util.Map<String, com.habit.domain.UserTaskStatus> statusMap = new java.util.HashMap<>();
+                        // 当日と翌日の両方のUserTaskStatusを取得（再設定されたタスクを含む）
+                        java.time.LocalDate tomorrow = date.plusDays(1);
+                        java.util.List<com.habit.domain.UserTaskStatus> statusListToday =
+                            utsRepo.findByUserIdAndTeamIdAndDate(userId, teamID, date);
+                        java.util.List<com.habit.domain.UserTaskStatus> statusListTomorrow =
+                            utsRepo.findByUserIdAndTeamIdAndDate(userId, teamID, tomorrow);
+                        
+                        java.util.List<com.habit.domain.UserTaskStatus> statusList = new java.util.ArrayList<>();
+                        statusList.addAll(statusListToday);
+                        statusList.addAll(statusListTomorrow);
+                        System.out.println("[UserTaskStatusController] Status list count (today+tomorrow): " + statusList.size());
+                        
+                        // 指定日のユーザーのタスク状況をマップ化（originalTaskIdベースで重複排除）
+                        java.util.Map<String, com.habit.domain.UserTaskStatus> statusMapByTaskId = new java.util.HashMap<>();
+                        java.util.Map<String, com.habit.domain.UserTaskStatus> statusMapByOriginalId = new java.util.HashMap<>();
                         for (com.habit.domain.UserTaskStatus status : statusList) {
-                            statusMap.put(status.getTaskId(), status);
-                            System.out.println("[UserTaskStatusController] Status - taskId: " + status.getTaskId() + ", isDone: " + status.isDone());
+                            statusMapByTaskId.put(status.getTaskId(), status);
+                            statusMapByOriginalId.put(status.getOriginalTaskId(), status);
+                            System.out.println("[UserTaskStatusController] Status - taskId: " + status.getTaskId() + ", originalTaskId: " + status.getOriginalTaskId() + ", isDone: " + status.isDone());
                         }
                         
-                        // チームのすべてのタスクを確認
+                        // ユーザーが担当するタスクIDを取得
+                        java.util.List<String> userTaskIds = utsRepo.findTaskIdsByUserIdAndTeamId(userId, teamID);
+                        System.out.println("[UserTaskStatusController] User task IDs: " + userTaskIds);
+                        
+                        // originalTaskIdで重複を排除するためのセット
+                        java.util.Set<String> addedOriginalTaskIds = new java.util.HashSet<>();
+                        
+                        // 同じoriginalTaskIdのタスクを日付順にソート（新しいタスクを優先）
+                        java.util.Map<String, java.util.List<com.habit.domain.Task>> tasksByOriginalId = new java.util.HashMap<>();
                         for (com.habit.domain.Task t : teamTasks) {
                             boolean isTeamTask = false;
                             try {
@@ -133,12 +152,50 @@ public class UserTaskStatusController {
                             } catch (Exception ignore) {}
                             
                             if (isTeamTask) {
-                                com.habit.domain.UserTaskStatus status = statusMap.get(t.getTaskId());
-                                // タスク状況がないか、未完了の場合のみ返す
-                                if (status == null || !status.isDone()) {
-                                    System.out.println("[UserTaskStatusController] Adding task to filtered: " + t.getTaskName() + " (status: " + (status == null ? "none" : "incomplete") + ")");
-                                    filtered.add(t);
+                                // ユーザーが担当しているタスクかどうかをチェック
+                                boolean isUserTask = userTaskIds.contains(t.getTaskId()) ||
+                                                   userTaskIds.contains(t.getOriginalTaskId());
+                                
+                                if (isUserTask) {
+                                    String originalTaskId = t.getOriginalTaskId();
+                                    tasksByOriginalId.computeIfAbsent(originalTaskId, k -> new java.util.ArrayList<>()).add(t);
                                 }
+                            }
+                        }
+                        
+                        // 各originalTaskIdグループから最適なタスクを選択
+                        for (java.util.Map.Entry<String, java.util.List<com.habit.domain.Task>> entry : tasksByOriginalId.entrySet()) {
+                            String originalTaskId = entry.getKey();
+                            java.util.List<com.habit.domain.Task> tasksForOriginalId = entry.getValue();
+                            
+                            // [修正点] 日付の昇順（古い順）でソートします。
+                            // これにより、未完了のタスクの中で最も日付が古いもの（例：今日やるべきタスク）が
+                            // 優先的に選択され、他のメンバーの進捗に影響される問題を解決します。
+                            tasksForOriginalId.sort((t1, t2) -> {
+                                java.time.LocalDate date1 = t1.getDueDate();
+                                java.time.LocalDate date2 = t2.getDueDate();
+                                if (date1 == null && date2 == null) return 0;
+                                if (date1 == null) return 1;
+                                if (date2 == null) return -1;
+                                return date1.compareTo(date2);
+                            });
+                            
+                            // [リファクタリング] 最適なタスクを選択するロジックを簡素化。
+                            // ソート済みのタスクリストを先頭から順に確認し、
+                            // 最初に見つかった未完了のタスク（isDone=false）を表示対象として選択します。
+                            com.habit.domain.Task selectedTask = null;
+                            for (com.habit.domain.Task t : tasksForOriginalId) {
+                                com.habit.domain.UserTaskStatus status = statusMapByTaskId.get(t.getTaskId());
+                                if (status == null || !status.isDone()) {
+                                    selectedTask = t;
+                                    System.out.println("[UserTaskStatusController] Selected task for display: " + t.getTaskName() + " (taskId: " + t.getTaskId() + ", dueDate: " + t.getDueDate() + ")");
+                                    break;
+                                }
+                            }
+                            
+                            if (selectedTask != null) {
+                                filtered.add(selectedTask);
+                                addedOriginalTaskIds.add(originalTaskId);
                             }
                         }
                         System.out.println("[UserTaskStatusController] Final filtered tasks count: " + filtered.size());
@@ -231,7 +288,7 @@ public class UserTaskStatusController {
     public static class CompleteUserTaskHandler implements com.sun.net.httpserver.HttpHandler {
         @Override
         public void handle(com.sun.net.httpserver.HttpExchange exchange) throws java.io.IOException {
-                        java.io.OutputStream os = null;
+            java.io.OutputStream os = null;
             try {
                 if (!"POST".equals(exchange.getRequestMethod())) {
                     String response = "POSTメソッドのみ対応";
@@ -259,6 +316,8 @@ public class UserTaskStatusController {
                 if (userId[0] != null && taskId[0] != null && dateStr != null) {
                     java.time.LocalDate date = java.time.LocalDate.parse(dateStr);
                     UserTaskStatusRepository repo = new UserTaskStatusRepository();
+                    com.habit.server.repository.TaskRepository taskRepo = new com.habit.server.repository.TaskRepository();
+                    
                     // 既存のステータスがあれば取得、なければ新規作成
                     java.util.Optional<com.habit.domain.UserTaskStatus> optStatus = repo.findByUserIdAndTaskIdAndDate(userId[0], taskId[0], date);
                     com.habit.domain.UserTaskStatus status = optStatus.orElseGet(() ->
@@ -266,6 +325,54 @@ public class UserTaskStatusController {
                     );
                     status.setDone(true);
                     repo.save(status);
+                    
+                    // ★即座のタスク再設定処理を追加★
+                    try {
+                        // 完了したタスクの情報を取得
+                        com.habit.server.repository.TeamRepository teamRepo = new com.habit.server.repository.TeamRepository();
+                        java.util.List<String> allTeamIds = teamRepo.findAllTeamIds();
+                        
+                        com.habit.domain.Task completedTask = null;
+                        String teamId = null;
+                        
+                        // 全チームから該当タスクを検索
+                        for (String tId : allTeamIds) {
+                            java.util.List<com.habit.domain.Task> teamTasks = taskRepo.findTeamTasksByTeamID(tId);
+                            for (com.habit.domain.Task task : teamTasks) {
+                                if (task.getTaskId().equals(taskId[0])) {
+                                    completedTask = task;
+                                    teamId = tId;
+                                    break;
+                                }
+                            }
+                            if (completedTask != null) break;
+                        }
+                        
+                        if (completedTask != null && teamId != null) {
+                            // タスク再設定サービスを使用して即座に再設定
+                            com.habit.server.service.TaskAutoResetService autoResetService =
+                                new com.habit.server.service.TaskAutoResetService(taskRepo, repo);
+                            
+                            System.out.println("[CompleteUserTaskHandler] 即座のタスク再設定を実行: taskId=" + taskId[0] +
+                                ", userId=" + userId[0] + ", cycleType=" + completedTask.getCycleType());
+                            
+                            boolean resetSuccess = autoResetService.createNextTaskInstanceImmediately(
+                                completedTask, userId[0], date, teamId);
+                            
+                            if (resetSuccess) {
+                                System.out.println("[CompleteUserTaskHandler] 即座のタスク再設定成功");
+                            } else {
+                                System.out.println("[CompleteUserTaskHandler] 即座のタスク再設定スキップまたは対象外");
+                            }
+                        } else {
+                            System.out.println("[CompleteUserTaskHandler] 完了タスクが見つかりません: taskId=" + taskId[0]);
+                        }
+                    } catch (Exception autoResetEx) {
+                        System.err.println("[CompleteUserTaskHandler] 即座のタスク再設定でエラー: " + autoResetEx.getMessage());
+                        autoResetEx.printStackTrace();
+                        // 再設定エラーがあってもタスク完了は成功として処理を継続
+                    }
+                    
                     response = "タスク完了: userId=" + userId[0] + ", taskId=" + taskId[0] + ", date=" + dateStr;
                 } else {
                     response = "パラメータが不正です";
@@ -284,8 +391,8 @@ public class UserTaskStatusController {
                     try { os.close(); } catch (Exception ignore) {}
                 }
             }
-        }  
-    } 
+        }
+    }
     // --- ユーザー・チーム・日付ごとの全UserTaskStatus（taskId, isDone）を返すAPI ---
     class GetUserTaskStatusListHandler implements com.sun.net.httpserver.HttpHandler {
         @Override
@@ -381,13 +488,14 @@ public class UserTaskStatusController {
                         UserTaskStatusRepository utsRepo = new UserTaskStatusRepository();
                         java.time.LocalDate date = java.time.LocalDate.parse(dateStr);
                         java.time.LocalDate from = date.minusDays(days - 1);
-                        java.util.List<com.habit.domain.UserTaskStatus> statusList = utsRepo.findByTeamIdAndDateRange(teamID, from, date);
+                        // originalTaskIdでグループ化された進捗を取得（重複排除）
+                        java.util.List<com.habit.domain.UserTaskStatus> statusList = utsRepo.findByTeamIdAndDateRangeGroupedByOriginalTaskId(teamID, from, date);
                         StringBuilder sb = new StringBuilder("[");
                         for (int i = 0; i < statusList.size(); i++) {
                             com.habit.domain.UserTaskStatus s = statusList.get(i);
                             sb.append("{");
                             sb.append("\"userId\":\"").append(s.getUserId().replace("\"", "\\\"")).append("\",");
-                            sb.append("\"taskId\":\"").append(s.getTaskId().replace("\"", "\\\"")).append("\",");
+                            sb.append("\"taskId\":\"").append(s.getOriginalTaskId().replace("\"", "\\\"")).append("\","); // originalTaskIdを使用
                             sb.append("\"date\":\"").append(s.getDate().toString()).append("\",");
                             sb.append("\"isDone\":").append(s.isDone());
                             sb.append("}");

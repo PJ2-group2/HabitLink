@@ -21,12 +21,19 @@ public class TeamController {
   private final AuthService authService;
   private final UserRepository userRepository;
   private final TaskRepository taskRepository;
+  private final com.habit.server.repository.TeamRepository teamRepository;
+  private final com.habit.server.repository.UserTaskStatusRepository userTaskStatusRepository;
+  private final com.habit.server.service.TeamTaskService teamTaskService;
 
   public TeamController(AuthService authService, UserRepository userRepository,
                         TaskRepository taskRepository) {
     this.authService = authService;
     this.userRepository = userRepository;
     this.taskRepository = taskRepository;
+    this.teamRepository = new com.habit.server.repository.TeamRepository();
+    this.userTaskStatusRepository = new com.habit.server.repository.UserTaskStatusRepository();
+    this.teamTaskService = new com.habit.server.service.TeamTaskService(
+        taskRepository, teamRepository, userTaskStatusRepository);
   }
 
   public HttpHandler getCreateTeamHandler() { return new CreateTeamHandler(); }
@@ -51,6 +58,11 @@ public class TeamController {
   public HttpHandler getGetTeamTasksHandler() {
     return new GetTeamTasksHandler();
   }
+  
+  public HttpHandler getGetTeamTasksGroupedHandler() {
+    return new GetTeamTasksGroupedHandler();
+  }
+  
   public HttpHandler getGetTeamIdByPasscodeHandler() {
     return new GetTeamIdByPasscodeHandler();
   }
@@ -221,6 +233,14 @@ public class TeamController {
             if (teamID != null) {
               user.addJoinedTeamId(teamID);
               userRepository.save(user);
+              
+              // 新メンバーに既存のチーム共通タスクを自動紐づけ
+              try {
+                teamTaskService.createUserTaskStatusForNewMember(teamID, memberId);
+                System.out.println("新メンバー " + memberId + " にチーム " + teamID + " の既存タスクを紐づけました");
+              } catch (Exception e) {
+                System.err.println("チーム共通タスクの自動紐づけに失敗: " + e.getMessage());
+              }
             }
           }
           response = ok ? "参加成功" : "参加失敗";
@@ -371,6 +391,47 @@ public class TeamController {
           String tname = t.getTaskName();
           taskJsons.add(String.format("{\"taskId\":\"%s\",\"taskName\":\"%s\"}",
                                       tid, tname));
+        }
+        response = "[" + String.join(",", taskJsons) + "]";
+      }
+      exchange.getResponseHeaders().set("Content-Type",
+                                        "application/json; charset=UTF-8");
+      exchange.sendResponseHeaders(200, response.getBytes("UTF-8").length);
+      OutputStream os = exchange.getResponseBody();
+      os.write(response.getBytes("UTF-8"));
+      os.close();
+    }
+  }
+
+  // --- チームタスク一覧取得API（originalTaskIdでグループ化）---
+  class GetTeamTasksGroupedHandler implements HttpHandler {
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
+      String query = exchange.getRequestURI().getQuery();
+      String teamID = null;
+      if (query != null && query.contains("teamID=")) {
+        for (String param : query.split("&")) {
+          if (param.startsWith("teamID=")) {
+            teamID = java.net.URLDecoder.decode(param.substring(7), "UTF-8");
+            break;
+          }
+        }
+      }
+      String response;
+      if (teamID == null || teamID.isEmpty()) {
+        response = "[]";
+      } else {
+        // originalTaskIdでグループ化されたタスクを取得
+        List<com.habit.domain.Task> tasks =
+            taskRepository.findTeamTasksByTeamIDGroupedByOriginalTaskId(teamID);
+        List<String> taskJsons = new ArrayList<>();
+        for (var t : tasks) {
+          String tid = t.getTaskId();
+          String originalTid = t.getOriginalTaskId();
+          String tname = t.getTaskName();
+          String cycleType = t.getCycleType() != null ? t.getCycleType() : "";
+          taskJsons.add(String.format("{\"taskId\":\"%s\",\"originalTaskId\":\"%s\",\"taskName\":\"%s\",\"period\":\"%s\"}",
+                                     tid, originalTid, tname, cycleType));
         }
         response = "[" + String.join(",", taskJsons) + "]";
       }

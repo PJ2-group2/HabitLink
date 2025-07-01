@@ -122,8 +122,8 @@ public class TeamTopController {
                 controller.setUserId(userId);
                 controller.setTeamID(teamID);
                 controller.setTeamName(teamName);
-                // ユーザーのタスク一覧を渡す
-                controller.setUserTasks(getUserTasksForPersonalPage());
+                // ★修正：空のリストを渡してAPIから最新データを取得させる
+                controller.setUserTasks(new java.util.ArrayList<>());
                 javafx.stage.Stage stage = (javafx.stage.Stage) btnToPersonal.getScene().getWindow();
                 stage.setScene(new javafx.scene.Scene(root));
                 stage.setTitle("個人ページ");
@@ -440,8 +440,8 @@ public class TeamTopController {
                     memberNames.add(obj.optString("username"));
                 }
 
-                // タスク一覧取得
-                String tasksUrl = "http://localhost:8080/getTeamTasks?teamID=" + URLEncoder.encode(teamID, "UTF-8");
+                // タスク一覧取得（originalTaskIdでグループ化）
+                String tasksUrl = "http://localhost:8080/getTeamTasksGrouped?teamID=" + URLEncoder.encode(teamID, "UTF-8");
                 HttpRequest tasksReq = HttpRequest.newBuilder()
                         .uri(URI.create(tasksUrl))
                         .timeout(java.time.Duration.ofSeconds(5))
@@ -453,20 +453,20 @@ public class TeamTopController {
                 if (tasksBody != null && tasksBody.trim().startsWith("[")) {
                     tasksArr = new JSONArray(tasksBody);
                 } else {
-                    System.out.println("[loadTaskStatusTable] getTeamTasks APIレスポンスが配列形式ではありません: " + tasksBody);
+                    System.out.println("[loadTaskStatusTable] getTeamTasksGrouped APIレスポンスが配列形式ではありません: " + tasksBody);
                     tasksArr = new JSONArray();
                 }
-                List<String> taskIds = new ArrayList<>();
+                List<String> originalTaskIds = new ArrayList<>(); // originalTaskIdを使用
                 List<String> taskNames = new ArrayList<>();
-                Map<String, String> taskPeriodMap = new HashMap<>(); // taskId→period
+                Map<String, String> taskPeriodMap = new HashMap<>(); // originalTaskId→period
                 for (int i = 0; i < tasksArr.length(); i++) {
                     JSONObject obj = tasksArr.getJSONObject(i);
-                    String taskId = obj.optString("taskId");
+                    String originalTaskId = obj.optString("originalTaskId", obj.optString("taskId")); // originalTaskIdがない場合はtaskIdを使用
                     String taskName = obj.optString("taskName");
                     String period = obj.optString("period", "");
-                    taskIds.add(taskId);
+                    originalTaskIds.add(originalTaskId);
                     taskNames.add(taskName);
-                    taskPeriodMap.put(taskId, period);
+                    taskPeriodMap.put(originalTaskId, period);
                 }
 
                 // 進捗一覧取得（全メンバー×タスク×過去7日）
@@ -526,17 +526,17 @@ public class TeamTopController {
                                     setText("");
                                     setStyle("");
                                 } else {
-                                    // タスクIDとユーザーIDを取得
+                                    // originalTaskIDとユーザーIDを取得
                                     int rowIdx = getIndex();
-                                    if (rowIdx < 0 || rowIdx >= taskIds.size()) {
+                                    if (rowIdx < 0 || rowIdx >= originalTaskIds.size()) {
                                         setText(""); setStyle(""); return;
                                     }
-                                    String tid = taskIds.get(rowIdx);
-                                    String period = taskPeriodMap.getOrDefault(tid, "");
+                                    String originalTid = originalTaskIds.get(rowIdx);
+                                    String period = taskPeriodMap.getOrDefault(originalTid, "");
                                     String color = "#ffffff";
                                     if ("毎週".equals(period)) {
                                         // 今週分にisDone==trueが1つでもあれば緑、なければ白
-                                        String key = memberIds.get(colIdx-1) + "_" + tid;
+                                        String key = memberIds.get(colIdx-1) + "_" + originalTid;
                                         List<Boolean> doneList = statusMap.getOrDefault(key, Collections.emptyList());
                                         boolean anyDone = false;
                                         for (Boolean b : doneList) if (b) anyDone = true;
@@ -564,12 +564,12 @@ public class TeamTopController {
                     }
                     // データ行生成（行＝タスク、列＝[タスク名, 各メンバーの7日間達成日数]）
                     javafx.collections.ObservableList<ObservableList<Object>> rows = javafx.collections.FXCollections.observableArrayList();
-                    for (int t = 0; t < taskIds.size(); t++) {
+                    for (int t = 0; t < originalTaskIds.size(); t++) {
                         ObservableList<Object> row = javafx.collections.FXCollections.observableArrayList();
                         row.add(taskNames.get(t)); // 1列目: タスク名
-                        String tid = taskIds.get(t);
+                        String originalTid = originalTaskIds.get(t);
                         for (String uid : memberIds) {
-                            String key = uid + "_" + tid;
+                            String key = uid + "_" + originalTid;
                             List<Boolean> doneList = statusMap.getOrDefault(key, Collections.emptyList());
                             int daysDone = 0;
                             for (Boolean b : doneList) if (b) daysDone++;

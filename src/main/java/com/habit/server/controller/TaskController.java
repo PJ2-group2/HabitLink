@@ -12,12 +12,18 @@ import java.io.OutputStream;
  */
 public class TaskController {
   private final TaskRepository taskRepository;
+  private final com.habit.server.repository.TeamRepository teamRepository;
+  private final com.habit.server.service.TeamTaskService teamTaskService;
   private final UserTaskStatusRepository utsRepository;
 
   public TaskController(TaskRepository taskRepository,
+                        com.habit.server.repository.TeamRepository teamRepository,
                         UserTaskStatusRepository utsRepository) {
     this.taskRepository = taskRepository;
+    this.teamRepository = teamRepository;
     this.utsRepository = utsRepository;
+    this.teamTaskService = new com.habit.server.service.TeamTaskService(
+        taskRepository, teamRepository, utsRepository);
   }
 
   // ------------------------------------------------------------------------------
@@ -143,11 +149,11 @@ public class TaskController {
     }
   }
 
-  // --- タスク保存API ---
+
+    // --- タスク保存API ---
   class SaveTaskHandler implements com.sun.net.httpserver.HttpHandler {
     @Override
-    public void handle(com.sun.net.httpserver.HttpExchange exchange)
-        throws java.io.IOException {
+    public void handle(com.sun.net.httpserver.HttpExchange exchange) throws java.io.IOException {
       if (!"POST".equals(exchange.getRequestMethod())) {
         String response = "POSTメソッドのみ対応";
         exchange.sendResponseHeaders(405, response.getBytes().length);
@@ -157,10 +163,7 @@ public class TaskController {
         return;
       }
       byte[] bodyBytes = exchange.getRequestBody().readAllBytes();
-      String bodyStr =
-          (bodyBytes != null)
-              ? new String(bodyBytes, java.nio.charset.StandardCharsets.UTF_8)
-              : "";
+      String bodyStr = (bodyBytes != null) ? new String(bodyBytes, java.nio.charset.StandardCharsets.UTF_8) : "";
       String response;
       try {
         // key=value&...形式で受信
@@ -175,28 +178,39 @@ public class TaskController {
         String taskId = map.get("taskId");
         String taskName = map.get("taskName");
         String description = map.getOrDefault("description", "");
-        int estimatedMinutes =
-            Integer.parseInt(map.getOrDefault("estimatedMinutes", "0"));
-        boolean isTeamTask =
-            Boolean.parseBoolean(map.getOrDefault("isTeamTask", "false"));
+        int estimatedMinutes = Integer.parseInt(map.getOrDefault("estimatedMinutes", "0"));
+        boolean isTeamTask = Boolean.parseBoolean(map.getOrDefault("isTeamTask", "false"));
         String dueTimeStr = map.get("dueTime");
-        java.time.LocalTime dueTime =
-            dueTimeStr != null && !dueTimeStr.isEmpty()
-                ? java.time.LocalTime.parse(dueTimeStr)
-                : null;
+        java.time.LocalTime dueTime = dueTimeStr != null && !dueTimeStr.isEmpty()
+            ? java.time.LocalTime.parse(dueTimeStr)
+            : null;
         String dueDateStr = map.get("dueDate");
-        java.time.LocalDate dueDate =
-            dueDateStr != null && !dueDateStr.isEmpty()
-                ? java.time.LocalDate.parse(dueDateStr)
-                : null;
+        java.time.LocalDate dueDate = dueDateStr != null && !dueDateStr.isEmpty()
+            ? java.time.LocalDate.parse(dueDateStr)
+            : null;
         String cycleType = map.getOrDefault("cycleType", "daily");
         String teamID = map.get("teamID");
         // repeatDaysは未対応
-        com.habit.domain.Task task = new com.habit.domain.Task(
-            taskId, taskName, description, estimatedMinutes,
-            java.util.Collections.emptyList(), isTeamTask, dueTime, dueDate,
-            cycleType);
-        new com.habit.server.repository.TaskRepository().saveTask(task, teamID);
+        com.habit.domain.Task task;
+
+        if (isTeamTask && teamID != null && !teamID.isEmpty()) {
+          // チーム共通タスクの場合
+          task = new com.habit.domain.Task(
+              taskId, taskName, description, estimatedMinutes,
+              java.util.Collections.emptyList(), isTeamTask, teamID, dueTime, cycleType);
+          if (dueDate != null) {
+            task.setDueDate(dueDate);
+          }
+          // TeamTaskServiceを使用して全メンバーに自動紐づけ
+          teamTaskService.createTeamTask(task);
+        } else {
+          // 個人タスクの場合
+          task = new com.habit.domain.Task(
+              taskId, taskName, description, estimatedMinutes,
+              java.util.Collections.emptyList(), isTeamTask, dueTime, dueDate, cycleType);
+          // 従来通りの保存
+          new com.habit.server.repository.TaskRepository().saveTask(task, teamID);
+        }
         response = "タスク保存成功";
       } catch (Exception ex) {
         response = "タスク保存失敗: " + ex.getMessage();

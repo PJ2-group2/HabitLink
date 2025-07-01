@@ -12,6 +12,8 @@ import com.habit.server.controller.TaskController;
 import com.habit.server.controller.TeamController;
 import com.habit.server.controller.UserController;
 import com.habit.server.controller.UserTaskStatusController;
+import com.habit.server.controller.TaskAutoResetController;
+import com.habit.server.controller.TeamTaskController;
 import com.habit.server.repository.MessageRepository;
 import com.habit.server.repository.TaskRepository;
 import com.habit.server.repository.TeamRepository;
@@ -58,7 +60,9 @@ public class HabitServer {
   // スケジューラー: 1時間ごとの自動実行を担当
   private static TaskAutoResetScheduler taskAutoResetScheduler =
       new TaskAutoResetScheduler();
-  // コントローラー: 手動実行API(/manualTaskReset, /manualTaskResetTeam)を提供
+  
+  // チーム共通タスク管理関連コンポーネント
+  private static TeamTaskController teamTaskController = new TeamTaskController();
   private static TaskAutoResetController taskAutoResetController =
       new TaskAutoResetController();
 
@@ -69,7 +73,7 @@ public class HabitServer {
     server.createContext("/hello", new HelloController()); // 動作確認用
 
     taskController =
-        new TaskController(taskRepository, userTaskStatusRepository);
+        new TaskController(taskRepository, teamRepository,userTaskStatusRepository);
 
     AuthController authController = new AuthController(authService);
     server.createContext("/login",
@@ -148,6 +152,18 @@ public class HabitServer {
     server.createContext(
         "/getTeamTasks",
         teamController.getGetTeamTasksHandler()); // チームタスク一覧
+    server.createContext(
+        "/getTeamTasksGrouped",
+        teamController.getGetTeamTasksGroupedHandler()); // チームタスク一覧（originalTaskIdでグループ化）
+    
+    // チーム共通タスク管理API
+    server.createContext(
+        "/getTeamTaskCompletionRate",
+        teamTaskController.getTeamTaskCompletionRateHandler()); // チーム共通タスクの完了率取得
+    server.createContext(
+        "/getUserTeamTaskStatuses",
+        teamTaskController.getUserTeamTasksHandler()); // ユーザーのチーム共通タスク一覧取得
+        
     server.setExecutor(null);
     server.start();
 

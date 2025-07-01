@@ -322,4 +322,37 @@ public class TeamRepository {
     }
     return memberIds;
   }
+
+  // チームIDでチーム情報を取得
+  public Team findById(String teamId) {
+    try (Connection conn = DriverManager.getConnection(databaseUrl)) {
+      String sql = "SELECT * FROM teams WHERE id = ?";
+      try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        pstmt.setString(1, teamId);
+        ResultSet rs = pstmt.executeQuery();
+        if (rs.next()) {
+          // TeamModeは簡略化（実際の実装に合わせて調整）
+          com.habit.domain.TeamMode mode = com.habit.domain.TeamMode.FIXED_TASK_MODE; // デフォルト値
+          
+          Team team = new Team(
+            rs.getString("id"),
+            rs.getString("teamName"),
+            rs.getString("creatorId"),
+            mode
+          );
+          
+          // メンバー一覧を取得して設定
+          List<String> memberIds = findMemberIdsByTeamId(teamId);
+          for (String memberId : memberIds) {
+            team.addMember(memberId);
+          }
+          
+          return team;
+        }
+      }
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
+    return null;
+  }
 }
