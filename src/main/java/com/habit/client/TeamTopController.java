@@ -272,14 +272,32 @@ public class TeamTopController {
                             dueTime = java.time.LocalTime.parse(dueTimeStr);
                         } catch (Exception ignore) {}
                     }
+                    String dueDateStr = obj.optString("dueDate", null);
+                    java.time.LocalDate dueDate = null;
+                    if (dueDateStr != null && !dueDateStr.isEmpty() && !"null".equals(dueDateStr)) {
+                        try {
+                            dueDate = java.time.LocalDate.parse(dueDateStr);
+                        } catch (Exception ignore) {}
+                    }
+                    
                     if (taskId != null && taskName != null) {
                         com.habit.domain.Task t = new com.habit.domain.Task(taskId, taskName);
-                        // dueTimeをリフレクションでセット（コンストラクタが2引数しかない場合）
-                        try {
-                            java.lang.reflect.Field f = t.getClass().getDeclaredField("dueTime");
-                            f.setAccessible(true);
-                            f.set(t, dueTime);
-                        } catch (Exception ignore) {}
+                        
+                        // dueDateを設定（setterメソッドを使用）
+                        if (dueDate != null) {
+                            t.setDueDate(dueDate);
+                        }
+                        
+                        // dueTimeはリフレクションで設定（setterがないため）
+                        if (dueTime != null) {
+                            try {
+                                java.lang.reflect.Field f = t.getClass().getDeclaredField("dueTime");
+                                f.setAccessible(true);
+                                f.set(t, dueTime);
+                            } catch (Exception ignore) {}
+                        }
+                        
+                        
                         tasks.add(t);
                     }
                 }

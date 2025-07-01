@@ -257,16 +257,22 @@ public class PersonalPageController {
                     
                     if (taskId != null && taskName != null) {
                         com.habit.domain.Task t = new com.habit.domain.Task(taskId, taskName);
-                        // dueTimeとdueDateをリフレクションでセット
-                        try {
-                            java.lang.reflect.Field f = t.getClass().getDeclaredField("dueTime");
-                            f.setAccessible(true);
-                            f.set(t, dueTime);
-                            
-                            java.lang.reflect.Field f2 = t.getClass().getDeclaredField("dueDate");
-                            f2.setAccessible(true);
-                            f2.set(t, dueDate);
-                        } catch (Exception ignore) {}
+                        
+                        // dueDateを設定（setterメソッドを使用）
+                        if (dueDate != null) {
+                            t.setDueDate(dueDate);
+                        }
+                        
+                        // dueTimeはリフレクションで設定（setterがないため）
+                        if (dueTime != null) {
+                            try {
+                                java.lang.reflect.Field f = t.getClass().getDeclaredField("dueTime");
+                                f.setAccessible(true);
+                                f.set(t, dueTime);
+                            } catch (Exception ignore) {}
+                        }
+                        
+                        
                         tasks.add(t);
                     }
                 }
