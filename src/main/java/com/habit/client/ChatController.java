@@ -160,7 +160,7 @@ public class ChatController {
                     msg.getTimestamp().format(
                         DateTimeFormatter.ofPattern(formatPattern)) +
                     ']');
-          sb.append('[' + msg.getSenderId() + ']');
+          sb.append('[' + msg.getSender().getUsername() + ']');
           sb.append(": " + msg.getContent());
           chatItems.add(sb.toString());
         }

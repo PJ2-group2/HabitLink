@@ -1,6 +1,7 @@
 package com.habit.server.controller;
 
 import com.habit.domain.Message;
+import com.habit.domain.MessageType;
 import com.habit.domain.User;
 import com.habit.server.repository.MessageRepository;
 import com.habit.server.repository.UserRepository;
@@ -21,7 +22,9 @@ public class MessageController {
     this.userRepository = userRepository;
   }
 
-  public HttpHandler getGetChatLogHandler() { return this.new GetChatLogHandler(); }
+  public HttpHandler getGetChatLogHandler() {
+    return this.new GetChatLogHandler();
+  }
 
   private class GetChatLogHandler implements HttpHandler {
     @Override
@@ -45,10 +48,14 @@ public class MessageController {
         }
         JSONArray responseArray = new JSONArray();
         if (teamID != null) {
-          List<Message> messages =
+          List<MessageRepository.MessageEntry> messages =
               messageRepository.findMessagesByteamID(teamID, limit);
-          for (var msg : messages)
+          for (var entry : messages) {
+            User sender = userRepository.findById(entry.senderId);
+            Message msg = new Message(entry.id, sender, entry.teamId,
+                                      entry.content, MessageType.NORMAL);
             responseArray.put(msg.toJson());
+          }
         }
 
         String responseStr = responseArray.toString();
@@ -91,7 +98,9 @@ public class MessageController {
               ? new String(bodyBytes, java.nio.charset.StandardCharsets.UTF_8)
               : "";
       String response;
-      String teamID = null, senderId = null, content = null;
+      String teamID = null, content = null, senderId = null;
+      User sender = null;
+
       if (bodyStr != null && !bodyStr.isEmpty()) {
         String[] params = bodyStr.split("&");
         for (String param : params) {
@@ -117,7 +126,10 @@ public class MessageController {
       } else {
         String username = senderId;
         try {
-          User user = userRepository.findById(senderId);
+          sender = userRepository.findById(senderId);
+
+          // TODO: wtf is this?
+          var user = sender;
           if (user != null) {
             String uname = user.getUsername();
             if (uname != null && !uname.trim().isEmpty()) {
@@ -127,7 +139,8 @@ public class MessageController {
         } catch (Exception ex) {
           ex.printStackTrace();
         }
-        Message message = new Message(content, senderId, teamID, content,
+
+        Message message = new Message(content, sender, teamID, content,
                                       com.habit.domain.MessageType.NORMAL);
         messageRepository.save(message);
 

@@ -12,13 +12,14 @@ import org.junit.jupiter.api.Test;
 public class MessageTest {
   @Test
   void testToJsonStructure() {
-    Message msg = new Message("id1", "sender1", "team1", "hello world",
-                              MessageType.NORMAL);
+    User sender1 = new User("id", "usrname", "pwd");
+    Message msg =
+        new Message("id1", sender1, "team1", "hello world", MessageType.NORMAL);
     JSONObject json = msg.toJson();
 
     // Verify all fields are present and correctly serialized
     assertEquals("id1", json.getString("messageId"));
-    assertEquals("sender1", json.getString("senderId"));
+    assertEquals(sender1, User.fromJson(json.getJSONObject("sender")));
     assertEquals("team1", json.getString("teamID"));
     assertEquals("hello world", json.getString("content"));
     assertEquals(MessageType.NORMAL.name(), json.getString("type"));
@@ -31,10 +32,11 @@ public class MessageTest {
 
   @Test
   void testFromJsonReconstructsMessage() {
+    User sender2 = new User("id", "usrname", "pwd");
     LocalDateTime customTime = LocalDateTime.of(2022, 1, 1, 10, 30, 45);
     JSONObject json = new JSONObject();
     json.put("messageId", "id2");
-    json.put("senderId", "sender2");
+    json.put("sender", sender2.toJson());
     json.put("teamID", "team2");
     json.put("content", "test content");
     json.put("timestamp", customTime.toString());
@@ -43,7 +45,7 @@ public class MessageTest {
     Message msg = Message.fromJson(json);
 
     assertEquals("id2", msg.getMessageId());
-    assertEquals("sender2", msg.getSenderId());
+    assertEquals(sender2, msg.getSender());
     assertEquals("team2", msg.getTeamID());
     assertEquals("test content", msg.getContent());
     assertEquals(customTime, msg.getTimestamp());
@@ -52,14 +54,15 @@ public class MessageTest {
 
   @Test
   void testRoundTripSerialization() {
-    Message original = new Message("id3", "sender3", "team3", "roundtrip test",
+    User sender3 = new User("id", "usrname", "pwd");
+    Message original = new Message("id3", sender3, "team3", "roundtrip test",
                                    MessageType.NORMAL);
     JSONObject json = original.toJson();
     Message recreated = Message.fromJson(json);
 
     // All fields should round-trip exactly
     assertEquals(original.getMessageId(), recreated.getMessageId());
-    assertEquals(original.getSenderId(), recreated.getSenderId());
+    assertEquals(original.getSender(), recreated.getSender());
     assertEquals(original.getTeamID(), recreated.getTeamID());
     assertEquals(original.getContent(), recreated.getContent());
     assertEquals(original.getType(), recreated.getType());
