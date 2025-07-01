@@ -61,8 +61,7 @@ public class HabitServer {
     taskController =
         new TaskController(taskRepository, userTaskStatusRepository);
 
-    AuthController authController =
-        new AuthController(authService, userRepository);
+    AuthController authController = new AuthController(authService);
     server.createContext("/login",
                          authController.getLoginHandler()); // ログイン
     server.createContext("/register",
