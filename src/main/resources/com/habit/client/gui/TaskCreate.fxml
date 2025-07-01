@@ -20,6 +20,10 @@
             <TextField fx:id="dueTimeField" promptText="例: 23:59"/>
         </HBox>
         <HBox spacing="10">
+            <Label text="期限日付"/>
+            <TextField fx:id="dueDateField" promptText="例: 2025-07-02 (省略可)"/>
+        </HBox>
+        <HBox spacing="10">
             <Label text="周期"/>
             <ChoiceBox fx:id="cycleTypeChoice"/>
         </HBox>

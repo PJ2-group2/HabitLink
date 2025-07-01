@@ -261,7 +261,35 @@ public class TeamRepository {
     } catch (SQLException e) {
       e.printStackTrace();
     }
-  }
+ }
+    
+    /**
+     * 全チームID一覧を取得（タスク自動再設定用）
+     *
+     * @return 全チームのID一覧
+     *
+     * 【用途】
+     * TaskAutoResetServiceから呼び出され、
+     * 全チームのタスクを自動再設定する際に使用される
+     *
+     * 【取得対象】
+     * teamsテーブルの全レコードのidカラム
+     */
+    public List<String> findAllTeamIds() {
+        List<String> teamIds = new java.util.ArrayList<>();
+        try (Connection conn = DriverManager.getConnection(databaseUrl)) {
+            String sql = "SELECT id FROM teams";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                ResultSet rs = pstmt.executeQuery();
+                while (rs.next()) {
+                    teamIds.add(rs.getString("id"));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return teamIds;
+    }
 
   // 指定チームIDの全メンバーID一覧を返す
   public List<String> findMemberIdsByTeamId(String teamId) {

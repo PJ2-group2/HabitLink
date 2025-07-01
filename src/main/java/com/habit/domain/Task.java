@@ -1,12 +1,13 @@
 package com.habit.domain;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 /**
  * タスク情報を管理するクラス。
  */
-import java.time.LocalTime;
 
 public class Task {
     private String taskId;
@@ -16,6 +17,7 @@ public class Task {
     private List<DayOfWeek> repeatDays;
     private boolean isTeamTask;
     private LocalTime dueTime;      // 期限時刻
+    private LocalDate dueDate;      // 期限日付
     private String cycleType;       // "daily" or "weekly"
 
     public Task(String taskId, String taskName) {
@@ -31,6 +33,20 @@ public class Task {
         this.repeatDays = repeatDays;
         this.isTeamTask = isTeamTask;
         this.dueTime = dueTime;
+        this.dueDate = null; // デフォルトはnull、後で設定可能
+        this.cycleType = cycleType;
+    }
+
+    // dueDateを含む完全版コンストラクタ
+    public Task(String taskId, String taskName, String description, int estimatedMinutes, List<DayOfWeek> repeatDays, boolean isTeamTask, LocalTime dueTime, LocalDate dueDate, String cycleType) {
+        this.taskId = taskId;
+        this.taskName = taskName;
+        this.description = description;
+        this.estimatedMinutes = estimatedMinutes;
+        this.repeatDays = repeatDays;
+        this.isTeamTask = isTeamTask;
+        this.dueTime = dueTime;
+        this.dueDate = dueDate;
         this.cycleType = cycleType;
     }
 
@@ -47,6 +63,15 @@ public class Task {
         this.description = newDescription;
         this.estimatedMinutes = newEstimatedMinutes;
         this.dueTime = newDueTime;
+        this.cycleType = newCycleType;
+    }
+
+    public void updateTaskDetails(String newName, String newDescription, int newEstimatedMinutes, LocalTime newDueTime, LocalDate newDueDate, String newCycleType) {
+        this.taskName = newName;
+        this.description = newDescription;
+        this.estimatedMinutes = newEstimatedMinutes;
+        this.dueTime = newDueTime;
+        this.dueDate = newDueDate;
         this.cycleType = newCycleType;
     }
 
@@ -68,6 +93,14 @@ public class Task {
 
     public LocalTime getDueTime() {
         return dueTime;
+    }
+
+    public LocalDate getDueDate() {
+        return dueDate;
+    }
+
+    public void setDueDate(LocalDate dueDate) {
+        this.dueDate = dueDate;
     }
 
     public String getCycleType() {

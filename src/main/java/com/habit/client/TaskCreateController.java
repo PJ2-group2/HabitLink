@@ -26,10 +26,13 @@ public class TaskCreateController {
     @FXML 
     private ChoiceBox<String> taskTypeChoice;
     /* タスクの期限時刻入力フィールド */
-    @FXML 
+    @FXML
     private TextField dueTimeField;
+    /* タスクの期限日付入力フィールド */
+    @FXML
+    private TextField dueDateField;
     /* タスクの周期選択ボックス */
-    @FXML 
+    @FXML
     private ChoiceBox<String> cycleTypeChoice;
     /* タスク作成ボタンとキャンセルボタン */
     @FXML 
@@ -82,6 +85,7 @@ public class TaskCreateController {
         String estimatedStr = estimatedMinutesField != null ? estimatedMinutesField.getText() : "0";
         String type = taskTypeChoice.getValue();
         String dueTimeStr = dueTimeField.getText();
+        String dueDateStr = dueDateField != null ? dueDateField.getText() : "";
         String cycle = cycleTypeChoice.getValue();
 
         // 入力バリデーション（簡易）
@@ -97,11 +101,33 @@ public class TaskCreateController {
             return;
         }
         LocalTime dueTime = null;
-        try {
-            dueTime = LocalTime.parse(dueTimeStr);
-        } catch (Exception e) {
-            showAlert("期限時刻はHH:mm形式で入力してください");
-            return;
+        if (dueTimeStr != null && !dueTimeStr.isEmpty()) {
+            try {
+                dueTime = LocalTime.parse(dueTimeStr);
+            } catch (Exception e) {
+                showAlert("期限時刻はHH:mm形式で入力してください");
+                return;
+            }
+        }
+        
+        java.time.LocalDate dueDate = null;
+        if (dueDateStr != null && !dueDateStr.isEmpty()) {
+            try {
+                dueDate = java.time.LocalDate.parse(dueDateStr);
+            } catch (Exception e) {
+                showAlert("期限日付はyyyy-MM-dd形式で入力してください");
+                return;
+            }
+        }
+        
+        // デフォルトの期限日付設定（入力されていない場合）
+        if (dueDate == null) {
+            // デイリータスクの場合は明日、ウィークリータスクの場合は来週の同じ曜日を設定
+            if ("毎日".equals(cycle)) {
+                dueDate = java.time.LocalDate.now().plusDays(1);
+            } else {
+                dueDate = java.time.LocalDate.now().plusWeeks(1);
+            }
         }
 
         // 保存処理
@@ -115,6 +141,7 @@ public class TaskCreateController {
             java.util.Collections.emptyList(), // repeatDays未入力
             isTeamTask,
             dueTime,
+            dueDate,
             cycleType
         );
         // チームIDを利用して保存
@@ -130,6 +157,7 @@ public class TaskCreateController {
             ", estimatedMinutes=" + task.getEstimatedMinutes() +
             ", isTeamTask=" + task.isTeamTask() +
             ", dueTime=" + task.getDueTime() +
+            ", dueDate=" + task.getDueDate() +
             ", cycleType=" + task.getCycleType() +
             ", teamID=" + teamID
         );
@@ -141,7 +169,8 @@ public class TaskCreateController {
                 + "&description=" + java.net.URLEncoder.encode(task.getDescription(), "UTF-8")
                 + "&estimatedMinutes=" + task.getEstimatedMinutes()
                 + "&isTeamTask=" + task.isTeamTask()
-                + "&dueTime=" + java.net.URLEncoder.encode(task.getDueTime().toString(), "UTF-8")
+                + "&dueTime=" + java.net.URLEncoder.encode(task.getDueTime() != null ? task.getDueTime().toString() : "", "UTF-8")
+                + "&dueDate=" + java.net.URLEncoder.encode(task.getDueDate() != null ? task.getDueDate().toString() : "", "UTF-8")
                 + "&cycleType=" + java.net.URLEncoder.encode(task.getCycleType(), "UTF-8")
                 + "&teamID=" + java.net.URLEncoder.encode(teamID, "UTF-8");
             HttpRequest request = HttpRequest.newBuilder()
