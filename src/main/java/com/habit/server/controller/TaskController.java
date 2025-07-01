@@ -1,7 +1,7 @@
 package com.habit.server.controller;
 
 import com.habit.server.repository.TaskRepository;
-import com.habit.server.repository.TeamRepository;
+import com.habit.server.repository.UserTaskStatusRepository;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import java.io.IOException;
@@ -11,27 +11,32 @@ import java.io.OutputStream;
  * タスク関連APIのコントローラ
  */
 public class TaskController {
-  private final TeamRepository teamRepository;
   private final TaskRepository taskRepository;
+  private final UserTaskStatusRepository utsRepository;
 
-  public TaskController(TeamRepository teamRepository,
-                        TaskRepository taskRepository) {
-    this.teamRepository = teamRepository;
+  public TaskController(TaskRepository taskRepository,
+                        UserTaskStatusRepository utsRepository) {
     this.taskRepository = taskRepository;
+    this.utsRepository = utsRepository;
   }
 
-  public HttpHandler getSaveTaskHandler() { return new SaveTaskHandler(); }
+  // ------------------------------------------------------------------------------
+  // GetHandler Methods
+  public HttpHandler getSaveTaskHandler() { return this.new SaveTaskHandler(); }
 
   // --- タスクID→タスク名マップ取得API ---
   public HttpHandler getTaskIdNameMapHandler() {
-    return new GetTaskIdNameMapHandler();
+    return this.new GetTaskIdNameMapHandler();
   }
 
   // --- チーム内で自分に紐づくタスク取得API ---
   public HttpHandler
   getUserTeamTasksHandler(com.habit.server.service.AuthService authService) {
-    return new GetUserTeamTasksHandler(authService);
+    return this.new GetUserTeamTasksHandler(authService);
   }
+
+  // ------------------------------------------------------------------------------
+  // Handler Classes
 
   class GetTaskIdNameMapHandler implements HttpHandler {
     @Override
@@ -45,8 +50,7 @@ public class TaskController {
       if (teamID == null || teamID.isEmpty()) {
         response = "{}";
       } else {
-        com.habit.server.repository.TaskRepository repo =
-            new com.habit.server.repository.TaskRepository();
+        var repo = TaskController.this.taskRepository;
         java.util.List<com.habit.domain.Task> tasks =
             repo.findTeamTasksByTeamID(teamID);
         StringBuilder sb = new StringBuilder("{");
@@ -73,7 +77,7 @@ public class TaskController {
     }
   }
 
-  public static class GetUserTeamTasksHandler implements HttpHandler {
+  class GetUserTeamTasksHandler implements HttpHandler {
     private final com.habit.server.service.AuthService authService;
 
     public GetUserTeamTasksHandler(
@@ -99,10 +103,8 @@ public class TaskController {
         var user = authService.getUserBySession(sessionId);
         if (user != null) {
           String userId = user.getUserId();
-          com.habit.server.repository.UserTaskStatusRepository utsRepo =
-              new com.habit.server.repository.UserTaskStatusRepository();
-          com.habit.server.repository.TaskRepository taskRepo =
-              new com.habit.server.repository.TaskRepository();
+          var taskRepo = TaskController.this.taskRepository;
+          var utsRepo = TaskController.this.utsRepository;
           java.util.List<String> taskIds =
               utsRepo.findTaskIdsByUserIdAndTeamId(userId, teamID);
           java.util.List<com.habit.domain.Task> teamTasks =
@@ -188,7 +190,10 @@ public class TaskController {
         com.habit.domain.Task task = new com.habit.domain.Task(
             taskId, taskName, description, estimatedMinutes,
             java.util.Collections.emptyList(), isTeamTask, dueTime, cycleType);
-        new com.habit.server.repository.TaskRepository().saveTask(task, teamID);
+
+        var repo = TaskController.this.taskRepository;
+        repo.saveTask(task, teamID);
+
         response = "タスク保存成功";
       } catch (Exception ex) {
         response = "タスク保存失敗: " + ex.getMessage();

@@ -29,13 +29,17 @@ import java.net.InetSocketAddress;
  * SQLiteによる永続化や、チャット・チーム機能も実装。
  */
 public class HabitServer {
-  private static TaskController taskController;
-  // ユーザ認証用サービス
-  private static UserRepository userRepository = new UserRepository();
-  private static AuthService authService = new AuthService(userRepository);
 
+  private static UserRepository userRepository = new UserRepository();
   private static TaskRepository taskRepository = new TaskRepository();
   private static TeamRepository teamRepository = new TeamRepository();
+  private static UserTaskStatusRepository userTaskStatusRepository =
+      new UserTaskStatusRepository();
+
+  private static TaskController taskController;
+
+  // ユーザ認証用サービス
+  private static AuthService authService = new AuthService(userRepository);
 
   // チャットサービス用リポジトリ
   private static MessageRepository messageRepository = new MessageRepository();
@@ -45,8 +49,6 @@ public class HabitServer {
   private static UserController userController =
       new UserController(authService, teamRepository);
 
-  private static UserTaskStatusRepository userTaskStatusRepository =
-      new UserTaskStatusRepository();
   private static UserTaskStatusController userTaskStatusController =
       new UserTaskStatusController(authService, userTaskStatusRepository);
 
@@ -56,7 +58,8 @@ public class HabitServer {
     // 各APIエンドポイントを登録
     server.createContext("/hello", new HelloController()); // 動作確認用
 
-    taskController = new TaskController(teamRepository, taskRepository);
+    taskController =
+        new TaskController(taskRepository, userTaskStatusRepository);
 
     AuthController authController =
         new AuthController(authService, userRepository);
