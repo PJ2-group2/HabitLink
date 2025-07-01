@@ -138,6 +138,9 @@ public class HabitServer {
     server.createContext(
         "/getTeamTasks",
         teamController.getGetTeamTasksHandler()); // チームタスク一覧
+    server.createContext(
+        "/getTeamTasksGrouped",
+        teamController.getGetTeamTasksGroupedHandler()); // チームタスク一覧（originalTaskIdでグループ化）
     server.setExecutor(null);
     server.start();
     

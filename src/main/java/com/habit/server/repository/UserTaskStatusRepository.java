@@ -225,6 +225,34 @@ public class UserTaskStatusRepository {
         return result;
     }
 
+    // originalTaskIdを使用してチーム・日付範囲で進捗を取得（重複排除用）
+    public List<UserTaskStatus> findByTeamIdAndDateRangeGroupedByOriginalTaskId(String teamId, LocalDate from, LocalDate to) {
+        List<UserTaskStatus> result = new ArrayList<>();
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            // originalTaskIdごとにグループ化し、最新のタスクの進捗のみを取得
+            String sql = "SELECT uts.* FROM user_task_statuses uts " +
+                         "JOIN tasks t ON uts.originalTaskId = t.originalTaskId " +
+                         "WHERE t.teamID = ? AND uts.date >= ? AND uts.date <= ? " +
+                         "AND uts.taskId = (SELECT MAX(taskId) FROM user_task_statuses uts2 " +
+                         "                  WHERE uts2.originalTaskId = uts.originalTaskId " +
+                         "                  AND uts2.userId = uts.userId " +
+                         "                  AND uts2.date = uts.date)";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, teamId);
+                pstmt.setString(2, from.toString());
+                pstmt.setString(3, to.toString());
+                ResultSet rs = pstmt.executeQuery();
+                while (rs.next()) {
+                    UserTaskStatus status = mapRowToStatus(rs);
+                    result.add(status);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
     // 保存・更新
     public void save(UserTaskStatus status) {
         try (Connection conn = DriverManager.getConnection(DB_URL)) {

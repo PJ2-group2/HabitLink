@@ -381,13 +381,14 @@ public class UserTaskStatusController {
                         UserTaskStatusRepository utsRepo = new UserTaskStatusRepository();
                         java.time.LocalDate date = java.time.LocalDate.parse(dateStr);
                         java.time.LocalDate from = date.minusDays(days - 1);
-                        java.util.List<com.habit.domain.UserTaskStatus> statusList = utsRepo.findByTeamIdAndDateRange(teamID, from, date);
+                        // originalTaskIdでグループ化された進捗を取得（重複排除）
+                        java.util.List<com.habit.domain.UserTaskStatus> statusList = utsRepo.findByTeamIdAndDateRangeGroupedByOriginalTaskId(teamID, from, date);
                         StringBuilder sb = new StringBuilder("[");
                         for (int i = 0; i < statusList.size(); i++) {
                             com.habit.domain.UserTaskStatus s = statusList.get(i);
                             sb.append("{");
                             sb.append("\"userId\":\"").append(s.getUserId().replace("\"", "\\\"")).append("\",");
-                            sb.append("\"taskId\":\"").append(s.getTaskId().replace("\"", "\\\"")).append("\",");
+                            sb.append("\"taskId\":\"").append(s.getOriginalTaskId().replace("\"", "\\\"")).append("\","); // originalTaskIdを使用
                             sb.append("\"date\":\"").append(s.getDate().toString()).append("\",");
                             sb.append("\"isDone\":").append(s.isDone());
                             sb.append("}");
