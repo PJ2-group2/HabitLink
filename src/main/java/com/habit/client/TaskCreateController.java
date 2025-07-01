@@ -122,11 +122,20 @@ public class TaskCreateController {
         
         // デフォルトの期限日付設定（入力されていない場合）
         if (dueDate == null) {
-            // デイリータスクの場合は明日、ウィークリータスクの場合は来週の同じ曜日を設定
+            // デイリータスクの場合は当日、ウィークリータスクの場合は来週の同じ曜日を設定
             if ("毎日".equals(cycle)) {
-                dueDate = java.time.LocalDate.now().plusDays(1);
+                dueDate = java.time.LocalDate.now();
             } else {
                 dueDate = java.time.LocalDate.now().plusWeeks(1);
+            }
+        }
+        
+        // 当日で時刻が既に過ぎている場合のチェック
+        if (dueDate.equals(java.time.LocalDate.now()) && dueTime != null) {
+            java.time.LocalTime currentTime = java.time.LocalTime.now();
+            if (dueTime.isBefore(currentTime) || dueTime.equals(currentTime)) {
+                showAlert("設定された時刻は既に過ぎています。別の時刻を設定してください。");
+                return;
             }
         }
 
