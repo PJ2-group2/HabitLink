@@ -13,11 +13,16 @@ import java.io.OutputStream;
 public class TaskController {
   private final TeamRepository teamRepository;
   private final TaskRepository taskRepository;
+  private final com.habit.server.repository.UserTaskStatusRepository userTaskStatusRepository;
+  private final com.habit.server.service.TeamTaskService teamTaskService;
 
   public TaskController(TeamRepository teamRepository,
                         TaskRepository taskRepository) {
     this.teamRepository = teamRepository;
     this.taskRepository = taskRepository;
+    this.userTaskStatusRepository = new com.habit.server.repository.UserTaskStatusRepository();
+    this.teamTaskService = new com.habit.server.service.TeamTaskService(
+        taskRepository, teamRepository, userTaskStatusRepository);
   }
 
   public HttpHandler getSaveTaskHandler() { return new SaveTaskHandler(); }
@@ -178,11 +183,28 @@ public class TaskController {
                 String cycleType = map.getOrDefault("cycleType", "daily");
                 String teamID = map.get("teamID");
                 // repeatDaysは未対応
-                com.habit.domain.Task task = new com.habit.domain.Task(
-                    taskId, taskName, description, estimatedMinutes,
-                    java.util.Collections.emptyList(), isTeamTask, dueTime, dueDate, cycleType
-                );
-                new com.habit.server.repository.TaskRepository().saveTask(task, teamID);
+                com.habit.domain.Task task;
+                
+                if (isTeamTask && teamID != null && !teamID.isEmpty()) {
+                    // チーム共通タスクの場合
+                    task = new com.habit.domain.Task(
+                        taskId, taskName, description, estimatedMinutes,
+                        java.util.Collections.emptyList(), isTeamTask, teamID, dueTime, cycleType
+                    );
+                    if (dueDate != null) {
+                        task.setDueDate(dueDate);
+                    }
+                    // TeamTaskServiceを使用して全メンバーに自動紐づけ
+                    teamTaskService.createTeamTask(task);
+                } else {
+                    // 個人タスクの場合
+                    task = new com.habit.domain.Task(
+                        taskId, taskName, description, estimatedMinutes,
+                        java.util.Collections.emptyList(), isTeamTask, dueTime, dueDate, cycleType
+                    );
+                    // 従来通りの保存
+                    new com.habit.server.repository.TaskRepository().saveTask(task, teamID);
+                }
                 response = "タスク保存成功";
             } catch (Exception ex) {
                 response = "タスク保存失敗: " + ex.getMessage();

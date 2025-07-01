@@ -194,62 +194,8 @@ public class TaskCreateController {
             return;
         }
 
-        // --- ここからUserTaskStatus保存処理 ---
-        try {
-            String sessionId = com.habit.client.LoginController.getSessionId();
-            if (sessionId != null && !sessionId.isEmpty()) {
-                // HTTPクライアントを作成
-                HttpClient client = HttpClient.newHttpClient();
-                // リクエストを構築
-                HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://localhost:8080/getJoinedTeamInfo"))
-                    .header("SESSION_ID", sessionId)
-                    .GET()
-                    .build();
-                // レスポンスを受け取る
-                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                String body = response.body();
-                // サーバから "userId=..." の形式で返ることを想定
-                String userId = null;
-                if (body != null) {
-                    for (String line : body.split("\\n")) {
-                        if (line.startsWith("userId=")) {
-                            userId = line.substring("userId=".length()).trim();
-                        }
-                    }
-                }
-                if (userId != null && !userId.isEmpty()) {
-                    com.habit.domain.UserTaskStatus status = new com.habit.domain.UserTaskStatus(
-                        userId,
-                        task.getTaskId(),
-                        java.time.LocalDate.now(),
-                        false
-                    );
-                    // DB保存
-                    // --- API経由でUserTaskStatus保存 ---
-                    try {
-                        HttpClient client2 = HttpClient.newHttpClient();
-                        String body2 = "userId=" + java.net.URLEncoder.encode(userId, "UTF-8")
-                            + "&taskId=" + java.net.URLEncoder.encode(task.getTaskId(), "UTF-8")
-                            + "&date=" + java.net.URLEncoder.encode(java.time.LocalDate.now().toString(), "UTF-8")
-                            + "&isDone=false";
-                        HttpRequest request2 = HttpRequest.newBuilder()
-                            .uri(URI.create("http://localhost:8080/saveUserTaskStatus"))
-                            .header("Content-Type", "application/x-www-form-urlencoded")
-                            .POST(HttpRequest.BodyPublishers.ofString(body2))
-                            .build();
-                        HttpResponse<String> response2 = client2.send(request2, HttpResponse.BodyHandlers.ofString());
-                        System.out.println("UserTaskStatus保存APIレスポンス: " + response2.body());
-                    } catch (Exception ex) {
-                        System.out.println("UserTaskStatus保存APIエラー: " + ex.getMessage());
-                    }
-                } else {
-                    System.out.println("ユーザーID取得失敗: " + body);
-                }
-            }
-        } catch (Exception e) {
-            System.out.println("UserTaskStatus保存時エラー: " + e.getMessage());
-        }
+        // UserTaskStatusの生成はサーバー側（TeamTaskService）で自動的に行われるため、
+        // クライアント側での処理は不要
 
         // チームトップ画面に戻る
         try {

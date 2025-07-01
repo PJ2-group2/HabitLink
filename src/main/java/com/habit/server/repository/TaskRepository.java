@@ -307,4 +307,80 @@ public class TaskRepository {
       e.printStackTrace();
     }
   }
+
+  // Task保存（簡単版）
+  public Task save(Task task) {
+    try (Connection conn = DriverManager.getConnection(databaseUrl)) {
+      String sql = "INSERT OR REPLACE INTO tasks (taskId, taskName, description, estimatedMinutes, repeatDays, isTeamTask, teamID, dueTime, dueDate, cycleType, originalTaskId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        pstmt.setString(1, task.getTaskId());
+        pstmt.setString(2, task.getTaskName());
+        pstmt.setString(3, task.getDescription());
+        pstmt.setInt(4, task.getEstimatedMinutes());
+        // repeatDaysはカンマ区切り
+        String repeatDaysStr = "";
+        if (task.getRepeatDays() != null && !task.getRepeatDays().isEmpty()) {
+          repeatDaysStr = String.join(",",
+            task.getRepeatDays().stream().map(java.time.DayOfWeek::name).toArray(String[]::new));
+        }
+        pstmt.setString(5, repeatDaysStr);
+        pstmt.setInt(6, task.isTeamTask() ? 1 : 0);
+        pstmt.setString(7, task.getTeamId());
+        pstmt.setString(8, task.getDueTime() != null ? task.getDueTime().toString() : null);
+        pstmt.setString(9, task.getDueDate() != null ? task.getDueDate().toString() : null);
+        pstmt.setString(10, task.getCycleType());
+        pstmt.setString(11, task.getOriginalTaskId());
+        pstmt.executeUpdate();
+      }
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
+    return task;
+  }
+
+  // チームIDでタスク一覧を取得
+  public List<Task> findByTeamId(String teamId) {
+    List<Task> list = new java.util.ArrayList<>();
+    try (Connection conn = DriverManager.getConnection(databaseUrl)) {
+      String sql = "SELECT * FROM tasks WHERE teamID = ?";
+      try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        pstmt.setString(1, teamId);
+        ResultSet rs = pstmt.executeQuery();
+        while (rs.next()) {
+          List<java.time.DayOfWeek> repeatDays = new java.util.ArrayList<>();
+          String repeatDaysStr = rs.getString("repeatDays");
+          if (repeatDaysStr != null && !repeatDaysStr.isEmpty()) {
+            for (String day : repeatDaysStr.split(",")) {
+              repeatDays.add(java.time.DayOfWeek.valueOf(day));
+            }
+          }
+          Task task = new Task(
+              rs.getString("taskId"), rs.getString("taskName"),
+              rs.getString("description"), rs.getInt("estimatedMinutes"),
+              repeatDays, rs.getInt("isTeamTask") == 1,
+              rs.getString("teamID"),
+              rs.getString("dueTime") != null
+                  ? java.time.LocalTime.parse(rs.getString("dueTime"))
+                  : null,
+              rs.getString("cycleType"));
+          
+          // dueDateがある場合は設定
+          if (rs.getString("dueDate") != null) {
+            task.setDueDate(java.time.LocalDate.parse(rs.getString("dueDate")));
+          }
+          
+          // originalTaskIdがDBに保存されている場合は設定、なければTaskクラスで自動抽出
+          String originalTaskId = rs.getString("originalTaskId");
+          if (originalTaskId != null && !originalTaskId.isEmpty()) {
+            task.setOriginalTaskId(originalTaskId);
+          }
+          
+          list.add(task);
+        }
+      }
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
+    return list;
+  }
 }

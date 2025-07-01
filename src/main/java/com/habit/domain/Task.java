@@ -16,6 +16,7 @@ public class Task {
     private int estimatedMinutes;
     private List<DayOfWeek> repeatDays;
     private boolean isTeamTask;
+    private String teamId;          // チーム共通タスクの場合のチームID
     private LocalTime dueTime;      // 期限時刻
     private LocalDate dueDate;      // 期限日付
     private String cycleType;       // "daily" or "weekly"
@@ -34,6 +35,22 @@ public class Task {
         this.estimatedMinutes = estimatedMinutes;
         this.repeatDays = repeatDays;
         this.isTeamTask = isTeamTask;
+        this.teamId = null; // 個人タスクの場合はnull
+        this.dueTime = dueTime;
+        this.dueDate = null; // デフォルトはnull、後で設定可能
+        this.cycleType = cycleType;
+        this.originalTaskId = extractOriginalTaskId(taskId);
+    }
+
+    // チーム共通タスク用コンストラクタ
+    public Task(String taskId, String taskName, String description, int estimatedMinutes, List<DayOfWeek> repeatDays, boolean isTeamTask, String teamId, LocalTime dueTime, String cycleType) {
+        this.taskId = taskId;
+        this.taskName = taskName;
+        this.description = description;
+        this.estimatedMinutes = estimatedMinutes;
+        this.repeatDays = repeatDays;
+        this.isTeamTask = isTeamTask;
+        this.teamId = teamId;
         this.dueTime = dueTime;
         this.dueDate = null; // デフォルトはnull、後で設定可能
         this.cycleType = cycleType;
@@ -108,6 +125,14 @@ public class Task {
 
     public boolean isTeamTask() {
         return isTeamTask;
+    }
+
+    public String getTeamId() {
+        return teamId;
+    }
+
+    public void setTeamId(String teamId) {
+        this.teamId = teamId;
     }
 
     public LocalTime getDueTime() {

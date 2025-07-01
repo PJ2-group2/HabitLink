@@ -19,12 +19,25 @@ public class UserTaskStatusRepository {
                     "userId TEXT," +
                     "taskId TEXT," +
                     "originalTaskId TEXT," +
+                    "teamId TEXT," +
                     "date TEXT," +
                     "isDone INTEGER," +
                     "completionTimestamp TEXT," +
                     "PRIMARY KEY(userId, taskId, date)" +
                     ")";
             stmt.execute(sql);
+            
+            // 既存テーブルにteamIdカラムを追加（存在しない場合）
+            ResultSet teamIdCheck = stmt.executeQuery("PRAGMA table_info(user_task_statuses)");
+            boolean hasTeamId = false;
+            while (teamIdCheck.next()) {
+                String col = teamIdCheck.getString("name");
+                if ("teamId".equalsIgnoreCase(col))
+                    hasTeamId = true;
+            }
+            if (!hasTeamId) {
+                stmt.execute("ALTER TABLE user_task_statuses ADD COLUMN teamId TEXT");
+            }
             
             // 既存レコードのoriginalTaskIdを更新（nullの場合のみ）
             String updateSql = "UPDATE user_task_statuses SET originalTaskId = ? WHERE originalTaskId IS NULL AND taskId = ?";
@@ -256,14 +269,15 @@ public class UserTaskStatusRepository {
     // 保存・更新
     public void save(UserTaskStatus status) {
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
-            String sql = "INSERT OR REPLACE INTO user_task_statuses (userId, taskId, originalTaskId, date, isDone, completionTimestamp) VALUES (?, ?, ?, ?, ?, ?)";
+            String sql = "INSERT OR REPLACE INTO user_task_statuses (userId, taskId, originalTaskId, teamId, date, isDone, completionTimestamp) VALUES (?, ?, ?, ?, ?, ?, ?)";
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setString(1, status.getUserId());
                 pstmt.setString(2, status.getTaskId());
                 pstmt.setString(3, status.getOriginalTaskId());
-                pstmt.setString(4, status.getDate().toString());
-                pstmt.setInt(5, status.isDone() ? 1 : 0);
-                pstmt.setString(6, status.getCompletionTimestamp() != null ? status.getCompletionTimestamp().toString() : null);
+                pstmt.setString(4, status.getTeamId());
+                pstmt.setString(5, status.getDate().toString());
+                pstmt.setInt(6, status.isDone() ? 1 : 0);
+                pstmt.setString(7, status.getCompletionTimestamp() != null ? status.getCompletionTimestamp().toString() : null);
                 pstmt.executeUpdate();
             }
         } catch (SQLException e) {
@@ -291,12 +305,27 @@ public class UserTaskStatusRepository {
 
     // ResultSetからUserTaskStatusを生成
     private UserTaskStatus mapRowToStatus(ResultSet rs) throws SQLException {
-        UserTaskStatus status = new UserTaskStatus(
+        String teamId = rs.getString("teamId");
+        UserTaskStatus status;
+        
+        if (teamId != null) {
+            // チーム共通タスクの場合
+            status = new UserTaskStatus(
+                rs.getString("userId"),
+                rs.getString("taskId"),
+                teamId,
+                LocalDate.parse(rs.getString("date")),
+                rs.getInt("isDone") == 1
+            );
+        } else {
+            // 個人タスクの場合
+            status = new UserTaskStatus(
                 rs.getString("userId"),
                 rs.getString("taskId"),
                 LocalDate.parse(rs.getString("date")),
                 rs.getInt("isDone") == 1
-        );
+            );
+        }
         
         // originalTaskIdを設定（既存データとの互換性のためnullチェック）
         String originalTaskId = rs.getString("originalTaskId");
@@ -309,5 +338,27 @@ public class UserTaskStatusRepository {
             status.setDone(true); // completionTimestampはsetDoneで自動設定
         }
         return status;
+    }
+
+    // teamIdがnullでないユーザーのタスク状況を取得（チーム共通タスクのみ）
+    public List<UserTaskStatus> findByUserIdAndDateAndTeamIdNotNull(String userId, LocalDate date) {
+        List<UserTaskStatus> result = new ArrayList<>();
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String sql = "SELECT uts.* FROM user_task_statuses uts " +
+                         "JOIN tasks t ON uts.taskId = t.taskId " +
+                         "WHERE uts.userId = ? AND uts.date = ? AND t.teamID IS NOT NULL";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, userId);
+                pstmt.setString(2, date.toString());
+                ResultSet rs = pstmt.executeQuery();
+                while (rs.next()) {
+                    UserTaskStatus status = mapRowToStatus(rs);
+                    result.add(status);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return result;
     }
 }

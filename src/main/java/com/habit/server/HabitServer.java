@@ -12,6 +12,7 @@ import com.habit.server.controller.TeamController;
 import com.habit.server.controller.UserController;
 import com.habit.server.controller.UserTaskStatusController;
 import com.habit.server.controller.TaskAutoResetController;
+import com.habit.server.controller.TeamTaskController;
 import com.habit.server.repository.MessageRepository;
 import com.habit.server.repository.TaskRepository;
 import com.habit.server.repository.TeamRepository;
@@ -56,6 +57,9 @@ public class HabitServer {
   private static TaskAutoResetScheduler taskAutoResetScheduler = new TaskAutoResetScheduler();
   // コントローラー: 手動実行API(/manualTaskReset, /manualTaskResetTeam)を提供
   private static TaskAutoResetController taskAutoResetController = new TaskAutoResetController();
+  
+  // チーム共通タスク管理関連コンポーネント
+  private static TeamTaskController teamTaskController = new TeamTaskController();
 
   public static void main(String[] args) throws Exception {
     // サーバを8080番ポートで起動
@@ -141,6 +145,15 @@ public class HabitServer {
     server.createContext(
         "/getTeamTasksGrouped",
         teamController.getGetTeamTasksGroupedHandler()); // チームタスク一覧（originalTaskIdでグループ化）
+    
+    // チーム共通タスク管理API
+    server.createContext(
+        "/getTeamTaskCompletionRate",
+        teamTaskController.getTeamTaskCompletionRateHandler()); // チーム共通タスクの完了率取得
+    server.createContext(
+        "/getUserTeamTaskStatuses",
+        teamTaskController.getUserTeamTasksHandler()); // ユーザーのチーム共通タスク一覧取得
+        
     server.setExecutor(null);
     server.start();
     

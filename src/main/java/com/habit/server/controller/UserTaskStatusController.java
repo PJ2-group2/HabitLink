@@ -123,6 +123,10 @@ public class UserTaskStatusController {
                             System.out.println("[UserTaskStatusController] Status - taskId: " + status.getTaskId() + ", isDone: " + status.isDone());
                         }
                         
+                        // ユーザーが担当するタスクIDを取得
+                        java.util.List<String> userTaskIds = utsRepo.findTaskIdsByUserIdAndTeamId(userId, teamID);
+                        System.out.println("[UserTaskStatusController] User task IDs: " + userTaskIds);
+                        
                         // チームのすべてのタスクを確認
                         for (com.habit.domain.Task t : teamTasks) {
                             boolean isTeamTask = false;
@@ -133,11 +137,21 @@ public class UserTaskStatusController {
                             } catch (Exception ignore) {}
                             
                             if (isTeamTask) {
-                                com.habit.domain.UserTaskStatus status = statusMap.get(t.getTaskId());
-                                // タスク状況がないか、未完了の場合のみ返す
-                                if (status == null || !status.isDone()) {
-                                    System.out.println("[UserTaskStatusController] Adding task to filtered: " + t.getTaskName() + " (status: " + (status == null ? "none" : "incomplete") + ")");
-                                    filtered.add(t);
+                                // ★修正：ユーザーが担当しているタスクかどうかをチェック
+                                boolean isUserTask = userTaskIds.contains(t.getTaskId()) ||
+                                                   userTaskIds.contains(t.getOriginalTaskId());
+                                
+                                if (isUserTask) {
+                                    com.habit.domain.UserTaskStatus status = statusMap.get(t.getTaskId());
+                                    // 未完了の場合のみ返す（statusがnullの場合は新しく割り当てられたタスクとして扱う）
+                                    if (status == null || !status.isDone()) {
+                                        System.out.println("[UserTaskStatusController] Adding user task to filtered: " + t.getTaskName() + " (status: " + (status == null ? "new assignment" : "incomplete") + ")");
+                                        filtered.add(t);
+                                    } else {
+                                        System.out.println("[UserTaskStatusController] Skipping completed user task: " + t.getTaskName());
+                                    }
+                                } else {
+                                    System.out.println("[UserTaskStatusController] Skipping non-user task: " + t.getTaskName() + " (not assigned to user)");
                                 }
                             }
                         }

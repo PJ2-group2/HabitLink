@@ -223,8 +223,12 @@ public class PersonalPageController {
             String sessionId = com.habit.client.LoginController.getSessionId();
             java.time.LocalDate today = java.time.LocalDate.now();
             java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+            
+            // ★修正：getUserIncompleteTasksAPIを使用（このAPIは既に修正済み）
             String url = "http://localhost:8080/getUserIncompleteTasks?teamID=" + java.net.URLEncoder.encode(teamID, "UTF-8")
                        + "&date=" + today.toString();
+            System.out.println("[PersonalPageController] Fetching user tasks from: " + url);
+            
             java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
                     .uri(java.net.URI.create(url))
                     .timeout(java.time.Duration.ofSeconds(10))
@@ -233,6 +237,8 @@ public class PersonalPageController {
                     .build();
             java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
             String json = response.body();
+            System.out.println("[PersonalPageController] API response: " + json);
+            
             java.util.List<com.habit.domain.Task> tasks = new java.util.ArrayList<>();
             if (json != null && json.startsWith("[")) {
                 org.json.JSONArray arr = new org.json.JSONArray(json);
@@ -272,13 +278,15 @@ public class PersonalPageController {
                             } catch (Exception ignore) {}
                         }
                         
-                        
+                        System.out.println("[PersonalPageController] Adding task: " + taskName + " (ID: " + taskId + ")");
                         tasks.add(t);
                     }
                 }
             }
+            System.out.println("[PersonalPageController] Total tasks returned: " + tasks.size());
             return tasks;
         } catch (Exception e) {
+            System.err.println("[PersonalPageController] Error fetching tasks: " + e.getMessage());
             e.printStackTrace();
             return new java.util.ArrayList<>();
         }

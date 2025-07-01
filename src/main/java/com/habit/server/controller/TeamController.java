@@ -21,12 +21,19 @@ public class TeamController {
   private final AuthService authService;
   private final UserRepository userRepository;
   private final TaskRepository taskRepository;
+  private final com.habit.server.repository.TeamRepository teamRepository;
+  private final com.habit.server.repository.UserTaskStatusRepository userTaskStatusRepository;
+  private final com.habit.server.service.TeamTaskService teamTaskService;
 
   public TeamController(AuthService authService, UserRepository userRepository,
                         TaskRepository taskRepository) {
     this.authService = authService;
     this.userRepository = userRepository;
     this.taskRepository = taskRepository;
+    this.teamRepository = new com.habit.server.repository.TeamRepository();
+    this.userTaskStatusRepository = new com.habit.server.repository.UserTaskStatusRepository();
+    this.teamTaskService = new com.habit.server.service.TeamTaskService(
+        taskRepository, teamRepository, userTaskStatusRepository);
   }
 
   public HttpHandler getCreateTeamHandler() { return new CreateTeamHandler(); }
@@ -226,6 +233,14 @@ public class TeamController {
             if (teamID != null) {
               user.addJoinedTeamId(teamID);
               userRepository.save(user);
+              
+              // 新メンバーに既存のチーム共通タスクを自動紐づけ
+              try {
+                teamTaskService.createUserTaskStatusForNewMember(teamID, memberId);
+                System.out.println("新メンバー " + memberId + " にチーム " + teamID + " の既存タスクを紐づけました");
+              } catch (Exception e) {
+                System.err.println("チーム共通タスクの自動紐づけに失敗: " + e.getMessage());
+              }
             }
           }
           response = ok ? "参加成功" : "参加失敗";
