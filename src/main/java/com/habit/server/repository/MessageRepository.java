@@ -1,24 +1,22 @@
 package com.habit.server.repository;
 
 import com.habit.domain.Message;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public class MessageRepository {
   public static class MessageEntry {
     public final String id, senderId, teamId, content;
+    public final LocalDateTime time;
     public MessageEntry(String id, String senderId, String teamId,
-                        String content) {
+                        String content, LocalDateTime time) {
       this.id = id;
       this.senderId = senderId;
       this.teamId = teamId;
       this.content = content;
+      this.time = time;
     }
   };
 
@@ -44,7 +42,6 @@ public class MessageRepository {
   }
 
   public void save(Message message) {
-    System.out.println(message.toJson().toString());
     String sql = "INSERT INTO messages (message_id, sender_id, team_id, "
                  + "content, timestamp) VALUES (?, ?, ?, ?, ?)";
     try (Connection conn = DriverManager.getConnection(databaseUrl);
@@ -55,7 +52,7 @@ public class MessageRepository {
       pstmt.setString(2, message.getSender().getUserId());
       pstmt.setString(3, message.getTeamID());
       pstmt.setString(4, message.getContent());
-
+      pstmt.setTimestamp(5, Timestamp.valueOf(message.getTimestamp()));
       pstmt.executeUpdate();
     } catch (SQLException e) {
       System.err.println("Error saving message: " + e.getMessage());
@@ -73,10 +70,14 @@ public class MessageRepository {
       pstmt.setInt(2, limit);
       ResultSet rs = pstmt.executeQuery();
       while (rs.next()) {
+
+        Timestamp ts = rs.getTimestamp("timestamp");
+        LocalDateTime time = ts.toLocalDateTime();
+
         // MessageTypeはNORMAL固定でインスタンス化
         MessageEntry entries = new MessageEntry(
             rs.getString("message_id"), rs.getString("sender_id"),
-            rs.getString("team_id"), rs.getString("content"));
+            rs.getString("team_id"), rs.getString("content"), time);
         messages.add(entries);
       }
     } catch (SQLException e) {

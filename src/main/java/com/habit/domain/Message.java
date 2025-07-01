@@ -32,6 +32,9 @@ public class Message {
 
   public String getContent() { return content; }
 
+  public void setTimeStamp(LocalDateTime timestamp) {
+    this.timestamp = timestamp;
+  }
   public LocalDateTime getTimestamp() { return timestamp; }
 
   public MessageType getType() { return type; }

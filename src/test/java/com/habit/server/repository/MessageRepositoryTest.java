@@ -7,6 +7,7 @@ import com.habit.domain.Message;
 import com.habit.domain.MessageType;
 import com.habit.domain.User;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
@@ -43,11 +44,25 @@ class MessageRepositoryTest {
     assertEquals("u1", first.senderId);
     assertEquals("teamA", first.teamId);
     assertEquals("hello", first.content);
+    Duration diff1 = Duration.between(m1.getTimestamp(), first.time).abs();
+    assertTrue(
+        diff1.compareTo(Duration.ofSeconds(1)) <= 0,
+        ()
+            -> String.format(
+                "Timestamps differ by %d ms, which is more than 1 second",
+                diff1.toMillis()));
 
     MessageRepository.MessageEntry second = entries.get(1);
     assertEquals("u2", second.senderId);
     assertEquals("teamA", second.teamId);
     assertEquals("world", second.content);
+    Duration diff2 = Duration.between(m2.getTimestamp(), second.time).abs();
+    assertTrue(
+        diff2.compareTo(Duration.ofSeconds(1)) <= 0,
+        ()
+            -> String.format(
+                "Timestamps differ by %d ms, which is more than 1 second",
+                diff2.toMillis()));
   }
 
   @Test

@@ -26,6 +26,10 @@ public class MessageController {
     return this.new GetChatLogHandler();
   }
 
+  public HttpHandler getSendChatMessageHandler() {
+    return this.new SendChatMessageHandler();
+  }
+
   private class GetChatLogHandler implements HttpHandler {
     @Override
     public void handle(HttpExchange exchange) throws IOException {
@@ -54,6 +58,7 @@ public class MessageController {
             User sender = userRepository.findById(entry.senderId);
             Message msg = new Message(entry.id, sender, entry.teamId,
                                       entry.content, MessageType.NORMAL);
+            msg.setTimeStamp(entry.time);
             responseArray.put(msg.toJson());
           }
         }
@@ -76,9 +81,6 @@ public class MessageController {
         os.close();
       }
     }
-  }
-  public HttpHandler getSendChatMessageHandler() {
-    return new SendChatMessageHandler();
   }
 
   private class SendChatMessageHandler implements HttpHandler {

@@ -146,8 +146,8 @@ public class ChatController {
           messages.add(Message.fromJson(obj));
         }
 
-        // sort according to time stamp recent->old
-        messages.sort(Comparator.comparing(Message::getTimestamp).reversed());
+        // sort according to time stamp
+        messages.sort(Comparator.comparing(Message::getTimestamp));
 
         // sort and format messages
         List<String> chatItems = new ArrayList<>();
