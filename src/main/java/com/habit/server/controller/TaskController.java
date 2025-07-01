@@ -184,16 +184,19 @@ public class TaskController {
             dueTimeStr != null && !dueTimeStr.isEmpty()
                 ? java.time.LocalTime.parse(dueTimeStr)
                 : null;
+        String dueDateStr = map.get("dueDate");
+        java.time.LocalDate dueDate =
+            dueDateStr != null && !dueDateStr.isEmpty()
+                ? java.time.LocalDate.parse(dueDateStr)
+                : null;
         String cycleType = map.getOrDefault("cycleType", "daily");
         String teamID = map.get("teamID");
         // repeatDaysは未対応
         com.habit.domain.Task task = new com.habit.domain.Task(
             taskId, taskName, description, estimatedMinutes,
-            java.util.Collections.emptyList(), isTeamTask, dueTime, cycleType);
-
-        var repo = TaskController.this.taskRepository;
-        repo.saveTask(task, teamID);
-
+            java.util.Collections.emptyList(), isTeamTask, dueTime, dueDate,
+            cycleType);
+        new com.habit.server.repository.TaskRepository().saveTask(task, teamID);
         response = "タスク保存成功";
       } catch (Exception ex) {
         response = "タスク保存失敗: " + ex.getMessage();
