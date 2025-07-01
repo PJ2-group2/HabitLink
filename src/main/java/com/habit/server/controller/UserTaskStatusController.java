@@ -168,48 +168,28 @@ public class UserTaskStatusController {
                             String originalTaskId = entry.getKey();
                             java.util.List<com.habit.domain.Task> tasksForOriginalId = entry.getValue();
                             
-                            // 日付順でソート（古い順）
+                            // [修正点] 日付の昇順（古い順）でソートします。
+                            // これにより、未完了のタスクの中で最も日付が古いもの（例：今日やるべきタスク）が
+                            // 優先的に選択され、他のメンバーの進捗に影響される問題を解決します。
                             tasksForOriginalId.sort((t1, t2) -> {
                                 java.time.LocalDate date1 = t1.getDueDate();
                                 java.time.LocalDate date2 = t2.getDueDate();
                                 if (date1 == null && date2 == null) return 0;
                                 if (date1 == null) return 1;
                                 if (date2 == null) return -1;
-                                return date1.compareTo(date2); // 昇順（古い順）
+                                return date1.compareTo(date2);
                             });
                             
-                            // 元タスクが完了済みかどうかを確認
-                            boolean originalTaskCompleted = false;
-                            for (com.habit.domain.UserTaskStatus s : statusList) {
-                                if (s.getOriginalTaskId().equals(originalTaskId) && s.getDate().equals(date) && s.isDone()) {
-                                    originalTaskCompleted = true;
-                                    System.out.println("[UserTaskStatusController] Found completed original task: " +
-                                        originalTaskId + ", completionDate=" + s.getDate());
-                                    break;
-                                }
-                            }
-                            
-                            // 最適なタスクを選択
+                            // [リファクタリング] 最適なタスクを選択するロジックを簡素化。
+                            // ソート済みのタスクリストを先頭から順に確認し、
+                            // 最初に見つかった未完了のタスク（isDone=false）を表示対象として選択します。
                             com.habit.domain.Task selectedTask = null;
                             for (com.habit.domain.Task t : tasksForOriginalId) {
                                 com.habit.domain.UserTaskStatus status = statusMapByTaskId.get(t.getTaskId());
-                                
-                                // 元タスクが完了済みの場合は、未完了の新しいタスクを優先
-                                if (originalTaskCompleted) {
-                                    if (status == null || !status.isDone()) {
-                                        selectedTask = t;
-                                        System.out.println("[UserTaskStatusController] Selected reset task: " + t.getTaskName() +
-                                            " (taskId: " + t.getTaskId() + ", dueDate: " + t.getDueDate() + ")");
-                                        break;
-                                    }
-                                } else {
-                                    // 元タスクが未完了の場合は、当日のタスクまたは未完了タスクを選択
-                                    if (status == null || !status.isDone()) {
-                                        selectedTask = t;
-                                        System.out.println("[UserTaskStatusController] Selected incomplete task: " + t.getTaskName() +
-                                            " (taskId: " + t.getTaskId() + ", dueDate: " + t.getDueDate() + ")");
-                                        break;
-                                    }
+                                if (status == null || !status.isDone()) {
+                                    selectedTask = t;
+                                    System.out.println("[UserTaskStatusController] Selected task for display: " + t.getTaskName() + " (taskId: " + t.getTaskId() + ", dueDate: " + t.getDueDate() + ")");
+                                    break;
                                 }
                             }
                             
