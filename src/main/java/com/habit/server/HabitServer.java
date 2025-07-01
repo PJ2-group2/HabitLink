@@ -11,7 +11,6 @@ import com.habit.server.controller.TaskController;
 import com.habit.server.controller.TeamController;
 import com.habit.server.controller.UserController;
 import com.habit.server.controller.UserTaskStatusController;
-import com.habit.server.manager.DatabaseTeamManager;
 import com.habit.server.repository.MessageRepository;
 import com.habit.server.repository.TaskRepository;
 import com.habit.server.repository.TeamRepository;
@@ -50,9 +49,6 @@ public class HabitServer {
       new UserTaskStatusRepository();
   private static UserTaskStatusController userTaskStatusController =
       new UserTaskStatusController(authService, userTaskStatusRepository);
-  // --- チーム管理用（SQLite でチームIDを保持）---
-  private static DatabaseTeamManager teamManager =
-      new DatabaseTeamManager("jdbc:sqlite:habit.db");
 
   public static void main(String[] args) throws Exception {
     // サーバを8080番ポートで起動
