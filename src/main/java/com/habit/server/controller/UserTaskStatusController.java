@@ -218,7 +218,14 @@ public class UserTaskStatusController {
                                 if (val != null) dueDate = val.toString();
                             } catch (Exception ignore) {}
                             sb.append("\"dueTime\":\"").append(dueTime.replace("\"", "\\\"")).append("\",");
-                            sb.append("\"dueDate\":\"").append(dueDate.replace("\"", "\\\"")).append("\"");
+                            sb.append("\"dueDate\":\"").append(dueDate.replace("\"", "\\\"")).append("\",");
+                            String cycleType = "";
+                            try {
+                                java.lang.reflect.Method m = t.getClass().getMethod("getCycleType");
+                                Object val = m.invoke(t);
+                                if (val != null) cycleType = val.toString();
+                            } catch (Exception ignore) {}
+                            sb.append("\"cycleType\":\"").append(cycleType.replace("\"", "\\\"")).append("\"");
                             sb.append("}");
                             if (i < filtered.size() - 1) sb.append(",");
                         }

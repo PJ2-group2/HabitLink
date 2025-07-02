@@ -91,6 +91,37 @@ public class PersonalPageController {
             String remainStr = getRemainingTimeAndDaysString(dueTime, dueDate);
             tileBtn.setText(name + (remainStr.isEmpty() ? "" : "\n" + remainStr));
             tileBtn.setOnAction(unused -> {
+                // 達成可能かどうかのチェック
+                String cycleType = task.getCycleType();
+                LocalDate taskDueDate = task.getDueDate();
+                LocalDateTime now = LocalDateTime.now();
+                boolean canComplete = true;
+                String errorMessage = "";
+
+                if (taskDueDate != null && cycleType != null) {
+                    LocalDateTime deadline = taskDueDate.atTime(task.getDueTime() != null ? task.getDueTime() : LocalTime.MAX);
+                    if ("daily".equalsIgnoreCase(cycleType)) {
+                        if (now.isBefore(deadline.minusHours(24))) {
+                            canComplete = false;
+                            errorMessage = "このタスクは期限の24時間前まで達成できません。";
+                        }
+                    } else if ("weekly".equalsIgnoreCase(cycleType)) {
+                        if (now.isBefore(deadline.minusDays(7))) {
+                            canComplete = false;
+                            errorMessage = "このタスクは期限の7日前まで達成できません。";
+                        }
+                    }
+                }
+
+                if (!canComplete) {
+                    Alert alert = new Alert(Alert.AlertType.WARNING);
+                    alert.setTitle("達成不可");
+                    alert.setHeaderText(null);
+                    alert.setContentText(errorMessage);
+                    alert.showAndWait();
+                    return;
+                }
+
                 // 確認ダイアログを表示
                 Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
                 alert.setTitle("タスク消化の確認");
@@ -248,6 +279,16 @@ public class PersonalPageController {
                     if (taskId != null && taskName != null) {
                         com.habit.domain.Task t = new com.habit.domain.Task(taskId, taskName);
                         
+                        // cycleTypeを設定
+                        String cycleType = obj.optString("cycleType", null);
+                        if (cycleType != null) {
+                            try {
+                                java.lang.reflect.Field f = t.getClass().getDeclaredField("cycleType");
+                                f.setAccessible(true);
+                                f.set(t, cycleType);
+                            } catch (Exception ignore) {}
+                        }
+                        
                         // dueDateを設定（setterメソッドを使用）
                         if (dueDate != null) {
                             t.setDueDate(dueDate);
@@ -263,7 +304,7 @@ public class PersonalPageController {
                         }
                         
                         System.out.println("[PersonalPageController] Adding task: " + taskName + " (ID: " + taskId +
-                            ", dueDate: " + dueDate + ", dueTime: " + dueTime + ")");
+                            ", dueDate: " + dueDate + ", dueTime: " + dueTime + ", cycleType: " + cycleType + ")");
                         tasks.add(t);
                     }
                 }
