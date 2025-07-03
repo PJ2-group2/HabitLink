@@ -13,18 +13,10 @@ import java.util.Optional;
 
 /**
  * タスクの自動再設定サービス
- *
- * 【機能概要】
- * 1. 期限内達成時の自動再設定: タスクが期限内に完了した場合、次回サイクルのタスクを自動生成
- * 2. 期限切れ時の自動再設定: タスクが期限を過ぎても未完了の場合、当日分の新しいタスクを自動生成
- *
- * 【実行タイミング】
- * - 1時間ごとに自動実行（TaskAutoResetSchedulerによる）
- * - 手動実行も可能（TaskAutoResetControllerのAPI経由）
- *
- * 【対象タスク】
- * - cycleType が "daily" または "weekly" のタスクのみ
- * - 既に同じ日付のタスクが存在する場合は重複作成しない
+ *  タスクが期限を過ぎても未完了の場合、次回サイクルのタスクを自動生成
+ *  1分ごとに自動実行（TaskAutoResetSchedulerによる）
+ *  手動実行も可能（TaskAutoResetControllerのAPI経由）
+ *  既に同じ日付のタスクが存在する場合は重複作成しない
  */
 public class TaskAutoResetService {
     private final TaskRepository taskRepository;
@@ -33,9 +25,12 @@ public class TaskAutoResetService {
     // デフォルトの期限時刻（0時固定にしたい場合は、getDueTimeメソッドでこの値を常に返すよう変更）
     private static final LocalTime DEFAULT_DUE_TIME = LocalTime.MIDNIGHT;
     
-    // 重複実行防止用のフラグ（1時間ごと実行のため、処理が重複しないよう制御）
+    // 重複実行防止用のフラグ（1分ごと実行のため、処理が重複しないよう制御）
     private volatile boolean isRunning = false;
     
+    /**
+     * コンストラクタ
+     */ 
     public TaskAutoResetService(TaskRepository taskRepository, UserTaskStatusRepository userTaskStatusRepository) {
         this.taskRepository = taskRepository;
         this.userTaskStatusRepository = userTaskStatusRepository;
@@ -48,7 +43,6 @@ public class TaskAutoResetService {
      *
      * 【処理フロー】
      * 1. 指定チームの全タスクを取得
-     * 2. 各タスクが自動再設定対象かチェック（daily/weeklyのみ）
      * 3. 対象タスクの全ユーザー分をチェック・再設定
      */
     public void checkAndResetTasks(String teamId) {
@@ -56,26 +50,8 @@ public class TaskAutoResetService {
         LocalDate today = LocalDate.now();
         
         for (Task task : teamTasks) {
-            if (shouldAutoReset(task)) {
-                resetTaskForAllUsers(task, today);
-            }
+            resetTaskForAllUsers(task, today);
         }
-    }
-    
-    /**
-     * タスクが自動再設定対象かどうかを判定
-     *
-     * @param task 判定対象のタスク
-     * @return true: 自動再設定対象, false: 対象外
-     *
-     * 【判定条件】
-     * - cycleType が "daily" (毎日繰り返し) の場合: 対象
-     * - cycleType が "weekly" (毎週繰り返し) の場合: 対象
-     * - それ以外: 対象外（一回限りのタスクなど）
-     */
-    private boolean shouldAutoReset(Task task) {
-        String cycleType = task.getCycleType();
-        return "daily".equals(cycleType) || "weekly".equals(cycleType);
     }
     
     /**
@@ -87,8 +63,8 @@ public class TaskAutoResetService {
         for (UserTaskStatus status : allStatuses) {
             LocalDate taskDate = status.getDate();
             
-            // 1. 期限内達成チェック
-            if (status.isDone() && isWithinDeadline(task, status)) {
+            // 1. 達成済みチェック(期限切れ時は達成させない前提)
+            if (status.isDone()) {
                 createNextTaskInstance(task, status.getUserId(), getNextDate(task, taskDate));
             }
             
@@ -102,30 +78,11 @@ public class TaskAutoResetService {
     }
     
     /**
-     * 期限内達成かどうかを判定
-     */
-    private boolean isWithinDeadline(Task task, UserTaskStatus status) {
-        // ★修正★ タスクの実際の期限日付を使用（UserTaskStatusのdateではなく）
-        LocalDate taskDueDate = task.getDueDate();
-        LocalTime dueTime = getDueTime(task);
-        
-        // タスクに期限日付が設定されていない場合は、UserTaskStatusの日付を使用
-        if (taskDueDate == null) {
-            taskDueDate = status.getDate();
-        }
-        
-        LocalDateTime deadline = taskDueDate.atTime(dueTime);
-        
-        return status.getCompletionTimestamp() != null &&
-               status.getCompletionTimestamp().isBefore(deadline);
-    }
-    
-    /**
-     * 期限切れかどうかを判定
+     * 期限切れかどうかを判定するメソッド
      */
     private boolean isOverdue(Task task, LocalDate taskDate, LocalDate today) {
         LocalTime dueTime = getDueTime(task);
-        LocalDateTime deadline = taskDate.atTime(dueTime);
+        LocalDateTime deadline = taskDate.atTime(dueTime); // 時刻情報を追加
         LocalDateTime now = LocalDateTime.now();
         
         return now.isAfter(deadline);
@@ -185,43 +142,45 @@ public class TaskAutoResetService {
      * 3. 新しいUserTaskStatusを作成・保存
      * 4. ログ出力
      */
-    private boolean createNextTaskInstance(Task originalTask, String userId, LocalDate nextDate) {
-        // 元のTaskIDを使用して重複チェック（同じ元タスクの同日インスタンスがないかチェック）
+    private boolean createNextTaskInstance(Task completeTask, String userId, LocalDate nextDate) {
+        // オリジナルのタスクIDを取得（最新のプロパティを使用するため）
+        String originalTaskId = completeTask.getOriginalTaskId() != null ?
+            completeTask.getOriginalTaskId() : completeTask.getTaskId();
+
+        // 最新の元のタスクを検索
+        Task originalTask = findOriginalTaskById(originalTaskId);
+        if (originalTask == null) {
+            System.err.println("警告: オリジナルのタスクが見つかりません。今のタスクをオリジナルとします。: " + originalTaskId);
+            originalTask = completeTask; // フォールバック
+        }
+
+        // 元のタスクの期限時刻をそのまま使用
+        LocalTime nextDueTime = originalTask.getDueTime();
+
+        // 期限日を付加した新しいTaskIDを生成
+        String newTaskId = generateNewTaskId(originalTaskId, nextDate);
+
+        // 新しいTaskIDでの重複チェック
         var existingStatus = userTaskStatusRepository
-            .findByUserIdAndOriginalTaskIdAndDate(userId, originalTask.getTaskId(), nextDate);
+            .findByUserIdAndOriginalTaskIdAndDate(userId, newTaskId, nextDate);
             
         if (existingStatus.isEmpty()) {
-            // 新しいTaskIDを生成（重複がない場合のみ）
-            String newTaskId = generateNewTaskId(originalTask.getTaskId(), nextDate);
-            
-            // 期限日付の適切な設定
-            LocalDate taskDueDate = nextDate;
-            LocalTime taskDueTime = originalTask.getDueTime();
-            
-            // サイクルタイプに応じた期限日付の調整
-            if ("daily".equals(originalTask.getCycleType())) {
-                // 日次タスクの場合、nextDateをそのまま使用
-                taskDueDate = nextDate;
-            } else if ("weekly".equals(originalTask.getCycleType())) {
-                // 週次タスクの場合、nextDateをそのまま使用
-                taskDueDate = nextDate;
-            }
-            
+
             // 1. 新しいTaskを作成・保存
             Task newTask = new Task(
-                newTaskId,                          // 新しいTaskID
-                originalTask.getTaskName(),         // 同じタスク名
-                originalTask.getDescription(),      // 同じ説明
-                originalTask.getEstimatedMinutes(), // 同じ推定時間
-                originalTask.getRepeatDays(),       // 同じ繰り返し曜日
-                originalTask.isTeamTask(),          // 同じチーム設定
-                taskDueTime,                        // 同じ期限時刻
-                taskDueDate,                        // 適切に設定された期限日付
-                originalTask.getCycleType()         // 同じサイクルタイプ
+                    newTaskId, // 新しいTaskID
+                    originalTask.getTaskName(), // 同じタスク名
+                    originalTask.getDescription(), // 同じ説明
+                    originalTask.getEstimatedMinutes(), // 同じ推定時間
+                    originalTask.getRepeatDays(), // 同じ繰り返し曜日
+                    originalTask.isTeamTask(), // 同じチーム設定
+                    nextDueTime, // 調整された期限時刻
+                    nextDate, // 調整された期限日付
+                    originalTask.getCycleType() // 同じサイクルタイプ
             );
-            
-            // TaskをDBに保存（teamIDも必要）
-            String teamId = findTeamIdByOriginalTask(originalTask.getTaskId());
+
+            // TaskをDBに保存
+            String teamId = findTeamIdByOriginalTask(originalTaskId);
             newTask.setTeamId(teamId); // チーム共通タスクのためteamIdを設定
             taskRepository.saveTask(newTask, teamId);
             
@@ -240,24 +199,23 @@ public class TaskAutoResetService {
                 );
                 
                 // 元のTaskIDを明示的に設定
-                newStatus.setOriginalTaskId(originalTask.getTaskId());
+                newStatus.setOriginalTaskId(originalTaskId);
                 
-                // ★重要★ データベースにUserTaskStatusを保存・永続化
+                // データベースにUserTaskStatusを保存・永続化
                 userTaskStatusRepository.save(newStatus);
             }
             
             if (!existsByTaskId) {
                 System.out.println("自動再設定完了: userId=" + userId +
-                    ", newTaskId=" + newTaskId +
-                    ", originalTaskId=" + originalTask.getTaskId() +
-                    ", teamId=" + teamId +
-                    ", nextDate=" + nextDate +
-                    ", taskDueDate=" + taskDueDate +
-                    ", taskDueTime=" + taskDueTime +
-                    ", cycleType=" + originalTask.getCycleType());
+                        ", newTaskId=" + newTaskId +
+                        ", TaskName=" + originalTask.getTaskName() +
+                        ", originalTaskId=" + originalTaskId +
+                        ", adjustedDueDate=" + nextDate +
+                        ", adjustedDueTime=" + nextDueTime +
+                        ", teamId=" + teamId);
             } else {
                 System.out.println("自動再設定スキップ（既存あり）: userId=" + userId +
-                    ", originalTaskId=" + originalTask.getTaskId() +
+                    ", originalTaskId=" + completeTask.getTaskId() +
                     ", nextDate=" + nextDate);
             }
                 
@@ -283,31 +241,28 @@ public class TaskAutoResetService {
      * @param nextDate 次回タスク日
      * @return true: 新規作成された, false: 既存のため作成されず
      *
-     * 【期限切れ時の期限時刻調整ロジック】
-     * - 当日の場合：現在時刻より後の適切な時刻に調整
-     * - 翌日以降の場合：元の期限時刻をそのまま使用
+     * 元の期限時刻と等しく、元の期限日+1cycleのタスクを作成
      */
     private boolean createNextTaskInstanceForOverdue(Task overdueTask, String userId, LocalDate nextDate) {
-        // ★重要★ 元のタスクを取得（最新のプロパティを使用するため）
+        // オリジナルのタスクIDを取得（最新のプロパティを使用するため）
         String originalTaskId = overdueTask.getOriginalTaskId() != null ?
             overdueTask.getOriginalTaskId() : overdueTask.getTaskId();
             
         // 最新の元のタスクを検索
         Task originalTask = findOriginalTaskById(originalTaskId);
         if (originalTask == null) {
-            System.err.println("警告: 元のタスクが見つかりません: " + originalTaskId);
+            System.err.println("警告: オリジナルのタスクが見つかりません。今のタスクをオリジナルとします。: " + originalTaskId);
             originalTask = overdueTask; // フォールバック
         }
         
-        // ★修正★ 期限切れ時もタスク達成時と同じく次のサイクル日に設定するため、時刻調整は不要
         // 元のタスクの期限時刻をそのまま使用
-        LocalTime adjustedDueTime = originalTask.getDueTime() != null ? originalTask.getDueTime() : LocalTime.of(23, 59);
-        LocalDate adjustedDueDate = nextDate;
+        LocalTime nextDueTime = originalTask.getDueTime();
 
-        // 期限切れ時は調整された日付に対して新しいTaskIDベースで重複チェック
-        String newTaskId = generateNewTaskId(originalTaskId, adjustedDueDate);
+        // 期限日を付加した新しいTaskIDを生成
+        String newTaskId = generateNewTaskId(originalTaskId, nextDate);
+
         var existingStatusByNewTaskId = userTaskStatusRepository
-            .findByUserIdAndTaskIdAndDate(userId, newTaskId, adjustedDueDate);
+            .findByUserIdAndTaskIdAndDate(userId, newTaskId, nextDate); // 新しいTaskIDでの重複チェック
             
         if (existingStatusByNewTaskId.isEmpty()) {
             // 1. 新しいTaskを作成・保存
@@ -318,8 +273,8 @@ public class TaskAutoResetService {
                 originalTask.getEstimatedMinutes(), // 同じ推定時間
                 originalTask.getRepeatDays(),       // 同じ繰り返し曜日
                 originalTask.isTeamTask(),          // 同じチーム設定
-                adjustedDueTime,                    // 調整された期限時刻
-                adjustedDueDate,                    // 調整された期限日付
+                nextDueTime,                    // 調整された期限時刻
+                nextDate,                    // 調整された期限日付
                 originalTask.getCycleType()         // 同じサイクルタイプ
             );
             
@@ -331,35 +286,36 @@ public class TaskAutoResetService {
             // 2. 特定ユーザーのみに対してUserTaskStatusを作成
             // 既存のUserTaskStatusがないことを確認（taskIdでのみチェック）
             boolean existsByTaskIdOverdue = userTaskStatusRepository.findByUserIdAndTaskIdAndDate(
-                userId, newTaskId, adjustedDueDate).isPresent();
+                userId, newTaskId, nextDate).isPresent();
                 
             if (!existsByTaskIdOverdue) {
                 UserTaskStatus newStatus = new UserTaskStatus(
                     userId,         // 対象ユーザー
                     newTaskId,      // 新しいTaskID
                     teamId,         // チームID
-                    adjustedDueDate,// 調整された期限日付
-                    false           // 初期状態は未完了
+                    nextDate,       // 調整された期限日付
+                    false    // 初期状態は未完了
                 );
                 
                 // 元のTaskIDを明示的に設定
                 newStatus.setOriginalTaskId(originalTaskId);
-                
-                // ★重要★ データベースにUserTaskStatusを保存・永続化
+                 
+                // データベースにUserTaskStatusを保存・永続化
                 userTaskStatusRepository.save(newStatus);
             }
             
             if (!existsByTaskIdOverdue) {
-                System.out.println("期限切れ自動再設定完了: userId=" + userId +
+                System.out.println("期限切れタスクの再設定完了: userId=" + userId +
                     ", newTaskId=" + newTaskId +
-                    ", originalTaskId=" + originalTaskId +
-                    ", adjustedDueDate=" + adjustedDueDate +
-                    ", adjustedDueTime=" + adjustedDueTime +
+                    ", TaskName=" + originalTask.getTaskName() +
+                    ", originalTaskId=" + originalTaskId+
+                    ", adjustedDueDate=" + nextDate +
+                    ", adjustedDueTime=" + nextDueTime +
                     ", teamId=" + teamId);
             } else {
-                System.out.println("期限切れ自動再設定スキップ（既存あり）: userId=" + userId +
+                System.out.println("期限切れタスクの再設定スキップ（既存あり）: userId=" + userId +
                     ", originalTaskId=" + originalTaskId +
-                    ", adjustedDueDate=" + adjustedDueDate);
+                    ", adjustedDueDate=" + nextDate);
             }
                 
             // 作成されたタスクが正しく保存されているかを確認
@@ -374,7 +330,7 @@ public class TaskAutoResetService {
             
             // 作成されたUserTaskStatusが正しく保存されているかを確認
             var savedStatus = userTaskStatusRepository.findByUserIdAndTaskIdAndDate(
-                userId, newTaskId, adjustedDueDate);
+                userId, newTaskId, nextDate);
             if (savedStatus.isPresent()) {
                 System.out.println("新しいUserTaskStatusがDBに正常に保存されました: " + savedStatus.get().getTaskId());
             } else {
@@ -382,6 +338,8 @@ public class TaskAutoResetService {
             }
             
             return true;  // 新規作成成功
+        } else {
+            System.out.println("警告: 新タスクIDが既存IDと重複しています。 作成をスキップします。");
         }
         return false;     // 既存のため作成せず
     }
@@ -466,8 +424,7 @@ public class TaskAutoResetService {
             for (String teamId : allTeamIds) {
                 java.util.List<Task> teamTasks = taskRepository.findTeamTasksByTeamID(teamId);
                 for (Task task : teamTasks) {
-                    if (task.getTaskId().equals(originalTaskId) ||
-                        (task.getOriginalTaskId() != null && task.getOriginalTaskId().equals(originalTaskId))) {
+                    if (task.getTaskId().equals(originalTaskId)) {
                         return task;
                     }
                 }
@@ -510,9 +467,8 @@ public class TaskAutoResetService {
     
     /**
      * 定期実行用：全チームのタスクをチェック
-     *
-     * 【実行頻度】TaskAutoResetSchedulerにより1時間ごとに自動実行
-     * 【手動実行】TaskAutoResetControllerのAPIからも呼び出し可能
+     *  TaskAutoResetSchedulerにより1分ごとに自動実行
+     *  TaskAutoResetControllerのAPIからも呼び出し可能
      *
      * 【処理フロー】
      * 1. 重複実行防止チェック
@@ -552,8 +508,8 @@ public class TaskAutoResetService {
                 }
             }
             
-            System.out.println("自動再設定チェック完了: " + processedTeams + "チーム処理, " +
-                totalResets + "タスク再設定 at " + java.time.LocalDateTime.now());
+            System.out.println("自動再設定チェック完了: " + processedTeams + "チームで処理, " +
+                totalResets + "タスクを再設定 at " + java.time.LocalDateTime.now());
         } catch (Exception e) {
             System.err.println("自動再設定の定期実行でエラー: " + e.getMessage());
             e.printStackTrace();
@@ -564,33 +520,50 @@ public class TaskAutoResetService {
     }
     
     /**
-     * 再設定数をカウントするバージョン
+     * 指定チームの全タスクを自動再設定チェック
+     *
+     * @param teamId 対象チームID
+     * @return 再設定されたタスクの数
+     *
+     * 【処理フロー】
+     * 1. 指定チームの全タスクを取得
+     * 2. 各タスクに対して再設定チェックを実施
+     * 3. 対象タスクの全ユーザー分をチェック・再設定
      */
     private int checkAndResetTasksWithCount(String teamId) {
-        List<Task> teamTasks = taskRepository.findTeamTasksByTeamID(teamId);
+        List<Task> teamTasks = taskRepository.findTeamTasksByTeamID(teamId); // チームの全タスクを取得
         LocalDate today = LocalDate.now();
         int resetCount = 0;
         
         for (Task task : teamTasks) {
-            if (shouldAutoReset(task)) {
-                resetCount += resetTaskForAllUsersWithCount(task, today);
-            }
+            // 各タスクに対して再設定チェックを実施
+            resetCount += resetTaskForAllUsersWithCount(task, today);
         }
         return resetCount;
     }
     
     /**
-     * 再設定数をカウントするバージョン
+     * 特定タスクを全ユーザーに対して再設定
+     * @param task 対象タスク
+     * @param today 今日の日付
+     * @return 再設定されたタスクの数
+     * 
+     * 【処理フロー】
+     * 1. 指定タスクの全ユーザー分を取得
+     * 2. 各ユーザーのタスクステータスをチェック
+     * 3. 再設定が必要な場合は新しいタスクを作成
      */
     private int resetTaskForAllUsersWithCount(Task task, LocalDate today) {
+        // タスクの全ユーザー分のステータスを取得
         List<UserTaskStatus> allStatuses = userTaskStatusRepository.findByTaskId(task.getTaskId());
-        int resetCount = 0;
+        int resetCount = 0; // 再設定されたタスクの数
 
         for (UserTaskStatus status : allStatuses) {
             LocalDate taskDate = status.getDate();
 
-            // 1. 期限内達成チェック
-            if (status.isDone() && isWithinDeadline(task, status)) {
+            // 1. 達成済みチェック(期限切れ後は達成させない前提)
+            if (status.isDone()) {
+                // 新インスタンスを作成して再設定
                 if (createNextTaskInstance(task, status.getUserId(), getNextDate(task, taskDate))) {
                     resetCount++;
                 }
@@ -599,11 +572,13 @@ public class TaskAutoResetService {
             // 2. 期限切れチェック（未完了かつ期限切れ）
             else if (!status.isDone() && isOverdue(task, taskDate, today)) {
                 System.out.println("期限切れタスク検出: taskId=" + task.getTaskId() +
+                    ", taskName=" + task.getTaskName() +
                     ", userId=" + status.getUserId() +
                     ", taskDate=" + taskDate +
                     ", today=" + today);
-                // ★修正★ 期限切れ時もタスク達成時と同じく次のサイクル日に設定
+                // 次のサイクル日に設定
                 LocalDate nextDate = getNextDate(task, taskDate);
+                // 新インスタンスを作成して再設定
                 if (createNextTaskInstanceForOverdue(task, status.getUserId(), nextDate)) {
                     resetCount++;
                 }
@@ -622,23 +597,18 @@ public class TaskAutoResetService {
      */
     public boolean createNextTaskInstanceImmediately(Task completedTask, String userId, LocalDate completionDate, String teamId) {
         try {
-            // 自動再設定対象かチェック
-            if (!shouldAutoReset(completedTask)) {
-                System.out.println("即座の再設定スキップ（対象外）: taskId=" + completedTask.getTaskId() +
-                    ", cycleType=" + completedTask.getCycleType());
-                return false;
-            }
-            
             // 完了したUserTaskStatusを取得して期限内達成かチェック
             Optional<UserTaskStatus> optStatus = userTaskStatusRepository
                 .findByUserIdAndTaskIdAndDate(userId, completedTask.getTaskId(), completionDate);
             
             if (optStatus.isPresent()) {
                 UserTaskStatus status = optStatus.get();
-                
-                // 期限内達成の場合のみ即座に再設定
-                if (status.isDone() && isWithinDeadline(completedTask, status)) {
-                    LocalDate nextDate = getNextDate(completedTask, completionDate);
+                LocalDate taskDate = status.getDate(); 
+
+                // 達成済みの場合のみ即座に再設定(期限切れタスクは達成させない前提)
+                if (status.isDone()) {
+                    // 次のサイクルに正しく設定
+                    LocalDate nextDate = getNextDate(completedTask, taskDate);
                     boolean created = createNextTaskInstance(completedTask, userId, nextDate);
                     
                     if (created) {
