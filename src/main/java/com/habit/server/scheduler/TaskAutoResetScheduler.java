@@ -29,8 +29,8 @@ public class TaskAutoResetScheduler {
     private final TaskAutoResetService taskAutoResetService;
     private final ScheduledExecutorService scheduler;
     
-    // 実行間隔（1時間ごと）- 変更したい場合はここを修正
-    private static final int EXECUTION_INTERVAL_HOURS = 1;
+    // 実行間隔（1分ごと）- 変更したい場合はここを修正
+    private static final int EXECUTION_INTERVAL_MINUTES = 1;
     
     public TaskAutoResetScheduler() {
         this.taskAutoResetService = new TaskAutoResetService(
@@ -45,16 +45,16 @@ public class TaskAutoResetScheduler {
      *
      * 【実行タイミング】
      * - 初回実行: サーバー起動60秒後
-     * - 以降: 1時間ごとに実行
+     * - 以降: 1分ごとに実行
      *
      * 【スケジューラーの種類】
      * scheduleAtFixedRate: 前回の実行開始時刻から固定間隔で実行
-     * （処理時間に関係なく、1時間ごとに確実に実行される）
+     * （処理時間に関係なく、1分ごとに確実に実行される）
      */
     public void start() {
         long initialDelay = 60; // 1分後に初回実行（サーバー起動直後の負荷を避ける）
-        long period = 60; // 1時間間隔（秒）
-        
+        long period = EXECUTION_INTERVAL_MINUTES * 60; // 1分間隔（秒）
+
         scheduler.scheduleAtFixedRate(
             this::executeAutoReset, // 実行するメソッド
             initialDelay,           // 初回実行までの遅延
@@ -63,7 +63,7 @@ public class TaskAutoResetScheduler {
         );
         
         System.out.println("タスク自動再設定スケジューラーを開始しました。");
-        System.out.println("実行間隔: " + EXECUTION_INTERVAL_HOURS + "時間ごと");
+        System.out.println("実行間隔: " + EXECUTION_INTERVAL_MINUTES + "分ごと");
         System.out.println("初回実行まで: " + initialDelay + "秒");
     }
     

@@ -182,14 +182,39 @@ public class UserTaskStatusController {
                             
                             // [リファクタリング] 最適なタスクを選択するロジックを簡素化。
                             // ソート済みのタスクリストを先頭から順に確認し、
-                            // 最初に見つかった未完了のタスク（isDone=false）を表示対象として選択します。
+                            // 最初に見つかった未完了かつ期限切れでないタスク（isDone=false）を表示対象として選択します。
                             com.habit.domain.Task selectedTask = null;
+                            java.time.LocalDateTime now = java.time.LocalDateTime.now();
                             for (com.habit.domain.Task t : tasksForOriginalId) {
                                 com.habit.domain.UserTaskStatus status = statusMapByTaskId.get(t.getTaskId());
                                 if (status == null || !status.isDone()) {
-                                    selectedTask = t;
-                                    System.out.println("[UserTaskStatusController] Selected task for display: " + t.getTaskName() + " (taskId: " + t.getTaskId() + ", dueDate: " + t.getDueDate() + ")");
-                                    break;
+                                    // ★追加★ 期限切れチェック
+                                    java.time.LocalDate taskDueDate = t.getDueDate();
+                                    java.time.LocalTime taskDueTime = null;
+                                    try {
+                                        java.lang.reflect.Method m = t.getClass().getMethod("getDueTime");
+                                        Object val = m.invoke(t);
+                                        if (val != null) taskDueTime = (java.time.LocalTime) val;
+                                    } catch (Exception ignore) {}
+                                    
+                                    if (taskDueDate != null) {
+                                        java.time.LocalDateTime deadline = taskDueDate.atTime(
+                                            taskDueTime != null ? taskDueTime : java.time.LocalTime.of(23, 59));
+                                        
+                                        // 期限切れでないタスクのみを選択
+                                        if (!now.isAfter(deadline)) {
+                                            selectedTask = t;
+                                            System.out.println("[UserTaskStatusController] Selected task for display: " + t.getTaskName() + " (taskId: " + t.getTaskId() + ", dueDate: " + t.getDueDate() + ")");
+                                            break;
+                                        } else {
+                                            System.out.println("[UserTaskStatusController] Skipping overdue task: " + t.getTaskName() + " (taskId: " + t.getTaskId() + ", dueDate: " + t.getDueDate() + ", deadline: " + deadline + ")");
+                                        }
+                                    } else {
+                                        // 期限日付が設定されていない場合は表示対象とする
+                                        selectedTask = t;
+                                        System.out.println("[UserTaskStatusController] Selected task for display (no due date): " + t.getTaskName() + " (taskId: " + t.getTaskId() + ")");
+                                        break;
+                                    }
                                 }
                             }
                             
