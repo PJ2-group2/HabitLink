@@ -69,6 +69,15 @@ public class HabitServer {
   public static void main(String[] args) throws Exception {
     // サーバを8080番ポートで起動
     HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
+
+    // === タスク自動再設定機能の開始 ===
+    // Clockを生成（本番環境ではシステムデフォルトの時刻を使用）
+    Clock clock = Clock.systemDefaultZone();
+    // ServiceとSchedulerを初期化
+    taskAutoResetService = new TaskAutoResetService(taskRepository, userTaskStatusRepository, clock);
+    taskAutoResetScheduler = new TaskAutoResetScheduler(taskAutoResetService);
+    taskAutoResetController = new TaskAutoResetController(taskAutoResetService);
+
     // 各APIエンドポイントを登録
     server.createContext("/hello", new HelloController()); // 動作確認用
 
@@ -163,15 +172,6 @@ public class HabitServer {
         
     server.setExecutor(null);
     server.start();
-
-    // === タスク自動再設定機能の開始 ===
-    // Clockを生成（本番環境ではシステムデフォルトの時刻を使用）
-    Clock clock = Clock.systemDefaultZone();
-
-    // ServiceとSchedulerを初期化
-    taskAutoResetService = new TaskAutoResetService(taskRepository, userTaskStatusRepository, clock);
-    taskAutoResetScheduler = new TaskAutoResetScheduler(taskAutoResetService);
-    taskAutoResetController = new TaskAutoResetController(taskAutoResetService);
 
     // 1時間ごとの自動実行スケジューラーを開始
     taskAutoResetScheduler.start();
