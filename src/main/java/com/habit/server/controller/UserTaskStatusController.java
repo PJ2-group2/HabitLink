@@ -144,14 +144,8 @@ public class UserTaskStatusController {
                         // 同じoriginalTaskIdのタスクを日付順にソート（新しいタスクを優先）
                         java.util.Map<String, java.util.List<com.habit.domain.Task>> tasksByOriginalId = new java.util.HashMap<>();
                         for (com.habit.domain.Task t : teamTasks) {
-                            boolean isTeamTask = false;
-                            try {
-                                java.lang.reflect.Method m = t.getClass().getMethod("isTeamTask");
-                                Object val = m.invoke(t);
-                                isTeamTask = Boolean.TRUE.equals(val);
-                            } catch (Exception ignore) {}
                             
-                            if (isTeamTask) {
+                            
                                 // ユーザーが担当しているタスクかどうかをチェック
                                 boolean isUserTask = userTaskIds.contains(t.getTaskId()) ||
                                                    userTaskIds.contains(t.getOriginalTaskId());
@@ -160,7 +154,7 @@ public class UserTaskStatusController {
                                     String originalTaskId = t.getOriginalTaskId();
                                     tasksByOriginalId.computeIfAbsent(originalTaskId, k -> new java.util.ArrayList<>()).add(t);
                                 }
-                            }
+                            
                         }
                         
                         // 各originalTaskIdグループから最適なタスクを選択

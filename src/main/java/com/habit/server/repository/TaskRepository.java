@@ -23,9 +23,6 @@ public class TaskRepository {
                    + "taskId TEXT PRIMARY KEY,"
                    + "taskName TEXT,"
                    + "description TEXT,"
-                   + "estimatedMinutes INTEGER,"
-                   + "repeatDays TEXT," // カンマ区切り
-                   + "isTeamTask INTEGER,"
                    + "teamID TEXT,"
                    + "dueTime TEXT,"
                    + "dueDate TEXT,"
@@ -193,18 +190,11 @@ public class TaskRepository {
   public List<Task> findTeamTasksByTeamID(String teamID) {
     List<Task> list = new java.util.ArrayList<>();
     try (Connection conn = DriverManager.getConnection(databaseUrl)) {
-      String sql = "SELECT * FROM tasks WHERE teamID = ? AND isTeamTask = 1";
+      String sql = "SELECT * FROM tasks WHERE teamID = ?";
       try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
         pstmt.setString(1, teamID);
         ResultSet rs = pstmt.executeQuery();
         while (rs.next()) {
-          List<java.time.DayOfWeek> repeatDays = new java.util.ArrayList<>();
-          String repeatDaysStr = rs.getString("repeatDays");
-          if (repeatDaysStr != null && !repeatDaysStr.isEmpty()) {
-            for (String day : repeatDaysStr.split(",")) {
-              repeatDays.add(java.time.DayOfWeek.valueOf(day));
-            }
-          }
           Task task = new Task(
               rs.getString("taskId"), rs.getString("taskName"),
               rs.getString("description"),
@@ -236,7 +226,7 @@ public class TaskRepository {
     List<Task> list = new java.util.ArrayList<>();
     try (Connection conn = DriverManager.getConnection(databaseUrl)) {
       // originalTaskIdごとにグループ化し、最新のタスクのみを取得
-      String sql = "SELECT * FROM tasks WHERE teamID = ? AND isTeamTask = 1 " +
+      String sql = "SELECT * FROM tasks WHERE teamID = ?" +
                    "AND taskId = (SELECT MAX(taskId) FROM tasks t2 " +
                    "              WHERE t2.originalTaskId = tasks.originalTaskId " +
                    "              AND t2.teamID = tasks.teamID)";
@@ -244,13 +234,6 @@ public class TaskRepository {
         pstmt.setString(1, teamID);
         ResultSet rs = pstmt.executeQuery();
         while (rs.next()) {
-          List<java.time.DayOfWeek> repeatDays = new java.util.ArrayList<>();
-          String repeatDaysStr = rs.getString("repeatDays");
-          if (repeatDaysStr != null && !repeatDaysStr.isEmpty()) {
-            for (String day : repeatDaysStr.split(",")) {
-              repeatDays.add(java.time.DayOfWeek.valueOf(day));
-            }
-          }
           Task task = new Task(
               rs.getString("taskId"), rs.getString("taskName"),
               rs.getString("description"),
@@ -280,7 +263,7 @@ public class TaskRepository {
   // タスク保存
   public void saveTask(Task task, String teamID) {
     try (Connection conn = DriverManager.getConnection(databaseUrl)) {
-      String sql = "INSERT OR REPLACE INTO tasks (taskId, taskName, description, estimatedMinutes, repeatDays, isTeamTask, teamID, dueTime, dueDate, cycleType, originalTaskId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      String sql = "INSERT OR REPLACE INTO tasks (taskId, taskName, description,  teamID, dueTime, dueDate, cycleType, originalTaskId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
       try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
         pstmt.setString(1, task.getTaskId());
         pstmt.setString(2, task.getTaskName());
@@ -300,7 +283,7 @@ public class TaskRepository {
   // Task保存（簡単版）
   public Task save(Task task) {
     try (Connection conn = DriverManager.getConnection(databaseUrl)) {
-      String sql = "INSERT OR REPLACE INTO tasks (taskId, taskName, description, estimatedMinutes, repeatDays, isTeamTask, teamID, dueTime, dueDate, cycleType, originalTaskId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      String sql = "INSERT OR REPLACE INTO tasks (taskId, taskName, description, teamID, dueTime, dueDate, cycleType, originalTaskId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
       try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
         pstmt.setString(1, task.getTaskId());
         pstmt.setString(2, task.getTaskName());
@@ -327,17 +310,9 @@ public class TaskRepository {
         pstmt.setString(1, teamId);
         ResultSet rs = pstmt.executeQuery();
         while (rs.next()) {
-          List<java.time.DayOfWeek> repeatDays = new java.util.ArrayList<>();
-          String repeatDaysStr = rs.getString("repeatDays");
-          if (repeatDaysStr != null && !repeatDaysStr.isEmpty()) {
-            for (String day : repeatDaysStr.split(",")) {
-              repeatDays.add(java.time.DayOfWeek.valueOf(day));
-            }
-          }
           Task task = new Task(
               rs.getString("taskId"), rs.getString("taskName"),
               rs.getString("description"), 
-              rs.getInt("isTeamTask") == 1,
               rs.getString("teamID"),
               rs.getString("dueTime") != null
                   ? java.time.LocalTime.parse(rs.getString("dueTime"))

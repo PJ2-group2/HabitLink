@@ -23,7 +23,7 @@ public class Task {
         this.originalTaskId = extractOriginalTaskId(taskId);
     }
 
-    public Task(String taskId, String taskName, String description, boolean isTeamTask, LocalTime dueTime, String cycleType) {
+    public Task(String taskId, String taskName, String description, LocalTime dueTime, String cycleType) {
         this.taskId = taskId;
         this.taskName = taskName;
         this.description = description;
@@ -35,7 +35,7 @@ public class Task {
     }
 
     // チーム共通タスク用コンストラクタ
-    public Task(String taskId, String taskName, String description, boolean isTeamTask, String teamId, LocalTime dueTime, String cycleType) {
+    public Task(String taskId, String taskName, String description, String teamId, LocalTime dueTime, String cycleType) {
         this.taskId = taskId;
         this.taskName = taskName;
         this.description = description;

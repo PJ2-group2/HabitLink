@@ -19,9 +19,6 @@ public class TaskCreateController {
     /* タスクの詳細説明フィールド */
     @FXML 
     private TextField descriptionField;
-    /* タスクの所要時間入力フィールド */
-    @FXML 
-    private TextField estimatedMinutesField;
     /* タスクの期限時刻入力フィールド */
     @FXML
     private TextField dueTimeField;
@@ -75,7 +72,6 @@ public class TaskCreateController {
     private void handleBtnCreate() {
         String name = taskNameField.getText();
         String description = descriptionField != null ? descriptionField.getText() : "";
-        String estimatedStr = estimatedMinutesField != null ? estimatedMinutesField.getText() : "0";
         String dueTimeStr = dueTimeField.getText();
         String dueDateStr = dueDateField != null ? dueDateField.getText() : "";
         String cycle = cycleTypeChoice.getValue();
@@ -83,13 +79,6 @@ public class TaskCreateController {
         // 入力バリデーション（簡易）
         if (name == null || name.isEmpty()) {
             showAlert("タスク名を入力してください");
-            return;
-        }
-        int estimatedMinutes = 0;
-        try {
-            estimatedMinutes = Integer.parseInt(estimatedStr);
-        } catch (Exception e) {
-            showAlert("所要時間は数字で入力してください");
             return;
         }
         LocalTime dueTime = null;

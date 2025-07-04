@@ -178,7 +178,6 @@ public class TaskController {
         String taskId = map.get("taskId");
         String taskName = map.get("taskName");
         String description = map.getOrDefault("description", "");
-        boolean isTeamTask = Boolean.parseBoolean(map.getOrDefault("isTeamTask", "false"));
         String dueTimeStr = map.get("dueTime");
         java.time.LocalTime dueTime = dueTimeStr != null && !dueTimeStr.isEmpty()
             ? java.time.LocalTime.parse(dueTimeStr)
@@ -189,13 +188,12 @@ public class TaskController {
             : null;
         String cycleType = map.getOrDefault("cycleType", "daily");
         String teamID = map.get("teamID");
-        // repeatDaysは未対応
         com.habit.domain.Task task;
 
-        if (isTeamTask && teamID != null && !teamID.isEmpty()) {
+        if (teamID != null && !teamID.isEmpty()) {
           // チーム共通タスクの場合
           task = new com.habit.domain.Task(
-              taskId, taskName, description, isTeamTask, teamID, dueTime, cycleType);
+              taskId, taskName, description, teamID, dueTime, cycleType);
           if (dueDate != null) {
             task.setDueDate(dueDate);
           }
