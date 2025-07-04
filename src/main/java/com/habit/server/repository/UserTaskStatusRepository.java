@@ -9,11 +9,16 @@ import java.sql.*;
  * UserTaskStatusのDB連携用リポジトリ
  */
 public class UserTaskStatusRepository {
-    private static final String DB_URL = "jdbc:sqlite:habit.db";
+    private final String dbUrl;
 
     public UserTaskStatusRepository() {
+        this("jdbc:sqlite:habit.db");
+    }
+
+    public UserTaskStatusRepository(String dbUrl) {
+        this.dbUrl = dbUrl;
         // テーブル作成（なければ）
-        try (Connection conn = DriverManager.getConnection(DB_URL);
+        try (Connection conn = DriverManager.getConnection(dbUrl);
              Statement stmt = conn.createStatement()) {
             String sql = "CREATE TABLE IF NOT EXISTS user_task_statuses (" +
                     "userId TEXT," +
@@ -45,7 +50,7 @@ public class UserTaskStatusRepository {
     // ユーザIDで検索
     public List<UserTaskStatus> findByUserId(String userId) {
         List<UserTaskStatus> result = new ArrayList<>();
-        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+        try (Connection conn = DriverManager.getConnection(dbUrl)) {
             String sql = "SELECT * FROM user_task_statuses WHERE userId = ?";
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setString(1, userId);
@@ -63,7 +68,7 @@ public class UserTaskStatusRepository {
     // userIdとteamIdで、そのユーザーが担当するチーム内タスクID一覧を取得
     public List<String> findTaskIdsByUserIdAndTeamId(String userId, String teamId) {
         List<String> result = new ArrayList<>();
-        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+        try (Connection conn = DriverManager.getConnection(dbUrl)) {
             String sql = "SELECT uts.taskId FROM user_task_statuses uts " +
                          "JOIN tasks t ON uts.taskId = t.taskId " +
                          "WHERE uts.userId = ? AND t.teamID = ?";
@@ -84,7 +89,7 @@ public class UserTaskStatusRepository {
     // タスクIDで検索
     public List<UserTaskStatus> findByTaskId(String taskId) {
         List<UserTaskStatus> result = new ArrayList<>();
-        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+        try (Connection conn = DriverManager.getConnection(dbUrl)) {
             String sql = "SELECT * FROM user_task_statuses WHERE taskId = ?";
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setString(1, taskId);
@@ -102,7 +107,7 @@ public class UserTaskStatusRepository {
 
     // ユーザID・タスクIDで検索
     public Optional<UserTaskStatus> findByUserIdAndTaskId(String userId, String taskId) {
-        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+        try (Connection conn = DriverManager.getConnection(dbUrl)) {
             String sql = "SELECT * FROM user_task_statuses WHERE userId = ? AND taskId = ?";
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setString(1, userId);
@@ -121,7 +126,7 @@ public class UserTaskStatusRepository {
     // タスクID・日付で検索
     public List<UserTaskStatus> findByTaskIdAndDate(String taskId, LocalDate date) {
         List<UserTaskStatus> result = new ArrayList<>();
-        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+        try (Connection conn = DriverManager.getConnection(dbUrl)) {
             String sql = "SELECT * FROM user_task_statuses WHERE taskId = ? AND date = ?";
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setString(1, taskId);
@@ -140,7 +145,7 @@ public class UserTaskStatusRepository {
 
     // ユーザID・タスクID・日付で検索 → 廃止すべき
     public Optional<UserTaskStatus> findByUserIdAndTaskIdAndDate(String userId, String taskId, LocalDate date) {
-        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+        try (Connection conn = DriverManager.getConnection(dbUrl)) {
             String sql = "SELECT * FROM user_task_statuses WHERE userId = ? AND taskId = ? AND date = ?";
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setString(1, userId);
@@ -160,7 +165,7 @@ public class UserTaskStatusRepository {
     // ユーザー・チーム・日付で一括取得
     public List<UserTaskStatus> findByUserIdAndTeamIdAndDate(String userId, String teamId, LocalDate date) {
         List<UserTaskStatus> result = new ArrayList<>();
-        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+        try (Connection conn = DriverManager.getConnection(dbUrl)) {
             String sql = "SELECT uts.* FROM user_task_statuses uts " +
                          "JOIN tasks t ON uts.taskId = t.taskId " +
                          "WHERE uts.userId = ? AND t.teamID = ? AND uts.date = ?";
@@ -183,7 +188,7 @@ public class UserTaskStatusRepository {
     // チームID・日付で全メンバー分の進捗を取得
     public List<UserTaskStatus> findByTeamIdAndDate(String teamId, LocalDate date) {
         List<UserTaskStatus> result = new ArrayList<>();
-        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+        try (Connection conn = DriverManager.getConnection(dbUrl)) {
             String sql = "SELECT uts.* FROM user_task_statuses uts " +
                          "JOIN tasks t ON uts.taskId = t.taskId " +
                          "WHERE t.teamID = ? AND uts.date = ?";
@@ -205,7 +210,7 @@ public class UserTaskStatusRepository {
     // チームID・日付範囲で全メンバー分の進捗を取得
     public List<UserTaskStatus> findByTeamIdAndDateRange(String teamId, LocalDate from, LocalDate to) {
         List<UserTaskStatus> result = new ArrayList<>();
-        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+        try (Connection conn = DriverManager.getConnection(dbUrl)) {
             String sql = "SELECT uts.* FROM user_task_statuses uts " +
                          "JOIN tasks t ON uts.taskId = t.taskId " +
                          "WHERE t.teamID = ? AND uts.date >= ? AND uts.date <= ?";
@@ -227,7 +232,7 @@ public class UserTaskStatusRepository {
 
     // 保存・更新
     public void save(UserTaskStatus status) {
-        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+        try (Connection conn = DriverManager.getConnection(dbUrl)) {
             String sql = "INSERT OR REPLACE INTO user_task_statuses (userId, taskId, teamId, date, isDone, completionTimestamp) VALUES (?, ?, ?, ?, ?, ?)";
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 pstmt.setString(1, status.getUserId());
@@ -246,7 +251,7 @@ public class UserTaskStatusRepository {
     // 全件取得
     public List<UserTaskStatus> findAll() {
         List<UserTaskStatus> result = new ArrayList<>();
-        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+        try (Connection conn = DriverManager.getConnection(dbUrl)) {
             String sql = "SELECT * FROM user_task_statuses";
             try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
                 ResultSet rs = pstmt.executeQuery();
@@ -295,7 +300,7 @@ public class UserTaskStatusRepository {
     // teamIdがnullでないユーザーのタスク状況を取得（チーム共通タスクのみ）
     public List<UserTaskStatus> findByUserIdAndDateAndTeamIdNotNull(String userId, LocalDate date) {
         List<UserTaskStatus> result = new ArrayList<>();
-        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+        try (Connection conn = DriverManager.getConnection(dbUrl)) {
             String sql = "SELECT uts.* FROM user_task_statuses uts " +
                          "JOIN tasks t ON uts.taskId = t.taskId " +
                          "WHERE uts.userId = ? AND uts.date = ? AND t.teamID IS NOT NULL";

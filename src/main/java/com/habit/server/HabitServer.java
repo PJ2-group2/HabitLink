@@ -64,8 +64,7 @@ public class HabitServer {
   
   // チーム共通タスク管理関連コンポーネント
   private static TeamTaskController teamTaskController = new TeamTaskController();
-  private static TaskAutoResetController taskAutoResetController =
-      new TaskAutoResetController();
+  private static TaskAutoResetController taskAutoResetController;
 
   public static void main(String[] args) throws Exception {
     // サーバを8080番ポートで起動
@@ -172,6 +171,7 @@ public class HabitServer {
     // ServiceとSchedulerを初期化
     taskAutoResetService = new TaskAutoResetService(taskRepository, userTaskStatusRepository, clock);
     taskAutoResetScheduler = new TaskAutoResetScheduler(taskAutoResetService);
+    taskAutoResetController = new TaskAutoResetController(taskAutoResetService);
 
     // 1時間ごとの自動実行スケジューラーを開始
     taskAutoResetScheduler.start();
