@@ -32,10 +32,6 @@ public class TeamTaskService {
      * @return 作成されたタスク
      */
     public Task createTeamTask(Task task) {
-        if (!task.isTeamTask() || task.getTeamId() == null) {
-            throw new IllegalArgumentException("チーム共通タスクにはteamIdが必要です");
-        }
-
         // タスクを保存
         Task savedTask = taskRepository.save(task);
 
@@ -51,10 +47,6 @@ public class TeamTaskService {
      * @param task チーム共通タスク
      */
     public void createUserTaskStatusForAllMembers(Task task) {
-        if (!task.isTeamTask() || task.getTeamId() == null) {
-            return;
-        }
-
         Team team = teamRepository.findById(task.getTeamId());
         if (team == null) {
             return;
@@ -96,7 +88,7 @@ public class TeamTaskService {
         LocalDate today = LocalDate.now();
         
         for (Task task : teamTasks) {
-            if (task.isTeamTask()) {
+            
                 // 既存のUserTaskStatusがないことを確認（taskIdとoriginalTaskIdの両方でチェック）
                 boolean existsByTaskId = userTaskStatusRepository.findByUserIdAndTaskIdAndDate(
                     newMemberId, task.getTaskId(), today).isPresent();
@@ -113,7 +105,7 @@ public class TeamTaskService {
                     );
                     userTaskStatusRepository.save(newStatus);
                 }
-            }
+            
         }
     }
 

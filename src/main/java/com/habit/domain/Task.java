@@ -10,8 +10,7 @@ import java.time.LocalTime;
 public class Task {
     private String taskId;
     private String taskName;
-    private String description;
-    private boolean isTeamTask;
+    private String description;     // 未実装
     private String teamId;          // チーム共通タスクの場合のチームID
     private LocalTime dueTime;      // 期限時刻
     private LocalDate dueDate;      // 期限日付
@@ -28,7 +27,6 @@ public class Task {
         this.taskId = taskId;
         this.taskName = taskName;
         this.description = description;
-        this.isTeamTask = isTeamTask;
         this.teamId = null; // 個人タスクの場合はnull
         this.dueTime = dueTime;
         this.dueDate = null; // デフォルトはnull、後で設定可能
@@ -41,7 +39,6 @@ public class Task {
         this.taskId = taskId;
         this.taskName = taskName;
         this.description = description;
-        this.isTeamTask = isTeamTask;
         this.teamId = teamId;
         this.dueTime = dueTime;
         this.dueDate = null; // デフォルトはnull、後で設定可能
@@ -50,11 +47,10 @@ public class Task {
     }
 
     // dueDateを含む完全版コンストラクタ
-    public Task(String taskId, String taskName, String description, boolean isTeamTask, LocalTime dueTime, LocalDate dueDate, String cycleType) {
+    public Task(String taskId, String taskName, String description, LocalTime dueTime, LocalDate dueDate, String cycleType) {
         this.taskId = taskId;
         this.taskName = taskName;
         this.description = description;
-        this.isTeamTask = isTeamTask;
         this.dueTime = dueTime;
         this.dueDate = dueDate;
         this.cycleType = cycleType;
@@ -101,10 +97,6 @@ public class Task {
 
     public String getDescription() {
         return description;
-    }
-
-    public boolean isTeamTask() {
-        return isTeamTask;
     }
 
     public String getTeamId() {

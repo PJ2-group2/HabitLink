@@ -171,7 +171,6 @@ public class TaskAutoResetService {
                     newTaskId, // 新しいTaskID
                     originalTask.getTaskName(), // 同じタスク名
                     originalTask.getDescription(), // 同じ説明
-                    originalTask.isTeamTask(), // 同じチーム設定
                     nextDueTime, // 調整された期限時刻
                     nextDate, // 調整された期限日付
                     originalTask.getCycleType() // 同じサイクルタイプ
@@ -268,10 +267,9 @@ public class TaskAutoResetService {
                 newTaskId,                          // 新しいTaskID
                 originalTask.getTaskName(),         // 同じタスク名
                 originalTask.getDescription(),      // 同じ説明
-                originalTask.isTeamTask(),          // 同じチーム設定
                 nextDueTime,                    // 調整された期限時刻
                 nextDate,                    // 調整された期限日付
-                originalTask.getCycleType()         // 同じサイクルタイプ
+                originalTask.getCycleType()       // 同じサイクルタイプ
             );
             
             // TaskをDBに保存

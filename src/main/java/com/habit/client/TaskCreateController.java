@@ -22,9 +22,6 @@ public class TaskCreateController {
     /* タスクの所要時間入力フィールド */
     @FXML 
     private TextField estimatedMinutesField;
-    /* タスクの種類選択ボックス */
-    @FXML 
-    private ChoiceBox<String> taskTypeChoice;
     /* タスクの期限時刻入力フィールド */
     @FXML
     private TextField dueTimeField;
@@ -65,10 +62,6 @@ public class TaskCreateController {
     @FXML
     private void initialize() {
         // ChoiceBoxの選択肢をセット
-        if (taskTypeChoice != null) {
-            taskTypeChoice.getItems().setAll("共通タスク", "個人タスク");
-            taskTypeChoice.getSelectionModel().selectFirst();
-        }
         if (cycleTypeChoice != null) {
             cycleTypeChoice.getItems().setAll("毎日", "毎週");
             cycleTypeChoice.getSelectionModel().selectFirst();
@@ -83,7 +76,6 @@ public class TaskCreateController {
         String name = taskNameField.getText();
         String description = descriptionField != null ? descriptionField.getText() : "";
         String estimatedStr = estimatedMinutesField != null ? estimatedMinutesField.getText() : "0";
-        String type = taskTypeChoice.getValue();
         String dueTimeStr = dueTimeField.getText();
         String dueDateStr = dueDateField != null ? dueDateField.getText() : "";
         String cycle = cycleTypeChoice.getValue();
@@ -140,13 +132,11 @@ public class TaskCreateController {
         }
 
         // 保存処理
-        boolean isTeamTask = "共通タスク".equals(type);
         String cycleType = "毎日".equals(cycle) ? "daily" : "weekly";
         com.habit.domain.Task task = new com.habit.domain.Task(
             java.util.UUID.randomUUID().toString(),
             name,
             description,
-            isTeamTask,
             dueTime,
             dueDate,
             cycleType
@@ -161,7 +151,6 @@ public class TaskCreateController {
             "taskId=" + task.getTaskId() +
             ", name=" + task.getTaskName() +
             ", description=" + task.getDescription() +
-            ", isTeamTask=" + task.isTeamTask() +
             ", dueTime=" + task.getDueTime() +
             ", dueDate=" + task.getDueDate() +
             ", cycleType=" + task.getCycleType() +
@@ -173,7 +162,6 @@ public class TaskCreateController {
             String body = "taskId=" + java.net.URLEncoder.encode(task.getTaskId(), "UTF-8")
                 + "&taskName=" + java.net.URLEncoder.encode(task.getTaskName(), "UTF-8")
                 + "&description=" + java.net.URLEncoder.encode(task.getDescription(), "UTF-8")
-                + "&isTeamTask=" + task.isTeamTask()
                 + "&dueTime=" + java.net.URLEncoder.encode(task.getDueTime() != null ? task.getDueTime().toString() : "", "UTF-8")
                 + "&dueDate=" + java.net.URLEncoder.encode(task.getDueDate() != null ? task.getDueDate().toString() : "", "UTF-8")
                 + "&cycleType=" + java.net.URLEncoder.encode(task.getCycleType(), "UTF-8")
