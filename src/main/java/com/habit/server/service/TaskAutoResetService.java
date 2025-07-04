@@ -5,6 +5,7 @@ import com.habit.domain.UserTaskStatus;
 import com.habit.server.repository.TaskRepository;
 import com.habit.server.repository.UserTaskStatusRepository;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -21,19 +22,18 @@ import java.util.Optional;
 public class TaskAutoResetService {
     private final TaskRepository taskRepository;
     private final UserTaskStatusRepository userTaskStatusRepository;
+    private final Clock clock;
     
     // 重複実行防止用のフラグ（1分ごと実行のため、処理が重複しないよう制御）
     private volatile boolean isRunning = false;
 
-    // 今日の日付
-    private LocalDate today = LocalDate.now();
-
     /**
      * コンストラクタ
      */ 
-    public TaskAutoResetService(TaskRepository taskRepository, UserTaskStatusRepository userTaskStatusRepository) {
+    public TaskAutoResetService(TaskRepository taskRepository, UserTaskStatusRepository userTaskStatusRepository, Clock clock) {
         this.taskRepository = taskRepository;
         this.userTaskStatusRepository = userTaskStatusRepository;
+        this.clock = clock;
     }
     
     /**
@@ -62,7 +62,7 @@ public class TaskAutoResetService {
             List<String> allTeamIds = teamRepository.findAllTeamIds();
             
             System.out.println("自動再設定チェック開始: " + allTeamIds.size() + "チーム対象 at " +
-                java.time.LocalDateTime.now());
+                java.time.LocalDateTime.now(clock));
             
             int processedTeams = 0;
             int totalResets = 0;
@@ -80,7 +80,7 @@ public class TaskAutoResetService {
             }
             
             System.out.println("自動再設定チェック完了: " + processedTeams + "チームで処理, " +
-                totalResets + "タスクを再設定 at " + java.time.LocalDateTime.now());
+                totalResets + "タスクを再設定 at " + java.time.LocalDateTime.now(clock));
         } catch (Exception e) {
             System.err.println("自動再設定の定期実行でエラー: " + e.getMessage());
             e.printStackTrace();
@@ -103,7 +103,7 @@ public class TaskAutoResetService {
      */
     public int checkAndResetTasks(String teamId) { // private から public に変更
         List<Task> teamTasks = taskRepository.findTeamTasksByTeamID(teamId); // チームの全タスクを取得
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(clock);
         LocalDate yesterday = today.minusDays(1); // 前日の日付
         int resetCount = 0;
         

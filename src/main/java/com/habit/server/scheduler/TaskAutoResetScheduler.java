@@ -21,11 +21,8 @@ public class TaskAutoResetScheduler {
     private final TaskAutoResetService taskAutoResetService;
     private final ScheduledExecutorService scheduler;
     
-    public TaskAutoResetScheduler() {
-        this.taskAutoResetService = new TaskAutoResetService(
-            new TaskRepository(),
-            new UserTaskStatusRepository()
-        );
+    public TaskAutoResetScheduler(TaskAutoResetService taskAutoResetService) {
+        this.taskAutoResetService = taskAutoResetService;
         this.scheduler = Executors.newScheduledThreadPool(1); // スレッドプールのサイズは1（単一スレッドで実行）
     }
     
