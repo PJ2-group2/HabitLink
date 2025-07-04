@@ -12,7 +12,6 @@ import com.habit.server.controller.TaskController;
 import com.habit.server.controller.TeamController;
 import com.habit.server.controller.UserController;
 import com.habit.server.controller.UserTaskStatusController;
-import com.habit.server.controller.TaskAutoResetController;
 import com.habit.server.controller.TeamTaskController;
 import com.habit.server.repository.MessageRepository;
 import com.habit.server.repository.TaskRepository;
@@ -21,8 +20,10 @@ import com.habit.server.repository.UserRepository;
 import com.habit.server.repository.UserTaskStatusRepository;
 import com.habit.server.scheduler.TaskAutoResetScheduler;
 import com.habit.server.service.AuthService;
+import com.habit.server.service.TaskAutoResetService;
 import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
+import java.time.Clock;
 
 // JDBC based team management
 // import com.habit.server.DatabaseTeamManager;
@@ -58,17 +59,25 @@ public class HabitServer {
 
   // タスク自動再設定関連コンポーネント
   // スケジューラー: 1時間ごとの自動実行を担当
-  private static TaskAutoResetScheduler taskAutoResetScheduler =
-      new TaskAutoResetScheduler();
+  private static TaskAutoResetService taskAutoResetService;
+  private static TaskAutoResetScheduler taskAutoResetScheduler;
   
   // チーム共通タスク管理関連コンポーネント
   private static TeamTaskController teamTaskController = new TeamTaskController();
-  private static TaskAutoResetController taskAutoResetController =
-      new TaskAutoResetController();
+  private static TaskAutoResetController taskAutoResetController;
 
   public static void main(String[] args) throws Exception {
     // サーバを8080番ポートで起動
     HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
+
+    // === タスク自動再設定機能の開始 ===
+    // Clockを生成（本番環境ではシステムデフォルトの時刻を使用）
+    Clock clock = Clock.systemDefaultZone();
+    // ServiceとSchedulerを初期化
+    taskAutoResetService = new TaskAutoResetService(taskRepository, userTaskStatusRepository, clock);
+    taskAutoResetScheduler = new TaskAutoResetScheduler(taskAutoResetService);
+    taskAutoResetController = new TaskAutoResetController(taskAutoResetService);
+
     // 各APIエンドポイントを登録
     server.createContext("/hello", new HelloController()); // 動作確認用
 
@@ -152,9 +161,6 @@ public class HabitServer {
     server.createContext(
         "/getTeamTasks",
         teamController.getGetTeamTasksHandler()); // チームタスク一覧
-    server.createContext(
-        "/getTeamTasksGrouped",
-        teamController.getGetTeamTasksGroupedHandler()); // チームタスク一覧（originalTaskIdでグループ化）
     
     // チーム共通タスク管理API
     server.createContext(
@@ -167,7 +173,6 @@ public class HabitServer {
     server.setExecutor(null);
     server.start();
 
-    // === タスク自動再設定機能の開始 ===
     // 1時間ごとの自動実行スケジューラーを開始
     taskAutoResetScheduler.start();
 

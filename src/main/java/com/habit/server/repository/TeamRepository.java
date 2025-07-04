@@ -20,8 +20,6 @@ public class TeamRepository {
                    + "passcode TEXT,"
                    + "maxMembers INTEGER,"
                    + "editPermission TEXT,"
-                   + "category TEXT,"
-                   + "scope TEXT,"
                    + "creatorId TEXT"
                    + ")";
       stmt.execute(sql);
@@ -32,19 +30,14 @@ public class TeamRepository {
       // teamsテーブルのカラム追加（既存DB用）
       ResultSet rs = stmt.executeQuery("PRAGMA table_info(teams)");
       boolean hasteamName = false;
-      boolean hasScope = false;
       boolean hasPasscode = false;
       boolean hasMaxMembers = false;
       boolean hasEditPermission = false;
-      boolean hasCategory = false;
       boolean hasCreatorId = false;
       while (rs.next()) {
         String col = rs.getString("name");
         if ("teamName".equalsIgnoreCase(col)) {
           hasteamName = true;
-        }
-        if ("scope".equalsIgnoreCase(col)) {
-          hasScope = true;
         }
         if ("passcode".equalsIgnoreCase(col)) {
           hasPasscode = true;
@@ -55,18 +48,12 @@ public class TeamRepository {
         if ("editPermission".equalsIgnoreCase(col)) {
           hasEditPermission = true;
         }
-        if ("category".equalsIgnoreCase(col)) {
-          hasCategory = true;
-        }
         if ("creatorId".equalsIgnoreCase(col)) {
           hasCreatorId = true;
         }
       }
       if (!hasteamName) {
         stmt.execute("ALTER TABLE teams ADD COLUMN teamName TEXT");
-      }
-      if (!hasScope) {
-        stmt.execute("ALTER TABLE teams ADD COLUMN scope TEXT");
       }
       if (!hasPasscode) {
         stmt.execute("ALTER TABLE teams ADD COLUMN passcode TEXT");
@@ -76,9 +63,6 @@ public class TeamRepository {
       }
       if (!hasEditPermission) {
         stmt.execute("ALTER TABLE teams ADD COLUMN editPermission TEXT");
-      }
-      if (!hasCategory) {
-        stmt.execute("ALTER TABLE teams ADD COLUMN category TEXT");
       }
       if (!hasCreatorId) {
         stmt.execute("ALTER TABLE teams ADD COLUMN creatorId TEXT");
@@ -105,11 +89,11 @@ public class TeamRepository {
     return null;
   }
 
-  // 公開チーム名一覧
+  // 公開チーム名一覧(公開非公開の区別を廃止)
   public List<String> findAllPublicTeamNames() {
     List<String> names = new java.util.ArrayList<>();
     try (Connection conn = DriverManager.getConnection(databaseUrl)) {
-      String sql = "SELECT teamName FROM teams WHERE scope = 'public'";
+      String sql = "SELECT teamName FROM teams";
       try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
         ResultSet rs = pstmt.executeQuery();
         while (rs.next()) {
@@ -215,20 +199,18 @@ public class TeamRepository {
 
   // 新しいsave: 追加情報も保存
   public void save(Team team, String passcode, int maxMembers, String editPerm,
-                   String category, String scope, List<String> members) {
+                   List<String> members) {
     try (Connection conn = DriverManager.getConnection(databaseUrl)) {
       String sql = "INSERT OR REPLACE INTO teams (id, teamName, passcode, "
-                   + "maxMembers, editPermission, category, scope, creatorId) "
-                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                   + "maxMembers, editPermission, creatorId) "
+                   + "VALUES (?, ?, ?, ?, ?, ?)";
       try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
         pstmt.setString(1, team.getTeamID());
         pstmt.setString(2, team.getteamName());
         pstmt.setString(3, passcode);
         pstmt.setInt(4, maxMembers);
         pstmt.setString(5, editPerm);
-        pstmt.setString(6, category);
-        pstmt.setString(7, scope);
-        pstmt.setString(8, team.getCreatorId());
+        pstmt.setString(6, team.getCreatorId());
         pstmt.executeUpdate();
       }
       // メンバー保存

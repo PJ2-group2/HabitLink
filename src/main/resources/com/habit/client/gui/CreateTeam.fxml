@@ -19,20 +19,6 @@
                         <Label text="タスク編集権限"/>
                         <ChoiceBox fx:id="editPermissionChoice"/>
                     </HBox>
-                    <HBox spacing="10" alignment="CENTER_LEFT">
-                        <Label text="カテゴリー"/>
-                        <CheckBox fx:id="catStudy" text="勉強"/>
-                        <CheckBox fx:id="catWorkout" text="筋トレ"/>
-                        <CheckBox fx:id="catReading" text="読書"/>
-                        <CheckBox fx:id="catDiet" text="ダイエット"/>
-                        <CheckBox fx:id="catHobby" text="趣味"/>
-                        <CheckBox fx:id="catOther" text="その他"/>
-                    </HBox>
-                    <HBox spacing="10" alignment="CENTER_LEFT">
-                        <Label text="公開範囲"/>
-                        <RadioButton fx:id="publicRadio" text="Public" toggleGroup="$scopeGroup"/>
-                        <RadioButton fx:id="privateRadio" text="Private" toggleGroup="$scopeGroup"/>
-                    </HBox>
                 </VBox>
             </Tab>
             <Tab text="メンバー招待">

@@ -59,10 +59,6 @@ public class TeamController {
     return new GetTeamTasksHandler();
   }
   
-  public HttpHandler getGetTeamTasksGroupedHandler() {
-    return new GetTeamTasksGroupedHandler();
-  }
-  
   public HttpHandler getGetTeamIdByPasscodeHandler() {
     return new GetTeamIdByPasscodeHandler();
   }
@@ -96,8 +92,7 @@ public class TeamController {
       try {
         String[] params = bodyStr.split("&");
         String teamID = UUID.randomUUID().toString();
-        String teamName = "", passcode = "", editPerm = "", category = "",
-               scope = "public";
+        String teamName = "", passcode = "", editPerm = "";
         int maxMembers = 5;
         List<String> members = new ArrayList<>();
         for (String param : params) {
@@ -116,12 +111,6 @@ public class TeamController {
             break;
           case "editPermission":
             editPerm = java.net.URLDecoder.decode(kv[1], "UTF-8");
-            break;
-          case "category":
-            category = java.net.URLDecoder.decode(kv[1], "UTF-8");
-            break;
-          case "scope":
-            scope = java.net.URLDecoder.decode(kv[1], "UTF-8");
             break;
           case "members":
             for (String m : kv[1].split(","))
@@ -161,7 +150,7 @@ public class TeamController {
             new Team(teamID, teamName, creatorUserId, TeamMode.FIXED_TASK_MODE);
         team.setteamName(teamName);
         TeamRepository repo = new TeamRepository();
-        repo.save(team, passcode, maxMembers, editPerm, category, scope,
+        repo.save(team, passcode, maxMembers, editPerm,
                   members);
 
         String sessionId = null;
@@ -402,48 +391,6 @@ public class TeamController {
       os.close();
     }
   }
-
-  // --- チームタスク一覧取得API（originalTaskIdでグループ化）---
-  class GetTeamTasksGroupedHandler implements HttpHandler {
-    @Override
-    public void handle(HttpExchange exchange) throws IOException {
-      String query = exchange.getRequestURI().getQuery();
-      String teamID = null;
-      if (query != null && query.contains("teamID=")) {
-        for (String param : query.split("&")) {
-          if (param.startsWith("teamID=")) {
-            teamID = java.net.URLDecoder.decode(param.substring(7), "UTF-8");
-            break;
-          }
-        }
-      }
-      String response;
-      if (teamID == null || teamID.isEmpty()) {
-        response = "[]";
-      } else {
-        // originalTaskIdでグループ化されたタスクを取得
-        List<com.habit.domain.Task> tasks =
-            taskRepository.findTeamTasksByTeamIDGroupedByOriginalTaskId(teamID);
-        List<String> taskJsons = new ArrayList<>();
-        for (var t : tasks) {
-          String tid = t.getTaskId();
-          String originalTid = t.getOriginalTaskId();
-          String tname = t.getTaskName();
-          String cycleType = t.getCycleType() != null ? t.getCycleType() : "";
-          taskJsons.add(String.format("{\"taskId\":\"%s\",\"originalTaskId\":\"%s\",\"taskName\":\"%s\",\"period\":\"%s\"}",
-                                     tid, originalTid, tname, cycleType));
-        }
-        response = "[" + String.join(",", taskJsons) + "]";
-      }
-      exchange.getResponseHeaders().set("Content-Type",
-                                        "application/json; charset=UTF-8");
-      exchange.sendResponseHeaders(200, response.getBytes("UTF-8").length);
-      OutputStream os = exchange.getResponseBody();
-      os.write(response.getBytes("UTF-8"));
-      os.close();
-    }
-  }
-
   // --- パスコードからチームID取得API ---
   class GetTeamIdByPasscodeHandler implements HttpHandler {
     @Override

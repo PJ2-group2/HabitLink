@@ -28,11 +28,8 @@ import java.io.OutputStream;
 public class TaskAutoResetController {
     private final TaskAutoResetService taskAutoResetService;
     
-    public TaskAutoResetController() {
-        this.taskAutoResetService = new TaskAutoResetService(
-            new TaskRepository(),
-            new UserTaskStatusRepository()
-        );
+    public TaskAutoResetController(TaskAutoResetService taskAutoResetService) {
+        this.taskAutoResetService = taskAutoResetService;
     }
     
     /**

@@ -32,10 +32,6 @@ public class TeamTaskService {
      * @return 作成されたタスク
      */
     public Task createTeamTask(Task task) {
-        if (!task.isTeamTask() || task.getTeamId() == null) {
-            throw new IllegalArgumentException("チーム共通タスクにはteamIdが必要です");
-        }
-
         // タスクを保存
         Task savedTask = taskRepository.save(task);
 
@@ -51,10 +47,6 @@ public class TeamTaskService {
      * @param task チーム共通タスク
      */
     public void createUserTaskStatusForAllMembers(Task task) {
-        if (!task.isTeamTask() || task.getTeamId() == null) {
-            return;
-        }
-
         Team team = teamRepository.findById(task.getTeamId());
         if (team == null) {
             return;
@@ -64,13 +56,11 @@ public class TeamTaskService {
         
         // チームの全メンバーに対してUserTaskStatusを作成
         for (String memberId : team.getMemberIds()) {
-            // 既存のUserTaskStatusがないことを確認（taskIdとoriginalTaskIdの両方でチェック）
+            // 既存のUserTaskStatusがないことを確認（taskIdでチェック）
             boolean existsByTaskId = userTaskStatusRepository.findByUserIdAndTaskIdAndDate(
                 memberId, task.getTaskId(), today).isPresent();
-            boolean existsByOriginalTaskId = userTaskStatusRepository.findByUserIdAndOriginalTaskIdAndDate(
-                memberId, task.getOriginalTaskId(), today).isPresent();
-                
-            if (!existsByTaskId && !existsByOriginalTaskId) {
+
+            if (!existsByTaskId) {
                 UserTaskStatus newStatus = new UserTaskStatus(
                     memberId,
                     task.getTaskId(),
@@ -96,24 +86,22 @@ public class TeamTaskService {
         LocalDate today = LocalDate.now();
         
         for (Task task : teamTasks) {
-            if (task.isTeamTask()) {
-                // 既存のUserTaskStatusがないことを確認（taskIdとoriginalTaskIdの両方でチェック）
-                boolean existsByTaskId = userTaskStatusRepository.findByUserIdAndTaskIdAndDate(
-                    newMemberId, task.getTaskId(), today).isPresent();
-                boolean existsByOriginalTaskId = userTaskStatusRepository.findByUserIdAndOriginalTaskIdAndDate(
-                    newMemberId, task.getOriginalTaskId(), today).isPresent();
-                    
-                if (!existsByTaskId && !existsByOriginalTaskId) {
-                    UserTaskStatus newStatus = new UserTaskStatus(
-                        newMemberId,
-                        task.getTaskId(),
-                        teamId,
+
+            // 既存のUserTaskStatusがないことを確認（taskIdでチェック）
+            boolean existsByTaskId = userTaskStatusRepository.findByUserIdAndTaskIdAndDate(
+                newMemberId, task.getTaskId(), today).isPresent();
+
+            if (!existsByTaskId) {
+                UserTaskStatus newStatus = new UserTaskStatus(
+                    newMemberId,
+                    task.getTaskId(),
+                    teamId,
                         today,
                         false
                     );
                     userTaskStatusRepository.save(newStatus);
                 }
-            }
+            
         }
     }
 

@@ -9,6 +9,8 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import java.time.*;
 import java.util.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 /**
  * 個人ページのコントローラークラス。
@@ -31,7 +33,7 @@ public class PersonalPageController {
     // チームトップからタスク一覧を受け取る用（廃止予定 - 常に最新データを取得）
     public void setUserTasks(List<com.habit.domain.Task> tasks) {
         // 渡されたタスク一覧は無視して、常に最新データをAPIから取得
-        System.out.println("[PersonalPageController] setUserTasks called, but fetching latest data from API");
+        System.out.println("[PersonalPageController] fetching latest data from API");
         this.tasks = fetchUserTasksForPersonalPage();
         updateTaskTiles();
     }
@@ -83,54 +85,20 @@ public class PersonalPageController {
     private void updateTaskTiles() {
         taskTilePane.getChildren().clear();
         for (com.habit.domain.Task task : tasks) {
-            java.time.LocalTime dueTime = task.getDueTime();
             java.time.LocalDate dueDate = task.getDueDate();
-            java.time.LocalDateTime now = LocalDateTime.now();
-            java.time.LocalDateTime deadline = null;
-            if (dueDate != null) {
-                deadline = dueDate.atTime(dueTime != null ? dueTime : LocalTime.MAX);
-            }
+            java.time.LocalDate today = LocalDate.now();
 
-            if (deadline != null && now.isAfter(deadline)) {
+            // 期限切れタスクは現在スキップする仕様
+            if (today.isAfter(dueDate)) {
                 continue; // Skip overdue tasks
             }
 
             Button tileBtn = new Button();
             tileBtn.setStyle("-fx-border-color: #aaa; -fx-padding: 30; -fx-background-color: #f9f9f9; -fx-min-width: 320px; -fx-min-height: 150px; -fx-alignment: center; -fx-font-size: 22px; -fx-font-weight: bold;");
             String name = task.getTaskName();
-            String remainStr = getRemainingTimeAndDaysString(dueTime, dueDate);
+            String remainStr = getRemainingTimeString(dueDate);
             tileBtn.setText(name + (remainStr.isEmpty() ? "" : "\n" + remainStr));
             tileBtn.setOnAction(unused -> {
-                // 達成可能かどうかのチェック
-                String cycleType = task.getCycleType();
-                LocalDate taskDueDate = task.getDueDate();
-                boolean canComplete = true;
-                String errorMessage = "";
-
-                if (taskDueDate != null && cycleType != null) {
-                    LocalDateTime taskDeadline = taskDueDate.atTime(task.getDueTime() != null ? task.getDueTime() : LocalTime.MAX);
-                    if ("daily".equalsIgnoreCase(cycleType)) {
-                        if (now.isBefore(taskDeadline.minusHours(24))) {
-                            canComplete = false;
-                            errorMessage = "このタスクは期限の24時間前まで達成できません。";
-                        }
-                    } else if ("weekly".equalsIgnoreCase(cycleType)) {
-                        if (now.isBefore(taskDeadline.minusDays(7))) {
-                            canComplete = false;
-                            errorMessage = "このタスクは期限の7日前まで達成できません。";
-                        }
-                    }
-                }
-
-                if (!canComplete) {
-                    Alert alert = new Alert(Alert.AlertType.WARNING);
-                    alert.setTitle("達成不可");
-                    alert.setHeaderText(null);
-                    alert.setContentText(errorMessage);
-                    alert.showAndWait();
-                    return;
-                }
-
                 // 確認ダイアログを表示
                 Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
                 alert.setTitle("タスク消化の確認");
@@ -195,18 +163,19 @@ public class PersonalPageController {
         }
     }
 
-    // LocalTime（本日分の締切時刻）までの残り時間を表示（修正版：日付も考慮）
-    private String getRemainingTimeString(java.time.LocalTime dueTime, java.time.LocalDate dueDate) {
+    // 日付が変わるまでの残り時間を表示
+    private String getRemainingTimeString(java.time.LocalDate dueDate) {
         java.time.LocalDate today = java.time.LocalDate.now();
         java.time.LocalTime now = java.time.LocalTime.now();
         
         // 期限日付が指定されていない場合は今日として扱う
         if (dueDate == null) {
-            dueDate = today;
+            System.out.println("期限日がnullです。");
+            return null;
         }
         
-        java.time.LocalDateTime deadline = dueDate.atTime(dueTime);
-        java.time.LocalDateTime nowDateTime = today.atTime(now);
+        LocalDateTime deadline = dueDate.atTime(LocalTime.MAX); // 期限はその日の23:59:59とする
+        LocalDateTime nowDateTime = today.atTime(now);
         
         if (nowDateTime.isAfter(deadline)) return "期限切れ";
         
@@ -216,42 +185,6 @@ public class PersonalPageController {
         return String.format("%d時間%d分", hours, minutes);
     }
 
-    // 期限日付と時刻の両方を考慮した残り時間・日数表示
-    private String getRemainingTimeAndDaysString(java.time.LocalTime dueTime, java.time.LocalDate dueDate) {
-        java.time.LocalDate today = java.time.LocalDate.now();
-        java.time.LocalTime now = java.time.LocalTime.now();
-        
-        // 期限日付が設定されていない場合は従来通り時間のみ表示
-        if (dueDate == null) {
-            if (dueTime == null) return "";
-            return "残り: " + getRemainingTimeString(dueTime, null);
-        }
-        
-        // 期限日付が設定されている場合
-        java.time.LocalDateTime deadline = dueDate.atTime(dueTime != null ? dueTime : java.time.LocalTime.of(23, 59));
-        java.time.LocalDateTime nowDateTime = today.atTime(now);
-        
-        if (nowDateTime.isAfter(deadline)) {
-            return "期限切れ";
-        }
-        
-        // 正確な残り時間を計算（時刻まで考慮）
-        java.time.Duration duration = java.time.Duration.between(nowDateTime, deadline);
-        long totalHours = duration.toHours();
-        long totalDays = totalHours / 24;
-        
-        if (totalDays > 0) {
-            // 1日以上残っている場合は日数を表示
-            return String.format("残り: %d日", totalDays);
-        } else {
-            // 当日または24時間以内の場合は時間を表示
-            if (dueTime != null) {
-                return "残り: " + getRemainingTimeString(dueTime, dueDate);
-            } else {
-                return "残り: 本日中";
-            }
-        }
-    }
     // タスク一覧をAPIから取得する（TeamTopControllerのgetUserTasksForPersonalPage()相当）
     private List<com.habit.domain.Task> fetchUserTasksForPersonalPage() {
         try {
@@ -281,13 +214,6 @@ public class PersonalPageController {
                     org.json.JSONObject obj = arr.getJSONObject(i);
                     String taskId = obj.optString("taskId", null);
                     String taskName = obj.optString("taskName", null);
-                    String dueTimeStr = obj.optString("dueTime", null);
-                    java.time.LocalTime dueTime = null;
-                    if (dueTimeStr != null && !dueTimeStr.isEmpty() && !"null".equals(dueTimeStr)) {
-                        try {
-                            dueTime = java.time.LocalTime.parse(dueTimeStr);
-                        } catch (Exception ignore) {}
-                    }
                     String dueDateStr = obj.optString("dueDate", null);
                     java.time.LocalDate dueDate = null;
                     if (dueDateStr != null && !dueDateStr.isEmpty() && !"null".equals(dueDateStr)) {
@@ -314,17 +240,8 @@ public class PersonalPageController {
                             t.setDueDate(dueDate);
                         }
                         
-                        // dueTimeはリフレクションで設定（setterがないため）
-                        if (dueTime != null) {
-                            try {
-                                java.lang.reflect.Field f = t.getClass().getDeclaredField("dueTime");
-                                f.setAccessible(true);
-                                f.set(t, dueTime);
-                            } catch (Exception ignore) {}
-                        }
-                        
                         System.out.println("[PersonalPageController] Adding task: " + taskName + " (ID: " + taskId +
-                            ", dueDate: " + dueDate + ", dueTime: " + dueTime + ", cycleType: " + cycleType + ")");
+                            ", dueDate: " + dueDate + ", cycleType: " + cycleType + ")");
                         tasks.add(t);
                     }
                 }

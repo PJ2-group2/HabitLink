@@ -12,14 +12,6 @@
             <TextField fx:id="taskNameField" promptText="タスク名"/>
         </HBox>
         <HBox spacing="10">
-            <Label text="タスク種別"/>
-            <ChoiceBox fx:id="taskTypeChoice"/>
-        </HBox>
-        <HBox spacing="10">
-            <Label text="期限時刻"/>
-            <TextField fx:id="dueTimeField" promptText="例: 23:59"/>
-        </HBox>
-        <HBox spacing="10">
             <Label text="期限日付"/>
             <TextField fx:id="dueDateField" promptText="例: 2025-07-02 (省略可)"/>
         </HBox>

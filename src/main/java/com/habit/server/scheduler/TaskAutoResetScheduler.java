@@ -21,37 +21,31 @@ public class TaskAutoResetScheduler {
     private final TaskAutoResetService taskAutoResetService;
     private final ScheduledExecutorService scheduler;
     
-    // 実行間隔（1分ごと）- 変更したい場合はここを修正
-    private static final int EXECUTION_INTERVAL_MINUTES = 1;
-    
-    public TaskAutoResetScheduler() {
-        this.taskAutoResetService = new TaskAutoResetService(
-            new TaskRepository(),
-            new UserTaskStatusRepository()
-        );
+    public TaskAutoResetScheduler(TaskAutoResetService taskAutoResetService) {
+        this.taskAutoResetService = taskAutoResetService;
         this.scheduler = Executors.newScheduledThreadPool(1); // スレッドプールのサイズは1（単一スレッドで実行）
     }
     
     /**
      * スケジューラーの開始メソッド
-     *  1分ごとに実行
-     *  scheduleAtFixedRate: 前回の実行開始時刻から固定間隔で実行
-     * （処理時間に関係なく、1分ごとに確実に実行される）
+     * 毎日午前0時に実行されるように設定
      */
     public void start() {
-        long initialDelay = 60; // 1分後に初回実行（サーバー起動直後の負荷を避ける）
-        long period = EXECUTION_INTERVAL_MINUTES * 60; // 1分間隔（単位: 秒）
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime nextRun = now.plusDays(1).withHour(0).withMinute(0).withSecond(0).withNano(0); // 次の午前0時
+        long initialDelay = now.until(nextRun, ChronoUnit.SECONDS); // 初回実行までの遅延（秒単位）
+        long period = TimeUnit.DAYS.toSeconds(1); // 24時間
 
         scheduler.scheduleAtFixedRate(
             this::executeAutoReset, // 実行するメソッド
-            initialDelay,           // 初回実行までの遅延
-            period,                 // 実行間隔
+            initialDelay,           // 初回実行までの遅延(次の午前0時まで)
+            period,                 // 実行間隔(24時間ごと)
             TimeUnit.SECONDS        // 時間単位
         );
         
         System.out.println("タスク自動再設定スケジューラーを開始しました。");
-        System.out.println("実行間隔: " + EXECUTION_INTERVAL_MINUTES + "分ごと");
-        System.out.println("初回実行まで: " + initialDelay + "秒");
+        System.out.println("初回実行まで: " + initialDelay + "秒 (次の午前0時)");
+        System.out.println("実行間隔: 24時間ごと");
     }
     
     /**
