@@ -22,9 +22,6 @@ public class CreateTeamController {
     /** 編集権限選択ボックス */
     @FXML
     private ChoiceBox<String> editPermissionChoice;
-    /** チームの公開範囲ラジオボタン */
-    @FXML
-    private RadioButton publicRadio, privateRadio;
     /** チームの公開範囲ラベル */
     @FXML
     private TextField inviteMemberField;
@@ -55,7 +52,6 @@ public class CreateTeamController {
         System.out.println("teamID set: " + teamID);
     }
 
-    private ToggleGroup scopeGroup = new ToggleGroup(); // チームの公開範囲を選択するためのトグルグループ
     private ObservableList<String> invitedMembers = FXCollections.observableArrayList(); // 招待されたメンバーのリスト
 
     /* コントローラー初期化メソッド
@@ -68,9 +64,6 @@ public class CreateTeamController {
         maxMembersSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 30, 5));
         editPermissionChoice.setItems(FXCollections.observableArrayList("自分だけ", "自由"));
         editPermissionChoice.getSelectionModel().selectFirst();
-        publicRadio.setToggleGroup(scopeGroup);
-        privateRadio.setToggleGroup(scopeGroup);
-        publicRadio.setSelected(true);
         inviteList.setItems(invitedMembers);
 
         // メンバー追加ボタンのアクション設定
@@ -101,7 +94,6 @@ public class CreateTeamController {
             String passcode = passcodeField.getText().trim();
             int maxMembers = maxMembersSpinner.getValue();
             String editPerm = editPermissionChoice.getValue();
-            String scope = publicRadio.isSelected() ? "public" : "private";
             ObservableList<String> members = FXCollections.observableArrayList(invitedMembers);
 
             if (teamName.isEmpty()) {
@@ -116,7 +108,6 @@ public class CreateTeamController {
                 sb.append("&passcode=").append(java.net.URLEncoder.encode(passcode, "UTF-8"));
                 sb.append("&maxMembers=").append(maxMembers);
                 sb.append("&editPermission=").append(java.net.URLEncoder.encode(editPerm, "UTF-8"));
-                sb.append("&scope=").append(java.net.URLEncoder.encode(scope, "UTF-8"));
                 sb.append("&members=").append(java.net.URLEncoder.encode(String.join(",", members), "UTF-8"));
 
                 // HTTPクライアントを作成

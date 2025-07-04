@@ -96,8 +96,7 @@ public class TeamController {
       try {
         String[] params = bodyStr.split("&");
         String teamID = UUID.randomUUID().toString();
-        String teamName = "", passcode = "", editPerm = "",
-               scope = "public";
+        String teamName = "", passcode = "", editPerm = "";
         int maxMembers = 5;
         List<String> members = new ArrayList<>();
         for (String param : params) {
@@ -116,9 +115,6 @@ public class TeamController {
             break;
           case "editPermission":
             editPerm = java.net.URLDecoder.decode(kv[1], "UTF-8");
-            break;
-          case "scope":
-            scope = java.net.URLDecoder.decode(kv[1], "UTF-8");
             break;
           case "members":
             for (String m : kv[1].split(","))
@@ -158,7 +154,7 @@ public class TeamController {
             new Team(teamID, teamName, creatorUserId, TeamMode.FIXED_TASK_MODE);
         team.setteamName(teamName);
         TeamRepository repo = new TeamRepository();
-        repo.save(team, passcode, maxMembers, editPerm, scope,
+        repo.save(team, passcode, maxMembers, editPerm,
                   members);
 
         String sessionId = null;

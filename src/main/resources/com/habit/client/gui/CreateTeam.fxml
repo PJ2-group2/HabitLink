@@ -19,11 +19,6 @@
                         <Label text="タスク編集権限"/>
                         <ChoiceBox fx:id="editPermissionChoice"/>
                     </HBox>
-                    <HBox spacing="10" alignment="CENTER_LEFT">
-                        <Label text="公開範囲"/>
-                        <RadioButton fx:id="publicRadio" text="Public" toggleGroup="$scopeGroup"/>
-                        <RadioButton fx:id="privateRadio" text="Private" toggleGroup="$scopeGroup"/>
-                    </HBox>
                 </VBox>
             </Tab>
             <Tab text="メンバー招待">
