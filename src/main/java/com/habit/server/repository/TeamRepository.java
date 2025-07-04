@@ -20,7 +20,6 @@ public class TeamRepository {
                    + "passcode TEXT,"
                    + "maxMembers INTEGER,"
                    + "editPermission TEXT,"
-                   + "category TEXT,"
                    + "scope TEXT,"
                    + "creatorId TEXT"
                    + ")";
@@ -36,7 +35,6 @@ public class TeamRepository {
       boolean hasPasscode = false;
       boolean hasMaxMembers = false;
       boolean hasEditPermission = false;
-      boolean hasCategory = false;
       boolean hasCreatorId = false;
       while (rs.next()) {
         String col = rs.getString("name");
@@ -54,9 +52,6 @@ public class TeamRepository {
         }
         if ("editPermission".equalsIgnoreCase(col)) {
           hasEditPermission = true;
-        }
-        if ("category".equalsIgnoreCase(col)) {
-          hasCategory = true;
         }
         if ("creatorId".equalsIgnoreCase(col)) {
           hasCreatorId = true;
@@ -76,9 +71,6 @@ public class TeamRepository {
       }
       if (!hasEditPermission) {
         stmt.execute("ALTER TABLE teams ADD COLUMN editPermission TEXT");
-      }
-      if (!hasCategory) {
-        stmt.execute("ALTER TABLE teams ADD COLUMN category TEXT");
       }
       if (!hasCreatorId) {
         stmt.execute("ALTER TABLE teams ADD COLUMN creatorId TEXT");
@@ -215,20 +207,19 @@ public class TeamRepository {
 
   // 新しいsave: 追加情報も保存
   public void save(Team team, String passcode, int maxMembers, String editPerm,
-                   String category, String scope, List<String> members) {
+                   String scope, List<String> members) {
     try (Connection conn = DriverManager.getConnection(databaseUrl)) {
       String sql = "INSERT OR REPLACE INTO teams (id, teamName, passcode, "
-                   + "maxMembers, editPermission, category, scope, creatorId) "
-                   + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                   + "maxMembers, editPermission, scope, creatorId) "
+                   + "VALUES (?, ?, ?, ?, ?, ?, ?)";
       try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
         pstmt.setString(1, team.getTeamID());
         pstmt.setString(2, team.getteamName());
         pstmt.setString(3, passcode);
         pstmt.setInt(4, maxMembers);
         pstmt.setString(5, editPerm);
-        pstmt.setString(6, category);
-        pstmt.setString(7, scope);
-        pstmt.setString(8, team.getCreatorId());
+        pstmt.setString(6, scope);
+        pstmt.setString(7, team.getCreatorId());
         pstmt.executeUpdate();
       }
       // メンバー保存

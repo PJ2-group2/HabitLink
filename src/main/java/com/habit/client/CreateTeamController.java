@@ -22,9 +22,6 @@ public class CreateTeamController {
     /** 編集権限選択ボックス */
     @FXML
     private ChoiceBox<String> editPermissionChoice;
-    /** カテゴリチェックボックス */
-    @FXML
-    private CheckBox catStudy, catWorkout, catReading, catDiet, catHobby, catOther;
     /** チームの公開範囲ラジオボタン */
     @FXML
     private RadioButton publicRadio, privateRadio;
@@ -104,7 +101,6 @@ public class CreateTeamController {
             String passcode = passcodeField.getText().trim();
             int maxMembers = maxMembersSpinner.getValue();
             String editPerm = editPermissionChoice.getValue();
-            String category = getSelectedCategories();
             String scope = publicRadio.isSelected() ? "public" : "private";
             ObservableList<String> members = FXCollections.observableArrayList(invitedMembers);
 
@@ -120,7 +116,6 @@ public class CreateTeamController {
                 sb.append("&passcode=").append(java.net.URLEncoder.encode(passcode, "UTF-8"));
                 sb.append("&maxMembers=").append(maxMembers);
                 sb.append("&editPermission=").append(java.net.URLEncoder.encode(editPerm, "UTF-8"));
-                sb.append("&category=").append(java.net.URLEncoder.encode(category, "UTF-8"));
                 sb.append("&scope=").append(java.net.URLEncoder.encode(scope, "UTF-8"));
                 sb.append("&members=").append(java.net.URLEncoder.encode(String.join(",", members), "UTF-8"));
 
@@ -189,21 +184,5 @@ public class CreateTeamController {
                 new Alert(Alert.AlertType.ERROR, "サーバ接続エラー: " + ex.getMessage()).showAndWait();
             }
         });
-    }
-
-    /**
-     * 選択されたカテゴリのチェックボックスから、選択されたカテゴリをカンマ区切りの文字列で取得するメソッド
-     * @return 選択されたカテゴリの文字列
-     */
-    private String getSelectedCategories() {
-        StringBuilder sb = new StringBuilder();
-        if (catStudy.isSelected()) sb.append("勉強,");
-        if (catWorkout.isSelected()) sb.append("筋トレ,");
-        if (catReading.isSelected()) sb.append("読書,");
-        if (catDiet.isSelected()) sb.append("ダイエット,");
-        if (catHobby.isSelected()) sb.append("趣味,");
-        if (catOther.isSelected()) sb.append("その他,");
-        if (sb.length() > 0) sb.setLength(sb.length() - 1);
-        return sb.toString();
     }
 }
