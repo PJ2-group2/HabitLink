@@ -103,6 +103,7 @@ public class TaskCreateController {
         com.habit.domain.Task task = new com.habit.domain.Task(
             java.util.UUID.randomUUID().toString(),
             name,
+            teamID,
             description,
             dueDate,
             cycleType

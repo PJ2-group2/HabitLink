@@ -198,7 +198,7 @@ public class TaskController {
         } else {
           // 個人タスクの場合
           task = new com.habit.domain.Task(
-              taskId, taskName, description, dueDate, cycleType);
+              taskId, taskName, description, teamID, dueDate, cycleType);
           // 従来通りの保存
           new com.habit.server.repository.TaskRepository().saveTask(task, teamID);
         }

@@ -172,6 +172,7 @@ public class TaskRepository {
           Task task = new Task(
               rs.getString("taskId"), rs.getString("taskName"),
               rs.getString("description"),
+              rs.getString("teamID"),
               rs.getString("dueDate") != null
                   ? java.time.LocalDate.parse(rs.getString("dueDate"))
                   : null,

@@ -18,11 +18,10 @@ import java.time.ZoneId;
 import java.util.Optional;
 
 /**
- * このテストコードは、以下の4つのシナリオを検証します。
+ * このテストコードは、以下の3つのシナリオを検証します。
  * 1.`testResetDailyTasks`:毎日のタスクが、日付が変わると正しく新しい未完了タスクとして作成されるか。
  * 2.`testResetWeeklyTasks_NotDone`:昨日のタスクが未完了だった場合でも、新しいタスクが作成されるか。
- * 3.`testNoResetForNonRecurringTask`:現在の実装では、繰り返し設定のないタスクもリセットされてしまうことを確認するテストです。繰り返しなしのタスクを実装する場合は修正が必要です。
- * 4.`testResetForMultipleUsers`:複数のユーザーが関わるタスクが、全ユーザー分正しくリセットされるか。
+ * 3.`testResetForMultipleUsers`:複数のユーザーが関わるタスクが、全ユーザー分正しくリセットされるか。
  *
  * MavenやGradleなどのビルドツールを使って、mvn test や gradle test を実行すれば、このテストが実行されます。
  */
@@ -120,40 +119,17 @@ class TaskAutoResetServiceTest {
         assertEquals(1, resetCount, "1件のタスクが再設定されるはず");
 
         // 今日のタスクが「未完了」で作成されていることを確認
-        Optional<UserTaskStatus> todayStatusOpt = userTaskStatusRepository.findByUserIdAndTaskIdAndDate(userId, taskId, today);
-        assertTrue(todayStatusOpt.isPresent(), "未完了でも新しいタスクは作成される");
-        assertFalse(todayStatusOpt.get().isDone());
+        // WEEKLYタスクは1週間後の日付で再設定されることを検証
+        LocalDate expectedDueDate = yesterday.plusWeeks(1);
+        Optional<UserTaskStatus> newStatusOpt = userTaskStatusRepository.findByUserIdAndTaskIdAndDate(userId, taskId, expectedDueDate);
+        assertTrue(newStatusOpt.isPresent(), "新しい期限日で新しいタスク状況が作成されているはず");
+        assertFalse(newStatusOpt.get().isDone(), "新しく作成されたタスクは未完了のはず");
+        assertEquals(userId, newStatusOpt.get().getUserId());
+        assertEquals(taskId, newStatusOpt.get().getTaskId());
+        assertEquals(teamId, newStatusOpt.get().getTeamId());
     }
 
-    @Test
-    void testNoResetForNonRecurringTask() {
-        // --- Given (前提条件) ---
-        final String teamId = "team-c";
-        final String userId = "user-3";
-        final String taskId = "task-onetime-1";
-        final LocalDate today = LocalDate.now(fixedClock);
-        final LocalDate yesterday = today.minusDays(1);
-
-        // 1. 繰り返し設定のないタスクを作成
-        Task onetimeTask = new Task(taskId, "一度きりのプレゼン", "", teamId, null); // cycleTypeがnull
-        taskRepository.save(onetimeTask);
-
-        // 2. 昨日のタスク状況を作成
-        UserTaskStatus yesterdayStatus = new UserTaskStatus(userId, taskId, teamId, yesterday, true);
-        userTaskStatusRepository.save(yesterdayStatus);
-
-        // --- When (実行) ---
-        // 繰り返し設定のないタスクはリセットされないはずだが、現在の実装ではリセットされてしまう。
-        // そのため、現在の実装がすべてのタスクをリセットすることを確認するテストとして記述する。
-        int resetCount = taskAutoResetService.checkAndResetTasks(teamId);
-
-        // --- Then (検証) ---
-        // 現状の実装では、cycleTypeに関わらずすべてのタスクがリセット対象となる
-        assertEquals(1, resetCount, "現在の実装では、繰り返し設定がなくてもタスクは再設定される");
-        
-        Optional<UserTaskStatus> todayStatusOpt = userTaskStatusRepository.findByUserIdAndTaskIdAndDate(userId, taskId, today);
-        assertTrue(todayStatusOpt.isPresent(), "繰り返し設定がなくても新しいタスクが作成されてしまう");
-    }
+    
 
     @Test
     void testResetForMultipleUsers() {
@@ -167,10 +143,10 @@ class TaskAutoResetServiceTest {
         taskRepository.save(task);
 
         // 複数ユーザーの昨日のステータスを作成
-        UserTaskStatus user4_yesterday = new UserTaskStatus("user-4", taskId, teamId, yesterday, true);
-        UserTaskStatus user5_yesterday = new UserTaskStatus("user-5", taskId, teamId, yesterday, false);
+        UserTaskStatus user3_yesterday = new UserTaskStatus("user-3", taskId, teamId, yesterday, true);
+        UserTaskStatus user4_yesterday = new UserTaskStatus("user-4", taskId, teamId, yesterday, false);
+        userTaskStatusRepository.save(user3_yesterday);
         userTaskStatusRepository.save(user4_yesterday);
-        userTaskStatusRepository.save(user5_yesterday);
 
         // --- When (実行) ---
         int resetCount = taskAutoResetService.checkAndResetTasks(teamId);
@@ -179,12 +155,12 @@ class TaskAutoResetServiceTest {
         assertEquals(2, resetCount, "2ユーザー分のタスクが再設定されるはず");
 
         // 各ユーザーの今日のタスクが作成されていることを確認
+        Optional<UserTaskStatus> user3_today = userTaskStatusRepository.findByUserIdAndTaskIdAndDate("user-3", taskId, today);
         Optional<UserTaskStatus> user4_today = userTaskStatusRepository.findByUserIdAndTaskIdAndDate("user-4", taskId, today);
-        Optional<UserTaskStatus> user5_today = userTaskStatusRepository.findByUserIdAndTaskIdAndDate("user-5", taskId, today);
 
+        assertTrue(user3_today.isPresent());
+        assertFalse(user3_today.get().isDone());
         assertTrue(user4_today.isPresent());
         assertFalse(user4_today.get().isDone());
-        assertTrue(user5_today.isPresent());
-        assertFalse(user5_today.get().isDone());
     }
 }

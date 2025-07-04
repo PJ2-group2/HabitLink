@@ -39,10 +39,11 @@ public class Task {
     }
 
     // dueDateを含む完全版コンストラクタ
-    public Task(String taskId, String taskName, String description, LocalDate dueDate, String cycleType) {
+    public Task(String taskId, String taskName, String description, String teamId, LocalDate dueDate, String cycleType) {
         this.taskId = taskId;
         this.taskName = taskName;
         this.description = description;
+        this.teamId = teamId;
         this.dueDate = dueDate;
         this.cycleType = cycleType;
     }

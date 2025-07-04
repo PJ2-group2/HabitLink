@@ -102,53 +102,71 @@ public class TaskAutoResetService {
      * 3. 対象タスクの全ユーザー分をチェック・再設定
      */
     public int checkAndResetTasks(String teamId) { // private から public に変更
-        List<Task> teamTasks = taskRepository.findTeamTasksByTeamID(teamId); // チームの全タスクを取得
+        List<Task> teamTasks = taskRepository.findTeamTasksByTeamID(teamId);
         LocalDate today = LocalDate.now(clock);
-        LocalDate yesterday = today.minusDays(1); // 前日の日付
         int resetCount = 0;
-        
-        for (Task task : teamTasks) {
-            // 1. TaskのdueDateを今日の日付に更新
-            task.setDueDate(today);
-            taskRepository.saveTask(task, teamId); // Taskを保存（更新）
-            
-            // 2. 前日のdueDateを持つUserTaskStatusを検索
-            List<UserTaskStatus> yesterdayStatuses = userTaskStatusRepository.findByTaskIdAndDate(task.getTaskId(), yesterday);
 
-            if (!yesterdayStatuses.isEmpty()) {
-                for (UserTaskStatus status : yesterdayStatuses) {
-                // 3. isDoneを判定（この部分は後で実装）
-                if(status.isDone()) {
-                    // 後で実装(サボりポイントの処理など)
-                } else {
-                    // 後で実装(サボりポイントの処理など)
-                }
-                
-                // 4. 新しいdueDate（今日の日付）でisDoneがfalseのUserTaskStatusを生成
-                UserTaskStatus newStatus = new UserTaskStatus(
-                    status.getUserId(),
-                    task.getTaskId(), // TaskのtaskIdを使用
-                    teamId,
-                    today, // 新しいdueDate
-                    false // 初期状態は未完了
-                );
-                
-                // 重複チェック
-                Optional<UserTaskStatus> existingStatus = userTaskStatusRepository.findByUserIdAndTaskIdAndDate(
-                    newStatus.getUserId(), newStatus.getTaskId(), newStatus.getDate());
-                
-                if (existingStatus.isEmpty()) {
-                    userTaskStatusRepository.save(newStatus);
-                    resetCount++;
-                    System.out.println("新しいUserTaskStatusを生成: userId=" + newStatus.getUserId() +
-                        ", taskId=" + newStatus.getTaskId() +
-                        ", date=" + newStatus.getDate());
-                } else {
-                    System.out.println("UserTaskStatusは既に存在します。スキップ: userId=" + newStatus.getUserId() +
-                        ", taskId=" + newStatus.getTaskId() +
-                        ", date=" + newStatus.getDate());
-                }
+        for (Task task : teamTasks) {
+            String cycleType = task.getCycleType();
+            if (cycleType == null) {
+                continue; // 繰り返し設定のないタスクはスキップ
             }
+
+            LocalDate dateToCheck = today.minusDays(1); // チェック対象は昨日
+            LocalDate newDueDate = null;
+
+            switch (cycleType) {
+                case "DAILY":
+                    newDueDate = today;
+                    break;
+                case "WEEKLY":
+                    newDueDate = dateToCheck.plusWeeks(1); // 基準日（昨日）から1週間後
+                    break;
+                default:
+                    continue; // 未対応のサイクルタイプはスキップ
+            }
+
+            // Task自体のdueDateを更新して保存
+            task.setDueDate(newDueDate);
+            taskRepository.save(task);
+
+            // 昨日の日付でUserTaskStatusを検索
+            List<UserTaskStatus> statusesToCheck = userTaskStatusRepository.findByTaskIdAndDate(task.getTaskId(), dateToCheck);
+
+            if (!statusesToCheck.isEmpty()) {
+                for (UserTaskStatus oldStatus : statusesToCheck) {
+                    // isDoneを判定（この部分は後で実装）
+                    if(oldStatus.isDone()) {
+                        // 後で実装(サボりポイントの処理など)
+                    } else {
+                        // 後で実装(サボりポイントの処理など)
+                    }
+
+                    // 新しいdueDateでisDoneがfalseのUserTaskStatusを生成
+                    UserTaskStatus newStatus = new UserTaskStatus(
+                        oldStatus.getUserId(),
+                        task.getTaskId(),
+                        task.getTeamId(),
+                        newDueDate,
+                        false // 初期状態は未完了
+                    );
+
+                    // 重複チェック
+                    Optional<UserTaskStatus> existingStatus = userTaskStatusRepository.findByUserIdAndTaskIdAndDate(
+                        newStatus.getUserId(), newStatus.getTaskId(), newStatus.getDate());
+
+                    if (existingStatus.isEmpty()) {
+                        userTaskStatusRepository.save(newStatus);
+                        resetCount++;
+                        System.out.println("新しいUserTaskStatusを生成: userId=" + newStatus.getUserId() +
+                            ", taskId=" + newStatus.getTaskId() +
+                            ", date=" + newStatus.getDate());
+                    } else {
+                        System.out.println("UserTaskStatusは既に存在します。スキップ: userId=" + newStatus.getUserId() +
+                            ", taskId=" + newStatus.getTaskId() +
+                            ", date=" + newStatus.getDate());
+                    }
+                }
             }
         }
         return resetCount;
