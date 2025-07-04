@@ -25,7 +25,7 @@ public class TaskRepository {
                    + "description TEXT,"
                    + "teamID TEXT,"
                    + "dueDate TEXT,"
-                   + "cycleType TEXT,"
+                   + "cycleType TEXT"
                    + ")";
       stmt.execute(sql);
 
