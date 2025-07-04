@@ -37,347 +37,8 @@ public class TaskAutoResetService {
     }
     
     /**
-     * 指定チームの全タスクを自動再設定チェック
-     *
-     * @param teamId 対象チームID
-     *
-     * 【処理フロー】
-     * 1. 指定チームの全タスクを取得
-     * 3. 対象タスクの全ユーザー分をチェック・再設定
-     */
-    public void checkAndResetTasks(String teamId) {
-        List<Task> teamTasks = taskRepository.findTeamTasksByTeamID(teamId);
-        
-        for (Task task : teamTasks) { 
-            resetTaskForAllUsers(task, today);
-        }
-    }
-    
-    /**
-     * 特定タスクを全ユーザーに対して再設定
-     */
-    private void resetTaskForAllUsers(Task task, LocalDate today) {
-        List<UserTaskStatus> allStatuses = userTaskStatusRepository.findByTaskId(task.getTaskId());
-        
-        for (UserTaskStatus status : allStatuses) {
-            LocalDate taskDate = status.getDate();
-            
-            // 1. 達成済みチェック(期限切れ時は達成させない前提)
-            if (status.isDone()) {
-                createNextTaskInstance(task, status.getUserId(), getNextDate(task, taskDate));
-            }
-            
-            // 2. 期限切れチェック
-            else if (!status.isDone() && isOverdue(task, taskDate, today)) {
-                // ★修正★ 期限切れ時もタスク達成時と同じく次のサイクル日に設定
-                LocalDate nextDate = getNextDate(task, taskDate);
-                createNextTaskInstanceForOverdue(task, status.getUserId(), nextDate);
-            }
-        }
-    }
-    
-    /**
-     * 期限切れかどうかを判定するメソッド
-     */
-    private boolean isOverdue(Task task, LocalDate taskDate, LocalDate today) {
-        return today.isAfter(taskDate);
-    }
-    
-    /**
-     * 次回タスク日を計算
-     */
-    private LocalDate getNextDate(Task task, LocalDate currentDate) {
-        String cycleType = task.getCycleType();
-        
-        switch (cycleType) {
-            case "daily":
-                return currentDate.plusDays(1);
-            case "weekly":
-                return currentDate.plusWeeks(1);
-            default:
-                return currentDate.plusDays(1); // デフォルトは翌日
-        }
-    }
-    
-    /**
-     * 新しいタスクインスタンスを作成
-     *
-     * @param originalTask 元のタスク（テンプレートとして使用）
-     * @param userId 対象ユーザーID
-     * @param nextDate 次回タスク日
-     * @return true: 新規作成された, false: 既存のため作成されず
-     *
-     * 【重要な処理】
-     * 1. 新しいTaskIDを生成
-     * 2. 新しいTaskをデータベースに保存
-     * 3. 新しいUserTaskStatusを作成・保存
-     * 4. ログ出力
-     */
-    private boolean createNextTaskInstance(Task completeTask, String userId, LocalDate nextDate) {
-        // オリジナルのタスクIDを取得（最新のプロパティを使用するため）
-        String originalTaskId = completeTask.getOriginalTaskId() != null ?
-            completeTask.getOriginalTaskId() : completeTask.getTaskId();
-
-        // 最新の元のタスクを検索
-        Task originalTask = findOriginalTaskById(originalTaskId);
-        if (originalTask == null) {
-            System.err.println("警告: オリジナルのタスクが見つかりません。今のタスクをオリジナルとします。: " + originalTaskId);
-            originalTask = completeTask; // フォールバック
-        }
-
-        // 期限日を付加した新しいTaskIDを生成
-        String newTaskId = generateNewTaskId(originalTaskId, nextDate);
-
-        // 新しいTaskIDでの重複チェック
-        var existingStatus = userTaskStatusRepository
-            .findByUserIdAndOriginalTaskIdAndDate(userId, newTaskId, nextDate);
-            
-        if (existingStatus.isEmpty()) {
-
-            // 1. 新しいTaskを作成・保存
-            Task newTask = new Task(
-                    newTaskId, // 新しいTaskID
-                    originalTask.getTaskName(), // 同じタスク名
-                    originalTask.getDescription(), // 同じ説明
-                    nextDate, // 調整された期限日付
-                    originalTask.getCycleType() // 同じサイクルタイプ
-            );
-
-            // TaskをDBに保存
-            String teamId = findTeamIdByOriginalTask(originalTaskId);
-            newTask.setTeamId(teamId); // チーム共通タスクのためteamIdを設定
-            taskRepository.saveTask(newTask, teamId);
-            
-            // 2. 特定ユーザーのみに対してUserTaskStatusを作成
-            // 既存のUserTaskStatusがないことを確認（taskIdでのみチェック、originalTaskIdでの重複チェックは行わない）
-            boolean existsByTaskId = userTaskStatusRepository.findByUserIdAndTaskIdAndDate(
-                userId, newTaskId, nextDate).isPresent();
-                
-            if (!existsByTaskId) {
-                UserTaskStatus newStatus = new UserTaskStatus(
-                    userId,     // 対象ユーザー
-                    newTaskId,  // 新しいTaskID
-                    teamId,     // チームID
-                    nextDate,   // 次回実行日
-                    false       // 初期状態は未完了
-                );
-                
-                // 元のTaskIDを明示的に設定
-                newStatus.setOriginalTaskId(originalTaskId);
-                
-                // データベースにUserTaskStatusを保存・永続化
-                userTaskStatusRepository.save(newStatus);
-            }
-            
-            if (!existsByTaskId) {
-                System.out.println("自動再設定完了: userId=" + userId +
-                        ", newTaskId=" + newTaskId +
-                        ", TaskName=" + originalTask.getTaskName() +
-                        ", originalTaskId=" + originalTaskId +
-                        ", adjustedDueDate=" + nextDate +
-                        ", teamId=" + teamId);
-            } else {
-                System.out.println("自動再設定スキップ（既存あり）: userId=" + userId +
-                    ", originalTaskId=" + completeTask.getTaskId() +
-                    ", nextDate=" + nextDate);
-            }
-                
-            // 作成されたタスクが正しく保存されているかを確認
-            var savedTask = taskRepository.findTeamTasksByTeamID(teamId).stream()
-                .filter(t -> t.getTaskId().equals(newTaskId))
-                .findFirst();
-            if (savedTask.isPresent()) {
-                System.out.println("新しいタスクがDBに正常に保存されました: " + savedTask.get().getTaskName());
-            } else {
-                System.err.println("警告: 新しいタスクがDBに保存されていません: " + newTaskId);
-            }
-            return true;  // 新規作成成功
-        }
-        return false;     // 既存のため作成せず
-    }
-    
-    /**
-     * 期限切れタスクの新しいインスタンスを作成（期限時刻を調整）
-     *
-     * @param originalTask 元のタスク（テンプレートとして使用）
-     * @param userId 対象ユーザーID
-     * @param nextDate 次回タスク日
-     * @return true: 新規作成された, false: 既存のため作成されず
-     *
-     * 元の期限時刻と等しく、元の期限日+1cycleのタスクを作成
-     */
-    private boolean createNextTaskInstanceForOverdue(Task overdueTask, String userId, LocalDate nextDate) {
-        // オリジナルのタスクIDを取得（最新のプロパティを使用するため）
-        String originalTaskId = overdueTask.getOriginalTaskId() != null ?
-            overdueTask.getOriginalTaskId() : overdueTask.getTaskId();
-            
-        // 最新の元のタスクを検索
-        Task originalTask = findOriginalTaskById(originalTaskId);
-        if (originalTask == null) {
-            System.err.println("警告: オリジナルのタスクが見つかりません。今のタスクをオリジナルとします。: " + originalTaskId);
-            originalTask = overdueTask; // フォールバック
-        }
-
-        // 期限日を付加した新しいTaskIDを生成
-        String newTaskId = generateNewTaskId(originalTaskId, nextDate);
-
-        var existingStatusByNewTaskId = userTaskStatusRepository
-            .findByUserIdAndTaskIdAndDate(userId, newTaskId, nextDate); // 新しいTaskIDでの重複チェック
-            
-        if (existingStatusByNewTaskId.isEmpty()) {
-            // 1. 新しいTaskを作成・保存
-            Task newTask = new Task(
-                newTaskId,                          // 新しいTaskID
-                originalTask.getTaskName(),         // 同じタスク名
-                originalTask.getDescription(),      // 同じ説明
-                nextDate,                    // 調整された期限日付
-                originalTask.getCycleType()       // 同じサイクルタイプ
-            );
-            
-            // TaskをDBに保存
-            String teamId = findTeamIdByOriginalTask(originalTaskId);
-            newTask.setTeamId(teamId); // チーム共通タスクのためteamIdを設定
-            taskRepository.saveTask(newTask, teamId);
-            
-            // 2. 特定ユーザーのみに対してUserTaskStatusを作成
-            // 既存のUserTaskStatusがないことを確認（taskIdでのみチェック）
-            boolean existsByTaskIdOverdue = userTaskStatusRepository.findByUserIdAndTaskIdAndDate(
-                userId, newTaskId, nextDate).isPresent();
-                
-            if (!existsByTaskIdOverdue) {
-                UserTaskStatus newStatus = new UserTaskStatus(
-                    userId,         // 対象ユーザー
-                    newTaskId,      // 新しいTaskID
-                    teamId,         // チームID
-                    nextDate,       // 調整された期限日付
-                    false    // 初期状態は未完了
-                );
-                
-                // 元のTaskIDを明示的に設定
-                newStatus.setOriginalTaskId(originalTaskId);
-                 
-                // データベースにUserTaskStatusを保存・永続化
-                userTaskStatusRepository.save(newStatus);
-            }
-            
-            if (!existsByTaskIdOverdue) {
-                System.out.println("期限切れタスクの再設定完了: userId=" + userId +
-                    ", newTaskId=" + newTaskId +
-                    ", TaskName=" + originalTask.getTaskName() +
-                    ", originalTaskId=" + originalTaskId+
-                    ", adjustedDueDate=" + nextDate +
-                    ", teamId=" + teamId);
-            } else {
-                System.out.println("期限切れタスクの再設定スキップ（既存あり）: userId=" + userId +
-                    ", originalTaskId=" + originalTaskId +
-                    ", adjustedDueDate=" + nextDate);
-            }
-                
-            // 作成されたタスクが正しく保存されているかを確認
-            var savedTask = taskRepository.findTeamTasksByTeamID(teamId).stream()
-                .filter(t -> t.getTaskId().equals(newTaskId))
-                .findFirst();
-            if (savedTask.isPresent()) {
-                System.out.println("新しいタスクがDBに正常に保存されました: " + savedTask.get().getTaskName());
-            } else {
-                System.err.println("警告: 新しいタスクがDBに保存されていません: " + newTaskId);
-            }
-            
-            // 作成されたUserTaskStatusが正しく保存されているかを確認
-            var savedStatus = userTaskStatusRepository.findByUserIdAndTaskIdAndDate(
-                userId, newTaskId, nextDate);
-            if (savedStatus.isPresent()) {
-                System.out.println("新しいUserTaskStatusがDBに正常に保存されました: " + savedStatus.get().getTaskId());
-            } else {
-                System.err.println("警告: 新しいUserTaskStatusがDBに保存されていません: " + newTaskId);
-            }
-            
-            return true;  // 新規作成成功
-        } else {
-            System.out.println("警告: 新タスクIDが既存IDと重複しています。 作成をスキップします。");
-        }
-        return false;     // 既存のため作成せず
-    }
-    
-    /**
-     * 新しいTaskIDを生成
-     *
-     * @param originalTaskId 元のTaskID
-     * @param date 対象日付
-     * @return 新しいTaskID
-     *
-     * 【命名規則の変更】
-     * 元のTaskID + "_" + 日付(YYYYMMDD)
-     * 例: "dailyTask_20250630"
-     *
-     * 【変更理由】
-     * - タイムスタンプを削除して、同じ日の同じタスクは同じIDになるよう修正
-     * - これにより元のTaskIDとの関連性が明確になり、重複防止も確実になる
-     */
-    private String generateNewTaskId(String originalTaskId, LocalDate date) {
-        String dateStr = date.toString().replace("-", ""); // YYYYMMDD形式
-        return originalTaskId + "_" + dateStr;
-    }
-    
-    /**
-     * 元のTaskIDから最新のタスクを取得
-     *
-     * @param originalTaskId 元のTaskID
-     * @return 最新のタスク（見つからない場合はnull）
-     */
-    private Task findOriginalTaskById(String originalTaskId) {
-        try {
-            com.habit.server.repository.TeamRepository teamRepo =
-                new com.habit.server.repository.TeamRepository();
-            java.util.List<String> allTeamIds = teamRepo.findAllTeamIds();
-            
-            for (String teamId : allTeamIds) {
-                java.util.List<Task> teamTasks = taskRepository.findTeamTasksByTeamID(teamId);
-                for (Task task : teamTasks) {
-                    if (task.getTaskId().equals(originalTaskId)) {
-                        return task;
-                    }
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("元のタスク取得エラー: " + e.getMessage());
-        }
-        return null;
-    }
-    
-    /**
-     * 元のTaskIDからチームIDを取得
-     *
-     * @param originalTaskId 元のTaskID
-     * @return チームID
-     */
-    private String findTeamIdByOriginalTask(String originalTaskId) {
-        // TaskRepositoryから元のタスクを取得してチームIDを特定
-        // ここでは簡易実装として、既存のチームタスク一覧から検索
-        try {
-            com.habit.server.repository.TeamRepository teamRepo =
-                new com.habit.server.repository.TeamRepository();
-            java.util.List<String> allTeamIds = teamRepo.findAllTeamIds();
-            
-            for (String teamId : allTeamIds) {
-                java.util.List<Task> teamTasks = taskRepository.findTeamTasksByTeamID(teamId);
-                for (Task task : teamTasks) {
-                    if (task.getTaskId().equals(originalTaskId)) {
-                        return teamId;
-                    }
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("チームID取得エラー: " + e.getMessage());
-        }
-        
-        // 見つからない場合のデフォルト（実際にはエラーハンドリングを強化）
-        return "unknown_team";
-    }
-    
-    /**
      * 定期実行用：全チームのタスクをチェック
-     *  TaskAutoResetSchedulerにより1分ごとに自動実行
+     *  TaskAutoResetSchedulerにより毎日午前0時に自動実行
      *  TaskAutoResetControllerのAPIからも呼び出し可能
      *
      * 【処理フロー】
@@ -409,7 +70,7 @@ public class TaskAutoResetService {
             // 各チームを順次処理
             for (String teamId : allTeamIds) {
                 try {
-                    int resets = checkAndResetTasksWithCount(teamId);
+                    int resets = checkAndResetTasks(teamId); // checkAndResetTasksWithCount から checkAndResetTasks に変更
                     totalResets += resets;
                     processedTeams++;
                 } catch (Exception e) {
@@ -440,110 +101,58 @@ public class TaskAutoResetService {
      * 2. 各タスクに対して再設定チェックを実施
      * 3. 対象タスクの全ユーザー分をチェック・再設定
      */
-    private int checkAndResetTasksWithCount(String teamId) {
+    public int checkAndResetTasks(String teamId) { // private から public に変更
         List<Task> teamTasks = taskRepository.findTeamTasksByTeamID(teamId); // チームの全タスクを取得
         LocalDate today = LocalDate.now();
+        LocalDate yesterday = today.minusDays(1); // 前日の日付
         int resetCount = 0;
         
         for (Task task : teamTasks) {
-            // 各タスクに対して再設定チェックを実施
-            resetCount += resetTaskForAllUsersWithCount(task, today);
-        }
-        return resetCount;
-    }
-    
-    /**
-     * 特定タスクを全ユーザーに対して再設定
-     * @param task 対象タスク
-     * @param today 今日の日付
-     * @return 再設定されたタスクの数
-     * 
-     * 【処理フロー】
-     * 1. 指定タスクの全ユーザー分を取得
-     * 2. 各ユーザーのタスクステータスをチェック
-     * 3. 再設定が必要な場合は新しいタスクを作成
-     */
-    private int resetTaskForAllUsersWithCount(Task task, LocalDate today) {
-        // タスクの全ユーザー分のステータスを取得
-        List<UserTaskStatus> allStatuses = userTaskStatusRepository.findByTaskId(task.getTaskId());
-        int resetCount = 0; // 再設定されたタスクの数
-
-        for (UserTaskStatus status : allStatuses) {
-            LocalDate taskDate = status.getDate();
-
-            // 1. 達成済みチェック(期限切れ後は達成させない前提)
-            if (status.isDone()) {
-                // 新インスタンスを作成して再設定
-                if (createNextTaskInstance(task, status.getUserId(), getNextDate(task, taskDate))) {
-                    resetCount++;
-                }
-            }
-
-            // 2. 期限切れチェック（未完了かつ期限切れ）
-            else if (!status.isDone() && isOverdue(task, taskDate, today)) {
-                System.out.println("期限切れタスク検出: taskId=" + task.getTaskId() +
-                    ", taskName=" + task.getTaskName() +
-                    ", userId=" + status.getUserId() +
-                    ", taskDate=" + taskDate +
-                    ", today=" + today);
-                // 次のサイクル日に設定
-                LocalDate nextDate = getNextDate(task, taskDate);
-                // 新インスタンスを作成して再設定
-                if (createNextTaskInstanceForOverdue(task, status.getUserId(), nextDate)) {
-                    resetCount++;
-                }
-            }
-        }
-        return resetCount;
-    }
-    /**
-     * 特定のタスク完了時に即座に次のタスクを再設定する（外部呼び出し用）
-     *
-     * @param completedTask 完了したタスク
-     * @param userId 対象ユーザーID
-     * @param completionDate 完了日
-     * @param teamId チームID
-     * @return true: 再設定実行, false: 対象外またはスキップ
-     */
-    public boolean createNextTaskInstanceImmediately(Task completedTask, String userId, LocalDate completionDate, String teamId) {
-        try {
-            // 完了したUserTaskStatusを取得して期限内達成かチェック
-            Optional<UserTaskStatus> optStatus = userTaskStatusRepository
-                .findByUserIdAndTaskIdAndDate(userId, completedTask.getTaskId(), completionDate);
+            // 1. TaskのdueDateを今日の日付に更新
+            task.setDueDate(today);
+            taskRepository.saveTask(task, teamId); // Taskを保存（更新）
             
-            if (optStatus.isPresent()) {
-                UserTaskStatus status = optStatus.get();
-                LocalDate taskDate = status.getDate(); 
+            // 2. 前日のdueDateを持つUserTaskStatusを検索
+            List<UserTaskStatus> yesterdayStatuses = userTaskStatusRepository.findByTaskIdAndDate(task.getTaskId(), yesterday);
 
-                // 達成済みの場合のみ即座に再設定(期限切れタスクは達成させない前提)
-                if (status.isDone()) {
-                    // 次のサイクルに正しく設定
-                    LocalDate nextDate = getNextDate(completedTask, taskDate);
-                    boolean created = createNextTaskInstance(completedTask, userId, nextDate);
-                    
-                    if (created) {
-                        System.out.println("即座のタスク再設定成功: originalTaskId=" + completedTask.getOriginalTaskId() +
-                            ", userId=" + userId + ", nextDate=" + nextDate);
-                        return true;
-                    } else {
-                        System.out.println("即座のタスク再設定スキップ（既存あり）: originalTaskId=" + completedTask.getOriginalTaskId() +
-                            ", userId=" + userId + ", nextDate=" + nextDate);
-                        return false;
-                    }
+            if (!yesterdayStatuses.isEmpty()) {
+                for (UserTaskStatus status : yesterdayStatuses) {
+                // 3. isDoneを判定（この部分は後で実装）
+                if(status.isDone()) {
+                    // 後で実装(サボりポイントの処理など)
                 } else {
-                    System.out.println("即座の再設定スキップ（期限外達成）: taskId=" + completedTask.getTaskId() +
-                        ", userId=" + userId);
-                    return false;
+                    // 後で実装(サボりポイントの処理など)
                 }
-            } else {
-                System.out.println("即座の再設定スキップ（ステータス未取得）: taskId=" + completedTask.getTaskId() +
-                    ", userId=" + userId);
-                return false;
+                
+                // 4. 新しいdueDate（今日の日付）でisDoneがfalseのUserTaskStatusを生成
+                // originalTaskIdはTaskのtaskIdと同じものを使用
+                UserTaskStatus newStatus = new UserTaskStatus(
+                    status.getUserId(),
+                    task.getTaskId(), // TaskのtaskIdを使用
+                    teamId,
+                    today, // 新しいdueDate
+                    false // 初期状態は未完了
+                );
+                newStatus.setOriginalTaskId(task.getTaskId()); // originalTaskIdもTaskのtaskIdと同じ
+                
+                // 重複チェック
+                Optional<UserTaskStatus> existingStatus = userTaskStatusRepository.findByUserIdAndTaskIdAndDate(
+                    newStatus.getUserId(), newStatus.getTaskId(), newStatus.getDate());
+                
+                if (existingStatus.isEmpty()) {
+                    userTaskStatusRepository.save(newStatus);
+                    resetCount++;
+                    System.out.println("新しいUserTaskStatusを生成: userId=" + newStatus.getUserId() +
+                        ", taskId=" + newStatus.getTaskId() +
+                        ", date=" + newStatus.getDate());
+                } else {
+                    System.out.println("UserTaskStatusは既に存在します。スキップ: userId=" + newStatus.getUserId() +
+                        ", taskId=" + newStatus.getTaskId() +
+                        ", date=" + newStatus.getDate());
+                }
             }
-        } catch (Exception e) {
-            System.err.println("即座のタスク再設定でエラー: " + e.getMessage());
-            e.printStackTrace();
-            return false;
+            }
         }
+        return resetCount;
     }
 }

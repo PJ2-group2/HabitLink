@@ -150,6 +150,26 @@ public class UserTaskStatusRepository {
         return Optional.empty();
     }
 
+    // タスクID・日付で検索
+    public List<UserTaskStatus> findByTaskIdAndDate(String taskId, LocalDate date) {
+        List<UserTaskStatus> result = new ArrayList<>();
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String sql = "SELECT * FROM user_task_statuses WHERE taskId = ? AND date = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, taskId);
+                pstmt.setString(2, date.toString());
+                ResultSet rs = pstmt.executeQuery();
+                while (rs.next()) {
+                    result.add(mapRowToStatus(rs));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+
     // ユーザID・タスクID・日付で検索 → 廃止すべき
     public Optional<UserTaskStatus> findByUserIdAndTaskIdAndDate(String userId, String taskId, LocalDate date) {
         try (Connection conn = DriverManager.getConnection(DB_URL)) {

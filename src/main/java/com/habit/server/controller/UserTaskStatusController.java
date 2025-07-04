@@ -360,54 +360,6 @@ public class UserTaskStatusController {
                     // タスク完了ステータスを更新(保存)
                     status.setDone(true);
                     repo.save(status);
-                    
-                    // 即座にタスクを再設定
-                    try {
-                        // 完了したタスクの情報を取得
-                        com.habit.server.repository.TeamRepository teamRepo = new com.habit.server.repository.TeamRepository();
-                        java.util.List<String> allTeamIds = teamRepo.findAllTeamIds();
-                        
-                        com.habit.domain.Task completedTask = null;
-                        String teamId = null;
-                        
-                        // 全チームから該当タスクを検索
-                        for (String tId : allTeamIds) {
-                            java.util.List<com.habit.domain.Task> teamTasks = taskRepo.findTeamTasksByTeamID(tId);
-                            for (com.habit.domain.Task task : teamTasks) {
-                                if (task.getTaskId().equals(taskId[0])) {
-                                    completedTask = task;
-                                    teamId = tId;
-                                    break;
-                                }
-                            }
-                            if (completedTask != null) break;
-                        }
-                        
-                        if (completedTask != null && teamId != null) {
-                            // タスク再設定サービスを使用して即座に再設定
-                            com.habit.server.service.TaskAutoResetService autoResetService =
-                                new com.habit.server.service.TaskAutoResetService(taskRepo, repo);
-                            
-                            System.out.println("[CompleteUserTaskHandler] 達成時のタスク再設定を実行: taskId=" + taskId[0] +
-                                ", userId=" + userId[0] + ", cycleType=" + completedTask.getCycleType());
-                            
-                            boolean resetSuccess = autoResetService.createNextTaskInstanceImmediately(
-                                completedTask, userId[0], date, teamId);
-                            
-                            if (resetSuccess) {
-                                System.out.println("[CompleteUserTaskHandler] 達成時のタスク再設定成功");
-                            } else {
-                                System.out.println("[CompleteUserTaskHandler] 達成時のタスク再設定スキップまたは対象外");
-                            }
-                        } else {
-                            System.out.println("[CompleteUserTaskHandler] 完了タスクが見つかりません: taskId=" + taskId[0]);
-                        }
-                    } catch (Exception autoResetEx) {
-                        System.err.println("[CompleteUserTaskHandler] 即座のタスク再設定でエラー: " + autoResetEx.getMessage());
-                        autoResetEx.printStackTrace();
-                        // 再設定エラーがあってもタスク完了は成功として処理を継続
-                    }
-                    
                     response = "タスク完了: userId=" + userId[0] + ", taskId=" + taskId[0] + ", date=" + dateStr;
                 } else {
                     response = "パラメータが不正です";
