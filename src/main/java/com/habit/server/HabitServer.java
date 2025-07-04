@@ -12,7 +12,6 @@ import com.habit.server.controller.TaskController;
 import com.habit.server.controller.TeamController;
 import com.habit.server.controller.UserController;
 import com.habit.server.controller.UserTaskStatusController;
-import com.habit.server.controller.TaskAutoResetController;
 import com.habit.server.controller.TeamTaskController;
 import com.habit.server.repository.MessageRepository;
 import com.habit.server.repository.TaskRepository;
@@ -152,9 +151,6 @@ public class HabitServer {
     server.createContext(
         "/getTeamTasks",
         teamController.getGetTeamTasksHandler()); // チームタスク一覧
-    server.createContext(
-        "/getTeamTasksGrouped",
-        teamController.getGetTeamTasksGroupedHandler()); // チームタスク一覧（originalTaskIdでグループ化）
     
     // チーム共通タスク管理API
     server.createContext(

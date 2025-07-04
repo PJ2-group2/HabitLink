@@ -128,91 +128,18 @@ public class UserTaskStatusController {
                         statusList.addAll(statusListTomorrow);
                         System.out.println("[UserTaskStatusController] Status list count (today+tomorrow): " + statusList.size());
                         
-                        // 指定日のユーザーのタスク状況をマップ化（originalTaskIdベースで重複排除）
+                        // 指定日のユーザーのタスク状況をマップ化
                         java.util.Map<String, com.habit.domain.UserTaskStatus> statusMapByTaskId = new java.util.HashMap<>();
-                        java.util.Map<String, com.habit.domain.UserTaskStatus> statusMapByOriginalId = new java.util.HashMap<>();
                         for (com.habit.domain.UserTaskStatus status : statusList) {
                             statusMapByTaskId.put(status.getTaskId(), status);
-                            statusMapByOriginalId.put(status.getOriginalTaskId(), status);
-                            System.out.println("[UserTaskStatusController] Status - taskId: " + status.getTaskId() + ", originalTaskId: " + status.getOriginalTaskId() + ", isDone: " + status.isDone());
+                            System.out.println("[UserTaskStatusController] Status - taskId: " + status.getTaskId() + ", isDone: " + status.isDone());
                         }
                         
                         // ユーザーが担当するタスクIDを取得
                         java.util.List<String> userTaskIds = utsRepo.findTaskIdsByUserIdAndTeamId(userId, teamID);
                         System.out.println("[UserTaskStatusController] User task IDs: " + userTaskIds);
                         
-                        // originalTaskIdで重複を排除するためのセット
-                        java.util.Set<String> addedOriginalTaskIds = new java.util.HashSet<>();
                         
-                        // 同じoriginalTaskIdのタスクを日付順にソート（新しいタスクを優先）
-                        java.util.Map<String, java.util.List<com.habit.domain.Task>> tasksByOriginalId = new java.util.HashMap<>();
-                        for (com.habit.domain.Task t : teamTasks) {
-                            
-                            
-                                // ユーザーが担当しているタスクかどうかをチェック
-                                boolean isUserTask = userTaskIds.contains(t.getTaskId()) ||
-                                                   userTaskIds.contains(t.getOriginalTaskId());
-                                
-                                if (isUserTask) {
-                                    String originalTaskId = t.getOriginalTaskId();
-                                    tasksByOriginalId.computeIfAbsent(originalTaskId, k -> new java.util.ArrayList<>()).add(t);
-                                }
-                            
-                        }
-                        
-                        // 各originalTaskIdグループから最適なタスクを選択
-                        for (java.util.Map.Entry<String, java.util.List<com.habit.domain.Task>> entry : tasksByOriginalId.entrySet()) {
-                            String originalTaskId = entry.getKey();
-                            java.util.List<com.habit.domain.Task> tasksForOriginalId = entry.getValue();
-                            
-                            // [修正点] 日付の昇順（古い順）でソートします。
-                            // これにより、未完了のタスクの中で最も日付が古いもの（例：今日やるべきタスク）が
-                            // 優先的に選択され、他のメンバーの進捗に影響される問題を解決します。
-                            tasksForOriginalId.sort((t1, t2) -> {
-                                java.time.LocalDate date1 = t1.getDueDate();
-                                java.time.LocalDate date2 = t2.getDueDate();
-                                if (date1 == null && date2 == null) return 0;
-                                if (date1 == null) return 1;
-                                if (date2 == null) return -1;
-                                return date1.compareTo(date2);
-                            });
-                            
-                            // [リファクタリング] 最適なタスクを選択するロジックを簡素化。
-                            // ソート済みのタスクリストを先頭から順に確認し、
-                            // 最初に見つかった未完了かつ期限切れでないタスク（isDone=false）を表示対象として選択します。
-                            com.habit.domain.Task selectedTask = null;
-                            LocalDateTime now = LocalDateTime.now();
-                            LocalDate today = LocalDate.now();
-                            for (com.habit.domain.Task t : tasksForOriginalId) {
-                                com.habit.domain.UserTaskStatus status = statusMapByTaskId.get(t.getTaskId());
-                                if (status == null || !status.isDone()) {
-                                    // ★追加★ 期限切れチェック
-                                    LocalDate taskDueDate = t.getDueDate();
-                                    
-                                    if (taskDueDate != null) {
-                                        
-                                        // 期限切れでないタスクのみを選択
-                                        if (!today.isAfter(taskDueDate)) {
-                                            selectedTask = t;
-                                            System.out.println("[UserTaskStatusController] Selected task for display: " + t.getTaskName() + " (taskId: " + t.getTaskId() + ", dueDate: " + t.getDueDate() + ")");
-                                            break;
-                                        } else {
-                                            System.out.println("[UserTaskStatusController] Skipping overdue task: " + t.getTaskName() + " (taskId: " + t.getTaskId() + ", dueDate: " + t.getDueDate());
-                                        }
-                                    } else {
-                                        // 期限日付が設定されていない場合は表示対象とする
-                                        selectedTask = t;
-                                        System.out.println("[UserTaskStatusController] Selected task for display (no due date): " + t.getTaskName() + " (taskId: " + t.getTaskId() + ")");
-                                        break;
-                                    }
-                                }
-                            }
-                            
-                            if (selectedTask != null) {
-                                filtered.add(selectedTask);
-                                addedOriginalTaskIds.add(originalTaskId);
-                            }
-                        }
                         System.out.println("[UserTaskStatusController] Final filtered tasks count: " + filtered.size());
                         StringBuilder sb = new StringBuilder("[");
                         for (int i = 0; i < filtered.size(); i++) {
@@ -475,14 +402,13 @@ public class UserTaskStatusController {
                         UserTaskStatusRepository utsRepo = new UserTaskStatusRepository();
                         java.time.LocalDate date = java.time.LocalDate.parse(dateStr);
                         java.time.LocalDate from = date.minusDays(days - 1);
-                        // originalTaskIdでグループ化された進捗を取得（重複排除）
-                        java.util.List<com.habit.domain.UserTaskStatus> statusList = utsRepo.findByTeamIdAndDateRangeGroupedByOriginalTaskId(teamID, from, date);
+                        java.util.List<com.habit.domain.UserTaskStatus> statusList = utsRepo.findByTeamIdAndDateRange(teamID, from, date);
                         StringBuilder sb = new StringBuilder("[");
                         for (int i = 0; i < statusList.size(); i++) {
                             com.habit.domain.UserTaskStatus s = statusList.get(i);
                             sb.append("{");
                             sb.append("\"userId\":\"").append(s.getUserId().replace("\"", "\\\"")).append("\",");
-                            sb.append("\"taskId\":\"").append(s.getOriginalTaskId().replace("\"", "\\\"")).append("\","); // originalTaskIdを使用
+                            sb.append("\"taskId\":\"").append(s.getTaskId().replace("\"", "\\\"")).append("\",");
                             sb.append("\"date\":\"").append(s.getDate().toString()).append("\",");
                             sb.append("\"isDone\":").append(s.isDone());
                             sb.append("}");

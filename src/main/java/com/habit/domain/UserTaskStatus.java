@@ -9,7 +9,6 @@ import java.time.LocalDateTime;
 public class UserTaskStatus {
     private String userId;
     private String taskId;
-    private String originalTaskId; // 元のTaskID（自動再設定時の関連性を管理）
     private String teamId; // チーム共通タスクの場合のチームID（個人タスクの場合はnull）
     private LocalDate date;
     private boolean isDone;
@@ -20,7 +19,6 @@ public class UserTaskStatus {
     public UserTaskStatus(String userId, String taskId, LocalDate date, boolean isDone) {
         this.userId = userId;
         this.taskId = taskId;
-        this.originalTaskId = extractOriginalTaskId(taskId); // TaskIDから元のIDを抽出
         this.teamId = null; // 個人タスクの場合はnull
         this.date = date;
         this.isDone = isDone;
@@ -32,27 +30,11 @@ public class UserTaskStatus {
     public UserTaskStatus(String userId, String taskId, String teamId, LocalDate date, boolean isDone) {
         this.userId = userId;
         this.taskId = taskId;
-        this.originalTaskId = extractOriginalTaskId(taskId); // TaskIDから元のIDを抽出
         this.teamId = teamId;
         this.date = date;
         this.isDone = isDone;
         this.progress = 0;
         this.comment = "";
-    }
-    
-    /**
-     * TaskIDから元のTaskIDを抽出
-     *
-     * @param taskId 現在のTaskID
-     * @return 元のTaskID
-     */
-    private String extractOriginalTaskId(String taskId) {
-        if (taskId.contains("_")) {
-            // 自動生成されたTaskIDの場合（例: "dailyTask_20250630"）
-            return taskId.substring(0, taskId.indexOf("_"));
-        }
-        // 元のTaskIDの場合はそのまま返す
-        return taskId;
     }
 
     public void setDone(boolean done) {
@@ -102,14 +84,6 @@ public class UserTaskStatus {
         return completionTimestamp;
     }
     
-    public String getOriginalTaskId() {
-        return originalTaskId;
-    }
-    
-    public void setOriginalTaskId(String originalTaskId) {
-        this.originalTaskId = originalTaskId;
-    }
-
     public String getTeamId() {
         return teamId;
     }

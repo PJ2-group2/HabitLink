@@ -26,7 +26,6 @@ public class TaskRepository {
                    + "teamID TEXT,"
                    + "dueDate TEXT,"
                    + "cycleType TEXT,"
-                   + "originalTaskId TEXT"
                    + ")";
       stmt.execute(sql);
 
@@ -35,7 +34,6 @@ public class TaskRepository {
       boolean hasTaskId = false;
       boolean hasDueDate = false;
       boolean hasCycleType = false;
-      boolean hasTasksOriginalTaskId = false;
       while (rs.next()) {
         String col = rs.getString("name");
         if ("taskId".equalsIgnoreCase(col))
@@ -44,8 +42,6 @@ public class TaskRepository {
           hasDueDate = true;
         if ("cycleType".equalsIgnoreCase(col))
           hasCycleType = true;
-        if ("originalTaskId".equalsIgnoreCase(col))
-          hasTasksOriginalTaskId = true;
       }
       if (!hasTaskId) {
         stmt.execute("ALTER TABLE tasks ADD COLUMN taskId TEXT");
@@ -55,9 +51,6 @@ public class TaskRepository {
       }
       if (!hasCycleType) {
         stmt.execute("ALTER TABLE tasks ADD COLUMN cycleType TEXT");
-      }
-      if (!hasTasksOriginalTaskId) {
-        stmt.execute("ALTER TABLE tasks ADD COLUMN originalTaskId TEXT");
       }
       // カラム名「task」が存在し「taskName」がない場合はリネーム
       ResultSet rs2 = stmt.executeQuery("PRAGMA table_info(tasks)");
@@ -80,7 +73,6 @@ public class TaskRepository {
       String sql2 = "CREATE TABLE IF NOT EXISTS user_task_statuses ("
                     + "userId TEXT,"
                     + "taskId TEXT,"
-                    + "originalTaskId TEXT,"
                     + "date TEXT,"
                     + "isDone INTEGER,"
                     + "completionTimestamp TEXT,"
@@ -88,17 +80,6 @@ public class TaskRepository {
                     + ")";
       stmt.execute(sql2);
       
-      // 既存テーブルにoriginalTaskIdカラムを追加（存在しない場合）
-      ResultSet rs3 = stmt.executeQuery("PRAGMA table_info(user_task_statuses)");
-      boolean hasOriginalTaskId = false;
-      while (rs3.next()) {
-        String col = rs3.getString("name");
-        if ("originalTaskId".equalsIgnoreCase(col))
-          hasOriginalTaskId = true;
-      }
-      if (!hasOriginalTaskId) {
-        stmt.execute("ALTER TABLE user_task_statuses ADD COLUMN originalTaskId TEXT");
-      }
     } catch (SQLException e) {
       e.printStackTrace();
     }
@@ -196,12 +177,6 @@ public class TaskRepository {
                   : null,
               rs.getString("cycleType"));
           
-          // originalTaskIdがDBに保存されている場合は設定、なければTaskクラスで自動抽出
-          String originalTaskId = rs.getString("originalTaskId");
-          if (originalTaskId != null && !originalTaskId.isEmpty()) {
-            task.setOriginalTaskId(originalTaskId);
-          }
-          
           list.add(task);
         }
       }
@@ -211,46 +186,11 @@ public class TaskRepository {
     return list;
   }
 
-  // originalTaskIdでグループ化されたチームタスクを取得（重複排除用）
-  public List<Task> findTeamTasksByTeamIDGroupedByOriginalTaskId(String teamID) {
-    List<Task> list = new java.util.ArrayList<>();
-    try (Connection conn = DriverManager.getConnection(databaseUrl)) {
-      // originalTaskIdごとにグループ化し、最新のタスクのみを取得
-      String sql = "SELECT * FROM tasks WHERE teamID = ?" +
-                   "AND taskId = (SELECT MAX(taskId) FROM tasks t2 " +
-                   "              WHERE t2.originalTaskId = tasks.originalTaskId " +
-                   "              AND t2.teamID = tasks.teamID)";
-      try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-        pstmt.setString(1, teamID);
-        ResultSet rs = pstmt.executeQuery();
-        while (rs.next()) {
-          Task task = new Task(
-              rs.getString("taskId"), rs.getString("taskName"),
-              rs.getString("description"),
-              rs.getString("dueDate") != null
-                  ? java.time.LocalDate.parse(rs.getString("dueDate"))
-                  : null,
-              rs.getString("cycleType"));
-          
-          // originalTaskIdがDBに保存されている場合は設定、なければTaskクラスで自動抽出
-          String originalTaskId = rs.getString("originalTaskId");
-          if (originalTaskId != null && !originalTaskId.isEmpty()) {
-            task.setOriginalTaskId(originalTaskId);
-          }
-          
-          list.add(task);
-        }
-      }
-    } catch (SQLException e) {
-      e.printStackTrace();
-    }
-    return list;
-  }
 
   // タスク保存
   public void saveTask(Task task, String teamID) {
     try (Connection conn = DriverManager.getConnection(databaseUrl)) {
-      String sql = "INSERT OR REPLACE INTO tasks (taskId, taskName, description, teamID, dueDate, cycleType, originalTaskId) VALUES  (?, ?, ?, ?, ?, ?, ?)";
+      String sql = "INSERT OR REPLACE INTO tasks (taskId, taskName, description, teamID, dueDate, cycleType) VALUES  (?, ?, ?, ?, ?, ?)";
       try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
         pstmt.setString(1, task.getTaskId());
         pstmt.setString(2, task.getTaskName());
@@ -258,7 +198,6 @@ public class TaskRepository {
         pstmt.setString(4, teamID);
         pstmt.setString(5, task.getDueDate() != null ? task.getDueDate().toString() : null);
         pstmt.setString(6, task.getCycleType());
-        pstmt.setString(7, task.getOriginalTaskId());
         pstmt.executeUpdate();
       }
     } catch (SQLException e) {
@@ -269,7 +208,7 @@ public class TaskRepository {
   // Task保存（簡単版）
   public Task save(Task task) {
     try (Connection conn = DriverManager.getConnection(databaseUrl)) {
-      String sql = "INSERT OR REPLACE INTO tasks (taskId, taskName, description, teamID, dueDate, cycleType, originalTaskId) VALUES  (?, ?, ?, ?, ?, ?, ?)";
+      String sql = "INSERT OR REPLACE INTO tasks (taskId, taskName, description, teamID, dueDate, cycleType) VALUES  (?, ?, ?, ?, ?, ?)";
       try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
         pstmt.setString(1, task.getTaskId());
         pstmt.setString(2, task.getTaskName());
@@ -277,7 +216,6 @@ public class TaskRepository {
         pstmt.setString(4, task.getTeamId());
         pstmt.setString(5, task.getDueDate() != null ? task.getDueDate().toString() : null);
         pstmt.setString(6, task.getCycleType());
-        pstmt.setString(7, task.getOriginalTaskId());
         pstmt.executeUpdate();
       }
     } catch (SQLException e) {
@@ -304,12 +242,6 @@ public class TaskRepository {
           // dueDateがある場合は設定
           if (rs.getString("dueDate") != null) {
             task.setDueDate(java.time.LocalDate.parse(rs.getString("dueDate")));
-          }
-          
-          // originalTaskIdがDBに保存されている場合は設定、なければTaskクラスで自動抽出
-          String originalTaskId = rs.getString("originalTaskId");
-          if (originalTaskId != null && !originalTaskId.isEmpty()) {
-            task.setOriginalTaskId(originalTaskId);
           }
           
           list.add(task);

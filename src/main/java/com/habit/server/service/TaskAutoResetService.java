@@ -125,7 +125,6 @@ public class TaskAutoResetService {
                 }
                 
                 // 4. 新しいdueDate（今日の日付）でisDoneがfalseのUserTaskStatusを生成
-                // originalTaskIdはTaskのtaskIdと同じものを使用
                 UserTaskStatus newStatus = new UserTaskStatus(
                     status.getUserId(),
                     task.getTaskId(), // TaskのtaskIdを使用
@@ -133,7 +132,6 @@ public class TaskAutoResetService {
                     today, // 新しいdueDate
                     false // 初期状態は未完了
                 );
-                newStatus.setOriginalTaskId(task.getTaskId()); // originalTaskIdもTaskのtaskIdと同じ
                 
                 // 重複チェック
                 Optional<UserTaskStatus> existingStatus = userTaskStatusRepository.findByUserIdAndTaskIdAndDate(

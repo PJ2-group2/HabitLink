@@ -56,13 +56,11 @@ public class TeamTaskService {
         
         // チームの全メンバーに対してUserTaskStatusを作成
         for (String memberId : team.getMemberIds()) {
-            // 既存のUserTaskStatusがないことを確認（taskIdとoriginalTaskIdの両方でチェック）
+            // 既存のUserTaskStatusがないことを確認（taskIdでチェック）
             boolean existsByTaskId = userTaskStatusRepository.findByUserIdAndTaskIdAndDate(
                 memberId, task.getTaskId(), today).isPresent();
-            boolean existsByOriginalTaskId = userTaskStatusRepository.findByUserIdAndOriginalTaskIdAndDate(
-                memberId, task.getOriginalTaskId(), today).isPresent();
-                
-            if (!existsByTaskId && !existsByOriginalTaskId) {
+
+            if (!existsByTaskId) {
                 UserTaskStatus newStatus = new UserTaskStatus(
                     memberId,
                     task.getTaskId(),
@@ -88,18 +86,16 @@ public class TeamTaskService {
         LocalDate today = LocalDate.now();
         
         for (Task task : teamTasks) {
-            
-                // 既存のUserTaskStatusがないことを確認（taskIdとoriginalTaskIdの両方でチェック）
-                boolean existsByTaskId = userTaskStatusRepository.findByUserIdAndTaskIdAndDate(
-                    newMemberId, task.getTaskId(), today).isPresent();
-                boolean existsByOriginalTaskId = userTaskStatusRepository.findByUserIdAndOriginalTaskIdAndDate(
-                    newMemberId, task.getOriginalTaskId(), today).isPresent();
-                    
-                if (!existsByTaskId && !existsByOriginalTaskId) {
-                    UserTaskStatus newStatus = new UserTaskStatus(
-                        newMemberId,
-                        task.getTaskId(),
-                        teamId,
+
+            // 既存のUserTaskStatusがないことを確認（taskIdでチェック）
+            boolean existsByTaskId = userTaskStatusRepository.findByUserIdAndTaskIdAndDate(
+                newMemberId, task.getTaskId(), today).isPresent();
+
+            if (!existsByTaskId) {
+                UserTaskStatus newStatus = new UserTaskStatus(
+                    newMemberId,
+                    task.getTaskId(),
+                    teamId,
                         today,
                         false
                     );
