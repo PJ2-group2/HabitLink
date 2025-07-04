@@ -1,9 +1,7 @@
 package com.habit.domain;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.List;
 
 /**
  * タスク情報を管理するクラス。
@@ -13,8 +11,6 @@ public class Task {
     private String taskId;
     private String taskName;
     private String description;
-    private int estimatedMinutes;
-    private List<DayOfWeek> repeatDays;
     private boolean isTeamTask;
     private String teamId;          // チーム共通タスクの場合のチームID
     private LocalTime dueTime;      // 期限時刻
@@ -28,12 +24,10 @@ public class Task {
         this.originalTaskId = extractOriginalTaskId(taskId);
     }
 
-    public Task(String taskId, String taskName, String description, int estimatedMinutes, List<DayOfWeek> repeatDays, boolean isTeamTask, LocalTime dueTime, String cycleType) {
+    public Task(String taskId, String taskName, String description, boolean isTeamTask, LocalTime dueTime, String cycleType) {
         this.taskId = taskId;
         this.taskName = taskName;
         this.description = description;
-        this.estimatedMinutes = estimatedMinutes;
-        this.repeatDays = repeatDays;
         this.isTeamTask = isTeamTask;
         this.teamId = null; // 個人タスクの場合はnull
         this.dueTime = dueTime;
@@ -43,12 +37,10 @@ public class Task {
     }
 
     // チーム共通タスク用コンストラクタ
-    public Task(String taskId, String taskName, String description, int estimatedMinutes, List<DayOfWeek> repeatDays, boolean isTeamTask, String teamId, LocalTime dueTime, String cycleType) {
+    public Task(String taskId, String taskName, String description, boolean isTeamTask, String teamId, LocalTime dueTime, String cycleType) {
         this.taskId = taskId;
         this.taskName = taskName;
         this.description = description;
-        this.estimatedMinutes = estimatedMinutes;
-        this.repeatDays = repeatDays;
         this.isTeamTask = isTeamTask;
         this.teamId = teamId;
         this.dueTime = dueTime;
@@ -58,12 +50,10 @@ public class Task {
     }
 
     // dueDateを含む完全版コンストラクタ
-    public Task(String taskId, String taskName, String description, int estimatedMinutes, List<DayOfWeek> repeatDays, boolean isTeamTask, LocalTime dueTime, LocalDate dueDate, String cycleType) {
+    public Task(String taskId, String taskName, String description, boolean isTeamTask, LocalTime dueTime, LocalDate dueDate, String cycleType) {
         this.taskId = taskId;
         this.taskName = taskName;
         this.description = description;
-        this.estimatedMinutes = estimatedMinutes;
-        this.repeatDays = repeatDays;
         this.isTeamTask = isTeamTask;
         this.dueTime = dueTime;
         this.dueDate = dueDate;
@@ -94,18 +84,16 @@ public class Task {
         return taskName;
     }
 
-    public void updateTaskDetails(String newName, String newDescription, int newEstimatedMinutes, LocalTime newDueTime, String newCycleType) {
+    public void updateTaskDetails(String newName, String newDescription, LocalTime newDueTime, String newCycleType) {
         this.taskName = newName;
         this.description = newDescription;
-        this.estimatedMinutes = newEstimatedMinutes;
         this.dueTime = newDueTime;
         this.cycleType = newCycleType;
     }
 
-    public void updateTaskDetails(String newName, String newDescription, int newEstimatedMinutes, LocalTime newDueTime, LocalDate newDueDate, String newCycleType) {
+    public void updateTaskDetails(String newName, String newDescription, LocalTime newDueTime, LocalDate newDueDate, String newCycleType) {
         this.taskName = newName;
         this.description = newDescription;
-        this.estimatedMinutes = newEstimatedMinutes;
         this.dueTime = newDueTime;
         this.dueDate = newDueDate;
         this.cycleType = newCycleType;
@@ -113,14 +101,6 @@ public class Task {
 
     public String getDescription() {
         return description;
-    }
-
-    public int getEstimatedMinutes() {
-        return estimatedMinutes;
-    }
-
-    public List<DayOfWeek> getRepeatDays() {
-        return repeatDays;
     }
 
     public boolean isTeamTask() {

@@ -178,7 +178,6 @@ public class TaskController {
         String taskId = map.get("taskId");
         String taskName = map.get("taskName");
         String description = map.getOrDefault("description", "");
-        int estimatedMinutes = Integer.parseInt(map.getOrDefault("estimatedMinutes", "0"));
         boolean isTeamTask = Boolean.parseBoolean(map.getOrDefault("isTeamTask", "false"));
         String dueTimeStr = map.get("dueTime");
         java.time.LocalTime dueTime = dueTimeStr != null && !dueTimeStr.isEmpty()
@@ -196,8 +195,7 @@ public class TaskController {
         if (isTeamTask && teamID != null && !teamID.isEmpty()) {
           // チーム共通タスクの場合
           task = new com.habit.domain.Task(
-              taskId, taskName, description, estimatedMinutes,
-              java.util.Collections.emptyList(), isTeamTask, teamID, dueTime, cycleType);
+              taskId, taskName, description, isTeamTask, teamID, dueTime, cycleType);
           if (dueDate != null) {
             task.setDueDate(dueDate);
           }
@@ -206,8 +204,7 @@ public class TaskController {
         } else {
           // 個人タスクの場合
           task = new com.habit.domain.Task(
-              taskId, taskName, description, estimatedMinutes,
-              java.util.Collections.emptyList(), isTeamTask, dueTime, dueDate, cycleType);
+              taskId, taskName, description, isTeamTask, dueTime, dueDate, cycleType);
           // 従来通りの保存
           new com.habit.server.repository.TaskRepository().saveTask(task, teamID);
         }

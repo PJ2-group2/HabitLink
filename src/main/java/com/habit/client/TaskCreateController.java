@@ -146,8 +146,6 @@ public class TaskCreateController {
             java.util.UUID.randomUUID().toString(),
             name,
             description,
-            estimatedMinutes,
-            java.util.Collections.emptyList(), // repeatDays未入力
             isTeamTask,
             dueTime,
             dueDate,
@@ -163,7 +161,6 @@ public class TaskCreateController {
             "taskId=" + task.getTaskId() +
             ", name=" + task.getTaskName() +
             ", description=" + task.getDescription() +
-            ", estimatedMinutes=" + task.getEstimatedMinutes() +
             ", isTeamTask=" + task.isTeamTask() +
             ", dueTime=" + task.getDueTime() +
             ", dueDate=" + task.getDueDate() +
@@ -176,7 +173,6 @@ public class TaskCreateController {
             String body = "taskId=" + java.net.URLEncoder.encode(task.getTaskId(), "UTF-8")
                 + "&taskName=" + java.net.URLEncoder.encode(task.getTaskName(), "UTF-8")
                 + "&description=" + java.net.URLEncoder.encode(task.getDescription(), "UTF-8")
-                + "&estimatedMinutes=" + task.getEstimatedMinutes()
                 + "&isTeamTask=" + task.isTeamTask()
                 + "&dueTime=" + java.net.URLEncoder.encode(task.getDueTime() != null ? task.getDueTime().toString() : "", "UTF-8")
                 + "&dueDate=" + java.net.URLEncoder.encode(task.getDueDate() != null ? task.getDueDate().toString() : "", "UTF-8")

@@ -171,8 +171,6 @@ public class TaskAutoResetService {
                     newTaskId, // 新しいTaskID
                     originalTask.getTaskName(), // 同じタスク名
                     originalTask.getDescription(), // 同じ説明
-                    originalTask.getEstimatedMinutes(), // 同じ推定時間
-                    originalTask.getRepeatDays(), // 同じ繰り返し曜日
                     originalTask.isTeamTask(), // 同じチーム設定
                     nextDueTime, // 調整された期限時刻
                     nextDate, // 調整された期限日付
@@ -270,8 +268,6 @@ public class TaskAutoResetService {
                 newTaskId,                          // 新しいTaskID
                 originalTask.getTaskName(),         // 同じタスク名
                 originalTask.getDescription(),      // 同じ説明
-                originalTask.getEstimatedMinutes(), // 同じ推定時間
-                originalTask.getRepeatDays(),       // 同じ繰り返し曜日
                 originalTask.isTeamTask(),          // 同じチーム設定
                 nextDueTime,                    // 調整された期限時刻
                 nextDate,                    // 調整された期限日付

@@ -207,8 +207,7 @@ public class TaskRepository {
           }
           Task task = new Task(
               rs.getString("taskId"), rs.getString("taskName"),
-              rs.getString("description"), rs.getInt("estimatedMinutes"),
-              repeatDays, rs.getInt("isTeamTask") == 1,
+              rs.getString("description"), rs.getInt("isTeamTask") == 1,
               rs.getString("dueTime") != null
                   ? java.time.LocalTime.parse(rs.getString("dueTime"))
                   : null,
@@ -254,8 +253,8 @@ public class TaskRepository {
           }
           Task task = new Task(
               rs.getString("taskId"), rs.getString("taskName"),
-              rs.getString("description"), rs.getInt("estimatedMinutes"),
-              repeatDays, rs.getInt("isTeamTask") == 1,
+              rs.getString("description"),
+              rs.getInt("isTeamTask") == 1,
               rs.getString("dueTime") != null
                   ? java.time.LocalTime.parse(rs.getString("dueTime"))
                   : null,
@@ -287,14 +286,6 @@ public class TaskRepository {
         pstmt.setString(1, task.getTaskId());
         pstmt.setString(2, task.getTaskName());
         pstmt.setString(3, task.getDescription());
-        pstmt.setInt(4, task.getEstimatedMinutes());
-        // repeatDaysはカンマ区切り
-        String repeatDaysStr = "";
-        if (task.getRepeatDays() != null && !task.getRepeatDays().isEmpty()) {
-          repeatDaysStr = String.join(",",
-            task.getRepeatDays().stream().map(java.time.DayOfWeek::name).toArray(String[]::new));
-        }
-        pstmt.setString(5, repeatDaysStr);
         pstmt.setInt(6, task.isTeamTask() ? 1 : 0);
         pstmt.setString(7, teamID);
         pstmt.setString(8, task.getDueTime() != null ? task.getDueTime().toString() : null);
@@ -316,14 +307,6 @@ public class TaskRepository {
         pstmt.setString(1, task.getTaskId());
         pstmt.setString(2, task.getTaskName());
         pstmt.setString(3, task.getDescription());
-        pstmt.setInt(4, task.getEstimatedMinutes());
-        // repeatDaysはカンマ区切り
-        String repeatDaysStr = "";
-        if (task.getRepeatDays() != null && !task.getRepeatDays().isEmpty()) {
-          repeatDaysStr = String.join(",",
-            task.getRepeatDays().stream().map(java.time.DayOfWeek::name).toArray(String[]::new));
-        }
-        pstmt.setString(5, repeatDaysStr);
         pstmt.setInt(6, task.isTeamTask() ? 1 : 0);
         pstmt.setString(7, task.getTeamId());
         pstmt.setString(8, task.getDueTime() != null ? task.getDueTime().toString() : null);
@@ -356,8 +339,8 @@ public class TaskRepository {
           }
           Task task = new Task(
               rs.getString("taskId"), rs.getString("taskName"),
-              rs.getString("description"), rs.getInt("estimatedMinutes"),
-              repeatDays, rs.getInt("isTeamTask") == 1,
+              rs.getString("description"), 
+              rs.getInt("isTeamTask") == 1,
               rs.getString("teamID"),
               rs.getString("dueTime") != null
                   ? java.time.LocalTime.parse(rs.getString("dueTime"))
