@@ -33,7 +33,7 @@ public class PersonalPageController {
     // チームトップからタスク一覧を受け取る用（廃止予定 - 常に最新データを取得）
     public void setUserTasks(List<com.habit.domain.Task> tasks) {
         // 渡されたタスク一覧は無視して、常に最新データをAPIから取得
-        System.out.println("[PersonalPageController] setUserTasks called, but fetching latest data from API");
+        System.out.println("[PersonalPageController] fetching latest data from API");
         this.tasks = fetchUserTasksForPersonalPage();
         updateTaskTiles();
     }

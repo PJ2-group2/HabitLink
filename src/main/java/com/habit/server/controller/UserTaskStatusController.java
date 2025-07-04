@@ -104,7 +104,6 @@ public class UserTaskStatusController {
                 String response = "[]";
                 if (sessionId != null && teamID != null && dateStr != null) {
                     var user = authService.getUserBySession(sessionId);
-                    System.out.println("[UserTaskStatusController] User from session: " + (user != null ? user.getUserId() : "null"));
                     if (user != null) {
                         String userId = user.getUserId();
                         System.out.println("[UserTaskStatusController] userId: " + userId);
@@ -135,10 +134,19 @@ public class UserTaskStatusController {
                             System.out.println("[UserTaskStatusController] Status - taskId: " + status.getTaskId() + ", isDone: " + status.isDone());
                         }
                         
-                        // ユーザーが担当するタスクIDを取得
-                        java.util.List<String> userTaskIds = utsRepo.findTaskIdsByUserIdAndTeamId(userId, teamID);
+                        // ユーザーが担当するタスクIDセットを取得
+                        java.util.Set<String> userTaskIds = new java.util.HashSet<>(utsRepo.findTaskIdsByUserIdAndTeamId(userId, teamID));
                         System.out.println("[UserTaskStatusController] User task IDs: " + userTaskIds);
                         
+                        // 未完了タスクをフィルタリング
+                        for (com.habit.domain.Task task : teamTasks) {
+                            if (userTaskIds.contains(task.getTaskId())) {
+                                com.habit.domain.UserTaskStatus status = statusMapByTaskId.get(task.getTaskId());
+                                if (status == null || !status.isDone()) {
+                                    filtered.add(task);
+                                }
+                            }
+                        }
                         
                         System.out.println("[UserTaskStatusController] Final filtered tasks count: " + filtered.size());
                         StringBuilder sb = new StringBuilder("[");
