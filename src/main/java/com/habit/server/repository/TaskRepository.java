@@ -263,16 +263,16 @@ public class TaskRepository {
   // タスク保存
   public void saveTask(Task task, String teamID) {
     try (Connection conn = DriverManager.getConnection(databaseUrl)) {
-      String sql = "INSERT OR REPLACE INTO tasks (taskId, taskName, description,  teamID, dueTime, dueDate, cycleType, originalTaskId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      String sql = "INSERT OR REPLACE INTO tasks (taskId, taskName, description,  teamID, dueTime, dueDate, cycleType, originalTaskId) VALUES  (?, ?, ?, ?, ?, ?, ?, ?)";
       try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
         pstmt.setString(1, task.getTaskId());
         pstmt.setString(2, task.getTaskName());
         pstmt.setString(3, task.getDescription());
-        pstmt.setString(7, teamID);
-        pstmt.setString(8, task.getDueTime() != null ? task.getDueTime().toString() : null);
-        pstmt.setString(9, task.getDueDate() != null ? task.getDueDate().toString() : null);
-        pstmt.setString(10, task.getCycleType());
-        pstmt.setString(11, task.getOriginalTaskId());
+        pstmt.setString(4, teamID);
+        pstmt.setString(5, task.getDueTime() != null ? task.getDueTime().toString() : null);
+        pstmt.setString(6, task.getDueDate() != null ? task.getDueDate().toString() : null);
+        pstmt.setString(7, task.getCycleType());
+        pstmt.setString(8, task.getOriginalTaskId());
         pstmt.executeUpdate();
       }
     } catch (SQLException e) {
@@ -283,16 +283,16 @@ public class TaskRepository {
   // Task保存（簡単版）
   public Task save(Task task) {
     try (Connection conn = DriverManager.getConnection(databaseUrl)) {
-      String sql = "INSERT OR REPLACE INTO tasks (taskId, taskName, description, teamID, dueTime, dueDate, cycleType, originalTaskId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+      String sql = "INSERT OR REPLACE INTO tasks (taskId, taskName, description, teamID, dueTime, dueDate, cycleType, originalTaskId) VALUES  (?, ?, ?, ?, ?, ?, ?, ?)";
       try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
         pstmt.setString(1, task.getTaskId());
         pstmt.setString(2, task.getTaskName());
         pstmt.setString(3, task.getDescription());
-        pstmt.setString(7, task.getTeamId());
-        pstmt.setString(8, task.getDueTime() != null ? task.getDueTime().toString() : null);
-        pstmt.setString(9, task.getDueDate() != null ? task.getDueDate().toString() : null);
-        pstmt.setString(10, task.getCycleType());
-        pstmt.setString(11, task.getOriginalTaskId());
+        pstmt.setString(4, task.getTeamId());
+        pstmt.setString(5, task.getDueTime() != null ? task.getDueTime().toString() : null);
+        pstmt.setString(6, task.getDueDate() != null ? task.getDueDate().toString() : null);
+        pstmt.setString(7, task.getCycleType());
+        pstmt.setString(8, task.getOriginalTaskId());
         pstmt.executeUpdate();
       }
     } catch (SQLException e) {
