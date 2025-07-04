@@ -132,7 +132,25 @@ public class UserTaskStatusRepository {
         return result;
     }
 
-    // ユーザID・タスクID・日付で検索
+    // ユーザID・タスクIDで検索
+    public Optional<UserTaskStatus> findByUserIdAndTaskId(String userId, String taskId) {
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String sql = "SELECT * FROM user_task_statuses WHERE userId = ? AND taskId = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, userId);
+                pstmt.setString(2, taskId);
+                ResultSet rs = pstmt.executeQuery();
+                if (rs.next()) {
+                    return Optional.of(mapRowToStatus(rs));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return Optional.empty();
+    }
+
+    // ユーザID・タスクID・日付で検索 → 廃止すべき
     public Optional<UserTaskStatus> findByUserIdAndTaskIdAndDate(String userId, String taskId, LocalDate date) {
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
             String sql = "SELECT * FROM user_task_statuses WHERE userId = ? AND taskId = ? AND date = ?";

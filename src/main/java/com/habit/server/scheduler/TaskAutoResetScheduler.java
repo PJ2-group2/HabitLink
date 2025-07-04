@@ -13,48 +13,35 @@ import java.time.temporal.ChronoUnit;
 
 /**
  * タスク自動再設定の定期実行スケジューラー
- *
- * 【目的】
- * タスクの自動再設定を定期的に実行し、ユーザーの習慣継続をサポート
- *
- * 【実行間隔】
- * 1時間ごとに実行（サーバー起動1分後から開始）
- *
- * 【利点】
- * - タスク完了後、最大1時間で次のタスクが自動生成
- * - 期限切れタスクの早期検出・新規作成
- * - ユーザーが「今日のタスクがない」状況を回避
+ *  タスクの自動再設定を定期的に実行する。
+ *  1分ごとに実行
+ * 期限切れタスクの検出が目的
  */
 public class TaskAutoResetScheduler {
     private final TaskAutoResetService taskAutoResetService;
     private final ScheduledExecutorService scheduler;
     
-    // 実行間隔（1時間ごと）- 変更したい場合はここを修正
-    private static final int EXECUTION_INTERVAL_HOURS = 1;
+    // 実行間隔（1分ごと）- 変更したい場合はここを修正
+    private static final int EXECUTION_INTERVAL_MINUTES = 1;
     
     public TaskAutoResetScheduler() {
         this.taskAutoResetService = new TaskAutoResetService(
             new TaskRepository(),
             new UserTaskStatusRepository()
         );
-        this.scheduler = Executors.newScheduledThreadPool(1);
+        this.scheduler = Executors.newScheduledThreadPool(1); // スレッドプールのサイズは1（単一スレッドで実行）
     }
     
     /**
-     * スケジューラーを開始
-     *
-     * 【実行タイミング】
-     * - 初回実行: サーバー起動60秒後
-     * - 以降: 1時間ごとに実行
-     *
-     * 【スケジューラーの種類】
-     * scheduleAtFixedRate: 前回の実行開始時刻から固定間隔で実行
-     * （処理時間に関係なく、1時間ごとに確実に実行される）
+     * スケジューラーの開始メソッド
+     *  1分ごとに実行
+     *  scheduleAtFixedRate: 前回の実行開始時刻から固定間隔で実行
+     * （処理時間に関係なく、1分ごとに確実に実行される）
      */
     public void start() {
         long initialDelay = 60; // 1分後に初回実行（サーバー起動直後の負荷を避ける）
-        long period = 60; // 1時間間隔（秒）
-        
+        long period = EXECUTION_INTERVAL_MINUTES * 60; // 1分間隔（単位: 秒）
+
         scheduler.scheduleAtFixedRate(
             this::executeAutoReset, // 実行するメソッド
             initialDelay,           // 初回実行までの遅延
@@ -63,14 +50,12 @@ public class TaskAutoResetScheduler {
         );
         
         System.out.println("タスク自動再設定スケジューラーを開始しました。");
-        System.out.println("実行間隔: " + EXECUTION_INTERVAL_HOURS + "時間ごと");
+        System.out.println("実行間隔: " + EXECUTION_INTERVAL_MINUTES + "分ごと");
         System.out.println("初回実行まで: " + initialDelay + "秒");
     }
     
     /**
-     * スケジューラーを停止
-     *
-     * 【停止手順】
+     * スケジューラーの停止メソッド
      * 1. 新しいタスクの受付を停止
      * 2. 60秒間実行中のタスクの完了を待機
      * 3. 完了しない場合は強制終了
@@ -91,17 +76,10 @@ public class TaskAutoResetScheduler {
         System.out.println("タスク自動再設定スケジューラーを停止しました。");
     }
     
-    // calculateInitialDelayメソッドは不要になったため削除
-    
     /**
-     * 自動再設定を実行
-     *
-     * 【実行内容】
-     * TaskAutoResetService.runScheduledCheck()を呼び出し、
-     * 全チームのタスクを自動再設定
-     *
-     * 【エラーハンドリング】
-     * 例外が発生してもスケジューラーは停止せず、次回実行を継続
+     * 自動再設定を実行するメソッド
+     *  TaskAutoResetService.runScheduledCheck()を呼び出し、全チームのタスクを自動再設定
+     *  例外が発生してもスケジューラーは停止せず、次回実行を継続
      */
     private void executeAutoReset() {
         try {

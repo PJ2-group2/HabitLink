@@ -182,14 +182,39 @@ public class UserTaskStatusController {
                             
                             // [リファクタリング] 最適なタスクを選択するロジックを簡素化。
                             // ソート済みのタスクリストを先頭から順に確認し、
-                            // 最初に見つかった未完了のタスク（isDone=false）を表示対象として選択します。
+                            // 最初に見つかった未完了かつ期限切れでないタスク（isDone=false）を表示対象として選択します。
                             com.habit.domain.Task selectedTask = null;
+                            java.time.LocalDateTime now = java.time.LocalDateTime.now();
                             for (com.habit.domain.Task t : tasksForOriginalId) {
                                 com.habit.domain.UserTaskStatus status = statusMapByTaskId.get(t.getTaskId());
                                 if (status == null || !status.isDone()) {
-                                    selectedTask = t;
-                                    System.out.println("[UserTaskStatusController] Selected task for display: " + t.getTaskName() + " (taskId: " + t.getTaskId() + ", dueDate: " + t.getDueDate() + ")");
-                                    break;
+                                    // ★追加★ 期限切れチェック
+                                    java.time.LocalDate taskDueDate = t.getDueDate();
+                                    java.time.LocalTime taskDueTime = null;
+                                    try {
+                                        java.lang.reflect.Method m = t.getClass().getMethod("getDueTime");
+                                        Object val = m.invoke(t);
+                                        if (val != null) taskDueTime = (java.time.LocalTime) val;
+                                    } catch (Exception ignore) {}
+                                    
+                                    if (taskDueDate != null) {
+                                        java.time.LocalDateTime deadline = taskDueDate.atTime(
+                                            taskDueTime != null ? taskDueTime : java.time.LocalTime.of(23, 59));
+                                        
+                                        // 期限切れでないタスクのみを選択
+                                        if (!now.isAfter(deadline)) {
+                                            selectedTask = t;
+                                            System.out.println("[UserTaskStatusController] Selected task for display: " + t.getTaskName() + " (taskId: " + t.getTaskId() + ", dueDate: " + t.getDueDate() + ")");
+                                            break;
+                                        } else {
+                                            System.out.println("[UserTaskStatusController] Skipping overdue task: " + t.getTaskName() + " (taskId: " + t.getTaskId() + ", dueDate: " + t.getDueDate() + ", deadline: " + deadline + ")");
+                                        }
+                                    } else {
+                                        // 期限日付が設定されていない場合は表示対象とする
+                                        selectedTask = t;
+                                        System.out.println("[UserTaskStatusController] Selected task for display (no due date): " + t.getTaskName() + " (taskId: " + t.getTaskId() + ")");
+                                        break;
+                                    }
                                 }
                             }
                             
@@ -292,11 +317,23 @@ public class UserTaskStatusController {
             }
         }
     }
+
+    /**
+     * ユーザーのタスク完了APIハンドラー
+     * 【処理内容】
+     * 1. POSTメソッドでリクエストを受け取る
+     * 2. リクエストボディからuserId, taskId, dateを取得
+     * 3. UserTaskStatusRepositoryを使用して、指定ユーザーの
+     *    タスク完了ステータスを更新または新規作成
+     * 4. タスク完了後、即座にタスク再設定処理を実行
+     * 5. レスポンスとして完了メッセージを返却
+     */
     public static class CompleteUserTaskHandler implements com.sun.net.httpserver.HttpHandler {
         @Override
         public void handle(com.sun.net.httpserver.HttpExchange exchange) throws java.io.IOException {
             java.io.OutputStream os = null;
             try {
+                // リクエストメソッドのチェック
                 if (!"POST".equals(exchange.getRequestMethod())) {
                     String response = "POSTメソッドのみ対応";
                     exchange.sendResponseHeaders(405, response.getBytes().length);
@@ -304,6 +341,7 @@ public class UserTaskStatusController {
                     os.write(response.getBytes());
                     return;
                 }
+                // リクエストボディの解析
                 byte[] bodyBytes = exchange.getRequestBody().readAllBytes();
                 String bodyStr = (bodyBytes != null) ? new String(bodyBytes, java.nio.charset.StandardCharsets.UTF_8) : "";
                 final String[] userId = {null};
@@ -325,15 +363,22 @@ public class UserTaskStatusController {
                     UserTaskStatusRepository repo = new UserTaskStatusRepository();
                     com.habit.server.repository.TaskRepository taskRepo = new com.habit.server.repository.TaskRepository();
                     
-                    // 既存のステータスがあれば取得、なければ新規作成
-                    java.util.Optional<com.habit.domain.UserTaskStatus> optStatus = repo.findByUserIdAndTaskIdAndDate(userId[0], taskId[0], date);
-                    com.habit.domain.UserTaskStatus status = optStatus.orElseGet(() ->
-                        new com.habit.domain.UserTaskStatus(userId[0], taskId[0], date, false)
-                    );
+                    // 既存のステータスがなければエラーを返す
+                    java.util.Optional<com.habit.domain.UserTaskStatus> optStatus = repo.findByUserIdAndTaskId(userId[0], taskId[0]);
+                    if (optStatus.isEmpty()) {
+                        response = "エラー: 該当のタスクステータスが見つかりません。";
+                        exchange.getResponseHeaders().set("Content-Type", "text/plain; charset=UTF-8");
+                        exchange.sendResponseHeaders(404, response.getBytes("UTF-8").length);
+                        os = exchange.getResponseBody();
+                        os.write(response.getBytes("UTF-8"));
+                        return;
+                    }
+                    com.habit.domain.UserTaskStatus status = optStatus.get();
+                    // タスク完了ステータスを更新(保存)
                     status.setDone(true);
                     repo.save(status);
                     
-                    // ★即座のタスク再設定処理を追加★
+                    // 即座にタスクを再設定
                     try {
                         // 完了したタスクの情報を取得
                         com.habit.server.repository.TeamRepository teamRepo = new com.habit.server.repository.TeamRepository();
@@ -360,16 +405,16 @@ public class UserTaskStatusController {
                             com.habit.server.service.TaskAutoResetService autoResetService =
                                 new com.habit.server.service.TaskAutoResetService(taskRepo, repo);
                             
-                            System.out.println("[CompleteUserTaskHandler] 即座のタスク再設定を実行: taskId=" + taskId[0] +
+                            System.out.println("[CompleteUserTaskHandler] 達成時のタスク再設定を実行: taskId=" + taskId[0] +
                                 ", userId=" + userId[0] + ", cycleType=" + completedTask.getCycleType());
                             
                             boolean resetSuccess = autoResetService.createNextTaskInstanceImmediately(
                                 completedTask, userId[0], date, teamId);
                             
                             if (resetSuccess) {
-                                System.out.println("[CompleteUserTaskHandler] 即座のタスク再設定成功");
+                                System.out.println("[CompleteUserTaskHandler] 達成時のタスク再設定成功");
                             } else {
-                                System.out.println("[CompleteUserTaskHandler] 即座のタスク再設定スキップまたは対象外");
+                                System.out.println("[CompleteUserTaskHandler] 達成時のタスク再設定スキップまたは対象外");
                             }
                         } else {
                             System.out.println("[CompleteUserTaskHandler] 完了タスクが見つかりません: taskId=" + taskId[0]);

@@ -83,30 +83,39 @@ public class PersonalPageController {
     private void updateTaskTiles() {
         taskTilePane.getChildren().clear();
         for (com.habit.domain.Task task : tasks) {
+            java.time.LocalTime dueTime = task.getDueTime();
+            java.time.LocalDate dueDate = task.getDueDate();
+            java.time.LocalDateTime now = LocalDateTime.now();
+            java.time.LocalDateTime deadline = null;
+            if (dueDate != null) {
+                deadline = dueDate.atTime(dueTime != null ? dueTime : LocalTime.MAX);
+            }
+
+            if (deadline != null && now.isAfter(deadline)) {
+                continue; // Skip overdue tasks
+            }
+
             Button tileBtn = new Button();
             tileBtn.setStyle("-fx-border-color: #aaa; -fx-padding: 30; -fx-background-color: #f9f9f9; -fx-min-width: 320px; -fx-min-height: 150px; -fx-alignment: center; -fx-font-size: 22px; -fx-font-weight: bold;");
             String name = task.getTaskName();
-            java.time.LocalTime dueTime = task.getDueTime();
-            java.time.LocalDate dueDate = task.getDueDate();
             String remainStr = getRemainingTimeAndDaysString(dueTime, dueDate);
             tileBtn.setText(name + (remainStr.isEmpty() ? "" : "\n" + remainStr));
             tileBtn.setOnAction(unused -> {
                 // 達成可能かどうかのチェック
                 String cycleType = task.getCycleType();
                 LocalDate taskDueDate = task.getDueDate();
-                LocalDateTime now = LocalDateTime.now();
                 boolean canComplete = true;
                 String errorMessage = "";
 
                 if (taskDueDate != null && cycleType != null) {
-                    LocalDateTime deadline = taskDueDate.atTime(task.getDueTime() != null ? task.getDueTime() : LocalTime.MAX);
+                    LocalDateTime taskDeadline = taskDueDate.atTime(task.getDueTime() != null ? task.getDueTime() : LocalTime.MAX);
                     if ("daily".equalsIgnoreCase(cycleType)) {
-                        if (now.isBefore(deadline.minusHours(24))) {
+                        if (now.isBefore(taskDeadline.minusHours(24))) {
                             canComplete = false;
                             errorMessage = "このタスクは期限の24時間前まで達成できません。";
                         }
                     } else if ("weekly".equalsIgnoreCase(cycleType)) {
-                        if (now.isBefore(deadline.minusDays(7))) {
+                        if (now.isBefore(taskDeadline.minusDays(7))) {
                             canComplete = false;
                             errorMessage = "このタスクは期限の7日前まで達成できません。";
                         }
@@ -186,11 +195,22 @@ public class PersonalPageController {
         }
     }
 
-    // LocalTime（本日分の締切時刻）までの残り時間を表示（従来版）
-    private String getRemainingTimeString(java.time.LocalTime dueTime) {
+    // LocalTime（本日分の締切時刻）までの残り時間を表示（修正版：日付も考慮）
+    private String getRemainingTimeString(java.time.LocalTime dueTime, java.time.LocalDate dueDate) {
+        java.time.LocalDate today = java.time.LocalDate.now();
         java.time.LocalTime now = java.time.LocalTime.now();
-        if (dueTime.isBefore(now)) return "期限切れ";
-        long totalMinutes = java.time.Duration.between(now, dueTime).toMinutes();
+        
+        // 期限日付が指定されていない場合は今日として扱う
+        if (dueDate == null) {
+            dueDate = today;
+        }
+        
+        java.time.LocalDateTime deadline = dueDate.atTime(dueTime);
+        java.time.LocalDateTime nowDateTime = today.atTime(now);
+        
+        if (nowDateTime.isAfter(deadline)) return "期限切れ";
+        
+        long totalMinutes = java.time.Duration.between(nowDateTime, deadline).toMinutes();
         long hours = totalMinutes / 60;
         long minutes = totalMinutes % 60;
         return String.format("%d時間%d分", hours, minutes);
@@ -204,7 +224,7 @@ public class PersonalPageController {
         // 期限日付が設定されていない場合は従来通り時間のみ表示
         if (dueDate == null) {
             if (dueTime == null) return "";
-            return "残り: " + getRemainingTimeString(dueTime);
+            return "残り: " + getRemainingTimeString(dueTime, null);
         }
         
         // 期限日付が設定されている場合
@@ -226,7 +246,7 @@ public class PersonalPageController {
         } else {
             // 当日または24時間以内の場合は時間を表示
             if (dueTime != null) {
-                return "残り: " + getRemainingTimeString(dueTime);
+                return "残り: " + getRemainingTimeString(dueTime, dueDate);
             } else {
                 return "残り: 本日中";
             }
