@@ -19,9 +19,6 @@ public class TaskCreateController {
     /* タスクの詳細説明フィールド */
     @FXML 
     private TextField descriptionField;
-    /* タスクの期限時刻入力フィールド */
-    @FXML
-    private TextField dueTimeField;
     /* タスクの期限日付入力フィールド */
     @FXML
     private TextField dueDateField;
@@ -72,7 +69,6 @@ public class TaskCreateController {
     private void handleBtnCreate() {
         String name = taskNameField.getText();
         String description = descriptionField != null ? descriptionField.getText() : "";
-        String dueTimeStr = dueTimeField.getText();
         String dueDateStr = dueDateField != null ? dueDateField.getText() : "";
         String cycle = cycleTypeChoice.getValue();
 
@@ -80,15 +76,6 @@ public class TaskCreateController {
         if (name == null || name.isEmpty()) {
             showAlert("タスク名を入力してください");
             return;
-        }
-        LocalTime dueTime = null;
-        if (dueTimeStr != null && !dueTimeStr.isEmpty()) {
-            try {
-                dueTime = LocalTime.parse(dueTimeStr);
-            } catch (Exception e) {
-                showAlert("期限時刻はHH:mm形式で入力してください");
-                return;
-            }
         }
         
         java.time.LocalDate dueDate = null;
@@ -110,15 +97,6 @@ public class TaskCreateController {
                 dueDate = java.time.LocalDate.now().plusWeeks(1);
             }
         }
-        
-        // 当日で時刻が既に過ぎている場合のチェック
-        if (dueDate.equals(java.time.LocalDate.now()) && dueTime != null) {
-            java.time.LocalTime currentTime = java.time.LocalTime.now();
-            if (dueTime.isBefore(currentTime) || dueTime.equals(currentTime)) {
-                showAlert("設定された時刻は既に過ぎています。別の時刻を設定してください。");
-                return;
-            }
-        }
 
         // 保存処理
         String cycleType = "毎日".equals(cycle) ? "daily" : "weekly";
@@ -126,7 +104,6 @@ public class TaskCreateController {
             java.util.UUID.randomUUID().toString(),
             name,
             description,
-            dueTime,
             dueDate,
             cycleType
         );
@@ -140,7 +117,6 @@ public class TaskCreateController {
             "taskId=" + task.getTaskId() +
             ", name=" + task.getTaskName() +
             ", description=" + task.getDescription() +
-            ", dueTime=" + task.getDueTime() +
             ", dueDate=" + task.getDueDate() +
             ", cycleType=" + task.getCycleType() +
             ", teamID=" + teamID
@@ -151,7 +127,6 @@ public class TaskCreateController {
             String body = "taskId=" + java.net.URLEncoder.encode(task.getTaskId(), "UTF-8")
                 + "&taskName=" + java.net.URLEncoder.encode(task.getTaskName(), "UTF-8")
                 + "&description=" + java.net.URLEncoder.encode(task.getDescription(), "UTF-8")
-                + "&dueTime=" + java.net.URLEncoder.encode(task.getDueTime() != null ? task.getDueTime().toString() : "", "UTF-8")
                 + "&dueDate=" + java.net.URLEncoder.encode(task.getDueDate() != null ? task.getDueDate().toString() : "", "UTF-8")
                 + "&cycleType=" + java.net.URLEncoder.encode(task.getCycleType(), "UTF-8")
                 + "&teamID=" + java.net.URLEncoder.encode(teamID, "UTF-8");

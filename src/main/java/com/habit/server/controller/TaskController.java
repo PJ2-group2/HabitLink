@@ -178,10 +178,6 @@ public class TaskController {
         String taskId = map.get("taskId");
         String taskName = map.get("taskName");
         String description = map.getOrDefault("description", "");
-        String dueTimeStr = map.get("dueTime");
-        java.time.LocalTime dueTime = dueTimeStr != null && !dueTimeStr.isEmpty()
-            ? java.time.LocalTime.parse(dueTimeStr)
-            : null;
         String dueDateStr = map.get("dueDate");
         java.time.LocalDate dueDate = dueDateStr != null && !dueDateStr.isEmpty()
             ? java.time.LocalDate.parse(dueDateStr)
@@ -193,7 +189,7 @@ public class TaskController {
         if (teamID != null && !teamID.isEmpty()) {
           // チーム共通タスクの場合
           task = new com.habit.domain.Task(
-              taskId, taskName, description, teamID, dueTime, cycleType);
+              taskId, taskName, description, teamID, cycleType);
           if (dueDate != null) {
             task.setDueDate(dueDate);
           }
@@ -202,7 +198,7 @@ public class TaskController {
         } else {
           // 個人タスクの場合
           task = new com.habit.domain.Task(
-              taskId, taskName, description, dueTime, dueDate, cycleType);
+              taskId, taskName, description, dueDate, cycleType);
           // 従来通りの保存
           new com.habit.server.repository.TaskRepository().saveTask(task, teamID);
         }

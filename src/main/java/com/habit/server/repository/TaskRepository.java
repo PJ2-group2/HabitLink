@@ -24,7 +24,6 @@ public class TaskRepository {
                    + "taskName TEXT,"
                    + "description TEXT,"
                    + "teamID TEXT,"
-                   + "dueTime TEXT,"
                    + "dueDate TEXT,"
                    + "cycleType TEXT,"
                    + "originalTaskId TEXT"
@@ -34,7 +33,6 @@ public class TaskRepository {
       // 既存DB用: カラム追加
       ResultSet rs = stmt.executeQuery("PRAGMA table_info(tasks)");
       boolean hasTaskId = false;
-      boolean hasDueTime = false;
       boolean hasDueDate = false;
       boolean hasCycleType = false;
       boolean hasTasksOriginalTaskId = false;
@@ -42,8 +40,6 @@ public class TaskRepository {
         String col = rs.getString("name");
         if ("taskId".equalsIgnoreCase(col))
           hasTaskId = true;
-        if ("dueTime".equalsIgnoreCase(col))
-          hasDueTime = true;
         if ("dueDate".equalsIgnoreCase(col))
           hasDueDate = true;
         if ("cycleType".equalsIgnoreCase(col))
@@ -53,9 +49,6 @@ public class TaskRepository {
       }
       if (!hasTaskId) {
         stmt.execute("ALTER TABLE tasks ADD COLUMN taskId TEXT");
-      }
-      if (!hasDueTime) {
-        stmt.execute("ALTER TABLE tasks ADD COLUMN dueTime TEXT");
       }
       if (!hasDueDate) {
         stmt.execute("ALTER TABLE tasks ADD COLUMN dueDate TEXT");
@@ -198,9 +191,6 @@ public class TaskRepository {
           Task task = new Task(
               rs.getString("taskId"), rs.getString("taskName"),
               rs.getString("description"),
-              rs.getString("dueTime") != null
-                  ? java.time.LocalTime.parse(rs.getString("dueTime"))
-                  : null,
               rs.getString("dueDate") != null
                   ? java.time.LocalDate.parse(rs.getString("dueDate"))
                   : null,
@@ -237,9 +227,6 @@ public class TaskRepository {
           Task task = new Task(
               rs.getString("taskId"), rs.getString("taskName"),
               rs.getString("description"),
-              rs.getString("dueTime") != null
-                  ? java.time.LocalTime.parse(rs.getString("dueTime"))
-                  : null,
               rs.getString("dueDate") != null
                   ? java.time.LocalDate.parse(rs.getString("dueDate"))
                   : null,
@@ -263,16 +250,15 @@ public class TaskRepository {
   // タスク保存
   public void saveTask(Task task, String teamID) {
     try (Connection conn = DriverManager.getConnection(databaseUrl)) {
-      String sql = "INSERT OR REPLACE INTO tasks (taskId, taskName, description,  teamID, dueTime, dueDate, cycleType, originalTaskId) VALUES  (?, ?, ?, ?, ?, ?, ?, ?)";
+      String sql = "INSERT OR REPLACE INTO tasks (taskId, taskName, description, teamID, dueDate, cycleType, originalTaskId) VALUES  (?, ?, ?, ?, ?, ?, ?)";
       try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
         pstmt.setString(1, task.getTaskId());
         pstmt.setString(2, task.getTaskName());
         pstmt.setString(3, task.getDescription());
         pstmt.setString(4, teamID);
-        pstmt.setString(5, task.getDueTime() != null ? task.getDueTime().toString() : null);
-        pstmt.setString(6, task.getDueDate() != null ? task.getDueDate().toString() : null);
-        pstmt.setString(7, task.getCycleType());
-        pstmt.setString(8, task.getOriginalTaskId());
+        pstmt.setString(5, task.getDueDate() != null ? task.getDueDate().toString() : null);
+        pstmt.setString(6, task.getCycleType());
+        pstmt.setString(7, task.getOriginalTaskId());
         pstmt.executeUpdate();
       }
     } catch (SQLException e) {
@@ -283,16 +269,15 @@ public class TaskRepository {
   // Task保存（簡単版）
   public Task save(Task task) {
     try (Connection conn = DriverManager.getConnection(databaseUrl)) {
-      String sql = "INSERT OR REPLACE INTO tasks (taskId, taskName, description, teamID, dueTime, dueDate, cycleType, originalTaskId) VALUES  (?, ?, ?, ?, ?, ?, ?, ?)";
+      String sql = "INSERT OR REPLACE INTO tasks (taskId, taskName, description, teamID, dueDate, cycleType, originalTaskId) VALUES  (?, ?, ?, ?, ?, ?, ?)";
       try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
         pstmt.setString(1, task.getTaskId());
         pstmt.setString(2, task.getTaskName());
         pstmt.setString(3, task.getDescription());
         pstmt.setString(4, task.getTeamId());
-        pstmt.setString(5, task.getDueTime() != null ? task.getDueTime().toString() : null);
-        pstmt.setString(6, task.getDueDate() != null ? task.getDueDate().toString() : null);
-        pstmt.setString(7, task.getCycleType());
-        pstmt.setString(8, task.getOriginalTaskId());
+        pstmt.setString(5, task.getDueDate() != null ? task.getDueDate().toString() : null);
+        pstmt.setString(6, task.getCycleType());
+        pstmt.setString(7, task.getOriginalTaskId());
         pstmt.executeUpdate();
       }
     } catch (SQLException e) {
@@ -314,9 +299,6 @@ public class TaskRepository {
               rs.getString("taskId"), rs.getString("taskName"),
               rs.getString("description"), 
               rs.getString("teamID"),
-              rs.getString("dueTime") != null
-                  ? java.time.LocalTime.parse(rs.getString("dueTime"))
-                  : null,
               rs.getString("cycleType"));
           
           // dueDateがある場合は設定

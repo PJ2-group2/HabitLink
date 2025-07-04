@@ -22,12 +22,12 @@ public class TaskAutoResetService {
     private final TaskRepository taskRepository;
     private final UserTaskStatusRepository userTaskStatusRepository;
     
-    // デフォルトの期限時刻（0時固定にしたい場合は、getDueTimeメソッドでこの値を常に返すよう変更）
-    private static final LocalTime DEFAULT_DUE_TIME = LocalTime.MIDNIGHT;
-    
     // 重複実行防止用のフラグ（1分ごと実行のため、処理が重複しないよう制御）
     private volatile boolean isRunning = false;
-    
+
+    // 今日の日付
+    private LocalDate today = LocalDate.now();
+
     /**
      * コンストラクタ
      */ 
@@ -47,9 +47,8 @@ public class TaskAutoResetService {
      */
     public void checkAndResetTasks(String teamId) {
         List<Task> teamTasks = taskRepository.findTeamTasksByTeamID(teamId);
-        LocalDate today = LocalDate.now();
         
-        for (Task task : teamTasks) {
+        for (Task task : teamTasks) { 
             resetTaskForAllUsers(task, today);
         }
     }
@@ -81,35 +80,7 @@ public class TaskAutoResetService {
      * 期限切れかどうかを判定するメソッド
      */
     private boolean isOverdue(Task task, LocalDate taskDate, LocalDate today) {
-        LocalTime dueTime = getDueTime(task);
-        LocalDateTime deadline = taskDate.atTime(dueTime); // 時刻情報を追加
-        LocalDateTime now = LocalDateTime.now();
-        
-        return now.isAfter(deadline);
-    }
-    
-    /**
-     * タスクの期限時刻を取得（0時固定オプション対応）
-     *
-     * @param task 対象タスク
-     * @return 期限時刻
-     *
-     * 【期限時刻の決定ロジック】
-     * - タスクに個別の期限時刻が設定されている場合: その時刻を使用
-     * - 設定されていない場合: デフォルト0時を使用
-     *
-     * 【0時固定にしたい場合の変更方法】
-     * 下記のコメントアウト部分を有効にして、return文を置き換える：
-     * return DEFAULT_DUE_TIME;
-     */
-    private LocalTime getDueTime(Task task) {
-        LocalTime taskDueTime = task.getDueTime();
-        
-        // 実装を楽にしたい場合：常に0時を返す（期限時刻を0時固定）
-        // return DEFAULT_DUE_TIME;
-        
-        // 柔軟性を保つ場合：設定時刻 or デフォルト0時
-        return taskDueTime != null ? taskDueTime : DEFAULT_DUE_TIME;
+        return today.isAfter(taskDate);
     }
     
     /**
@@ -154,9 +125,6 @@ public class TaskAutoResetService {
             originalTask = completeTask; // フォールバック
         }
 
-        // 元のタスクの期限時刻をそのまま使用
-        LocalTime nextDueTime = originalTask.getDueTime();
-
         // 期限日を付加した新しいTaskIDを生成
         String newTaskId = generateNewTaskId(originalTaskId, nextDate);
 
@@ -171,7 +139,6 @@ public class TaskAutoResetService {
                     newTaskId, // 新しいTaskID
                     originalTask.getTaskName(), // 同じタスク名
                     originalTask.getDescription(), // 同じ説明
-                    nextDueTime, // 調整された期限時刻
                     nextDate, // 調整された期限日付
                     originalTask.getCycleType() // 同じサイクルタイプ
             );
@@ -208,7 +175,6 @@ public class TaskAutoResetService {
                         ", TaskName=" + originalTask.getTaskName() +
                         ", originalTaskId=" + originalTaskId +
                         ", adjustedDueDate=" + nextDate +
-                        ", adjustedDueTime=" + nextDueTime +
                         ", teamId=" + teamId);
             } else {
                 System.out.println("自動再設定スキップ（既存あり）: userId=" + userId +
@@ -251,9 +217,6 @@ public class TaskAutoResetService {
             System.err.println("警告: オリジナルのタスクが見つかりません。今のタスクをオリジナルとします。: " + originalTaskId);
             originalTask = overdueTask; // フォールバック
         }
-        
-        // 元のタスクの期限時刻をそのまま使用
-        LocalTime nextDueTime = originalTask.getDueTime();
 
         // 期限日を付加した新しいTaskIDを生成
         String newTaskId = generateNewTaskId(originalTaskId, nextDate);
@@ -267,7 +230,6 @@ public class TaskAutoResetService {
                 newTaskId,                          // 新しいTaskID
                 originalTask.getTaskName(),         // 同じタスク名
                 originalTask.getDescription(),      // 同じ説明
-                nextDueTime,                    // 調整された期限時刻
                 nextDate,                    // 調整された期限日付
                 originalTask.getCycleType()       // 同じサイクルタイプ
             );
@@ -304,7 +266,6 @@ public class TaskAutoResetService {
                     ", TaskName=" + originalTask.getTaskName() +
                     ", originalTaskId=" + originalTaskId+
                     ", adjustedDueDate=" + nextDate +
-                    ", adjustedDueTime=" + nextDueTime +
                     ", teamId=" + teamId);
             } else {
                 System.out.println("期限切れタスクの再設定スキップ（既存あり）: userId=" + userId +
@@ -336,51 +297,6 @@ public class TaskAutoResetService {
             System.out.println("警告: 新タスクIDが既存IDと重複しています。 作成をスキップします。");
         }
         return false;     // 既存のため作成せず
-    }
-    
-    /**
-     * 期限切れ時の期限時刻を調整
-     *
-     * @param originalDueTime 元の期限時刻
-     * @param targetDate 対象日付
-     * @return 調整された期限時刻
-     */
-    private LocalTime adjustDueTimeForOverdue(LocalTime originalDueTime, LocalDate targetDate) {
-        LocalDate today = LocalDate.now();
-        LocalTime now = LocalTime.now();
-        
-        // 元の期限時刻が設定されていない場合はデフォルト
-        if (originalDueTime == null) {
-            return LocalTime.of(23, 59);
-        }
-        
-        // 翌日以降の場合は元の時刻をそのまま使用（調整不要）
-        if (targetDate.isAfter(today)) {
-            return originalDueTime;
-        }
-        
-        // 当日の場合のみ時刻調整
-        if (targetDate.equals(today)) {
-            // 現在時刻が元の期限時刻を過ぎている場合
-            if (now.isAfter(originalDueTime)) {
-                // 2時間後に設定（翌日への調整は呼び出し元で判断）
-                LocalTime twoHoursLater = now.plusHours(2);
-                LocalTime endOfDay = LocalTime.of(23, 59);
-                
-                if (twoHoursLater.isAfter(endOfDay)) {
-                    // 当日内で調整不可能な場合はnullを返す
-                    return null;
-                } else {
-                    return twoHoursLater;
-                }
-            } else {
-                // まだ期限時刻前の場合はそのまま使用
-                return originalDueTime;
-            }
-        }
-        
-        // その他の場合は元の時刻をそのまま使用
-        return originalDueTime;
     }
     
     /**

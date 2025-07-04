@@ -320,13 +320,6 @@ public class TeamTopController {
                     org.json.JSONObject obj = arr.getJSONObject(i);
                     String taskId = obj.optString("taskId", null);
                     String taskName = obj.optString("taskName", null);
-                    String dueTimeStr = obj.optString("dueTime", null);
-                    java.time.LocalTime dueTime = null;
-                    if (dueTimeStr != null && !dueTimeStr.isEmpty() && !dueTimeStr.equals("null")) {
-                        try {
-                            dueTime = java.time.LocalTime.parse(dueTimeStr);
-                        } catch (Exception ignore) {}
-                    }
                     String dueDateStr = obj.optString("dueDate", null);
                     java.time.LocalDate dueDate = null;
                     if (dueDateStr != null && !dueDateStr.isEmpty() && !"null".equals(dueDateStr)) {
@@ -342,17 +335,6 @@ public class TeamTopController {
                         if (dueDate != null) {
                             t.setDueDate(dueDate);
                         }
-                        
-                        // dueTimeはリフレクションで設定（setterがないため）
-                        if (dueTime != null) {
-                            try {
-                                java.lang.reflect.Field f = t.getClass().getDeclaredField("dueTime");
-                                f.setAccessible(true);
-                                f.set(t, dueTime);
-                            } catch (Exception ignore) {}
-                        }
-                        
-                        
                         tasks.add(t);
                     }
                 }

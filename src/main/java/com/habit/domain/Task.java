@@ -1,7 +1,6 @@
 package com.habit.domain;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 
 /**
  * タスク情報を管理するクラス。
@@ -12,7 +11,6 @@ public class Task {
     private String taskName;
     private String description;     // 未実装
     private String teamId;          // チーム共通タスクの場合のチームID
-    private LocalTime dueTime;      // 期限時刻
     private LocalDate dueDate;      // 期限日付
     private String cycleType;       // "daily" or "weekly"
     private String originalTaskId;  // 元のTaskID（自動再設定時の関連性を管理）
@@ -23,35 +21,32 @@ public class Task {
         this.originalTaskId = extractOriginalTaskId(taskId);
     }
 
-    public Task(String taskId, String taskName, String description, LocalTime dueTime, String cycleType) {
+    public Task(String taskId, String taskName, String description, String cycleType) {
         this.taskId = taskId;
         this.taskName = taskName;
         this.description = description;
         this.teamId = null; // 個人タスクの場合はnull
-        this.dueTime = dueTime;
         this.dueDate = null; // デフォルトはnull、後で設定可能
         this.cycleType = cycleType;
         this.originalTaskId = extractOriginalTaskId(taskId);
     }
 
     // チーム共通タスク用コンストラクタ
-    public Task(String taskId, String taskName, String description, String teamId, LocalTime dueTime, String cycleType) {
+    public Task(String taskId, String taskName, String description, String teamId, String cycleType) {
         this.taskId = taskId;
         this.taskName = taskName;
         this.description = description;
         this.teamId = teamId;
-        this.dueTime = dueTime;
         this.dueDate = null; // デフォルトはnull、後で設定可能
         this.cycleType = cycleType;
         this.originalTaskId = extractOriginalTaskId(taskId);
     }
 
     // dueDateを含む完全版コンストラクタ
-    public Task(String taskId, String taskName, String description, LocalTime dueTime, LocalDate dueDate, String cycleType) {
+    public Task(String taskId, String taskName, String description, LocalDate dueDate, String cycleType) {
         this.taskId = taskId;
         this.taskName = taskName;
         this.description = description;
-        this.dueTime = dueTime;
         this.dueDate = dueDate;
         this.cycleType = cycleType;
         this.originalTaskId = extractOriginalTaskId(taskId);
@@ -80,17 +75,15 @@ public class Task {
         return taskName;
     }
 
-    public void updateTaskDetails(String newName, String newDescription, LocalTime newDueTime, String newCycleType) {
+    public void updateTaskDetails(String newName, String newDescription, String newCycleType) {
         this.taskName = newName;
         this.description = newDescription;
-        this.dueTime = newDueTime;
         this.cycleType = newCycleType;
     }
 
-    public void updateTaskDetails(String newName, String newDescription, LocalTime newDueTime, LocalDate newDueDate, String newCycleType) {
+    public void updateTaskDetails(String newName, String newDescription, LocalDate newDueDate, String newCycleType) {
         this.taskName = newName;
         this.description = newDescription;
-        this.dueTime = newDueTime;
         this.dueDate = newDueDate;
         this.cycleType = newCycleType;
     }
@@ -105,10 +98,6 @@ public class Task {
 
     public void setTeamId(String teamId) {
         this.teamId = teamId;
-    }
-
-    public LocalTime getDueTime() {
-        return dueTime;
     }
 
     public LocalDate getDueDate() {

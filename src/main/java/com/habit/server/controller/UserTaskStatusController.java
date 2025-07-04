@@ -10,6 +10,9 @@ import java.io.OutputStream;
 import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.LocalDateTime;
 
 public class UserTaskStatusController {
     private final AuthService authService;
@@ -178,30 +181,23 @@ public class UserTaskStatusController {
                             // ソート済みのタスクリストを先頭から順に確認し、
                             // 最初に見つかった未完了かつ期限切れでないタスク（isDone=false）を表示対象として選択します。
                             com.habit.domain.Task selectedTask = null;
-                            java.time.LocalDateTime now = java.time.LocalDateTime.now();
+                            LocalDateTime now = LocalDateTime.now();
+                            LocalDate today = LocalDate.now();
                             for (com.habit.domain.Task t : tasksForOriginalId) {
                                 com.habit.domain.UserTaskStatus status = statusMapByTaskId.get(t.getTaskId());
                                 if (status == null || !status.isDone()) {
                                     // ★追加★ 期限切れチェック
-                                    java.time.LocalDate taskDueDate = t.getDueDate();
-                                    java.time.LocalTime taskDueTime = null;
-                                    try {
-                                        java.lang.reflect.Method m = t.getClass().getMethod("getDueTime");
-                                        Object val = m.invoke(t);
-                                        if (val != null) taskDueTime = (java.time.LocalTime) val;
-                                    } catch (Exception ignore) {}
+                                    LocalDate taskDueDate = t.getDueDate();
                                     
                                     if (taskDueDate != null) {
-                                        java.time.LocalDateTime deadline = taskDueDate.atTime(
-                                            taskDueTime != null ? taskDueTime : java.time.LocalTime.of(23, 59));
                                         
                                         // 期限切れでないタスクのみを選択
-                                        if (!now.isAfter(deadline)) {
+                                        if (!today.isAfter(taskDueDate)) {
                                             selectedTask = t;
                                             System.out.println("[UserTaskStatusController] Selected task for display: " + t.getTaskName() + " (taskId: " + t.getTaskId() + ", dueDate: " + t.getDueDate() + ")");
                                             break;
                                         } else {
-                                            System.out.println("[UserTaskStatusController] Skipping overdue task: " + t.getTaskName() + " (taskId: " + t.getTaskId() + ", dueDate: " + t.getDueDate() + ", deadline: " + deadline + ")");
+                                            System.out.println("[UserTaskStatusController] Skipping overdue task: " + t.getTaskName() + " (taskId: " + t.getTaskId() + ", dueDate: " + t.getDueDate());
                                         }
                                     } else {
                                         // 期限日付が設定されていない場合は表示対象とする
@@ -224,19 +220,12 @@ public class UserTaskStatusController {
                             sb.append("{");
                             sb.append("\"taskId\":\"").append(t.getTaskId().replace("\"", "\\\"")).append("\",");
                             sb.append("\"taskName\":\"").append(t.getTaskName().replace("\"", "\\\"")).append("\",");
-                            String dueTime = "";
                             String dueDate = "";
-                            try {
-                                java.lang.reflect.Method m = t.getClass().getMethod("getDueTime");
-                                Object val = m.invoke(t);
-                                if (val != null) dueTime = val.toString();
-                            } catch (Exception ignore) {}
                             try {
                                 java.lang.reflect.Method m = t.getClass().getMethod("getDueDate");
                                 Object val = m.invoke(t);
                                 if (val != null) dueDate = val.toString();
                             } catch (Exception ignore) {}
-                            sb.append("\"dueTime\":\"").append(dueTime.replace("\"", "\\\"")).append("\",");
                             sb.append("\"dueDate\":\"").append(dueDate.replace("\"", "\\\"")).append("\",");
                             String cycleType = "";
                             try {
