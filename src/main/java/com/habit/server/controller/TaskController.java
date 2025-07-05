@@ -131,6 +131,9 @@ public class TaskController {
                 .append("\",");
             sb.append("\"taskName\":\"")
                 .append(t.getTaskName().replace("\"", "\\\""))
+                .append("\",");
+            sb.append("\"cycleType\":\"")
+                .append(t.getCycleType().replace("\"", "\\\""))
                 .append("\"");
             sb.append("}");
             if (i < filtered.size() - 1)

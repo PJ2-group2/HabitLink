@@ -378,8 +378,9 @@ public class TeamController {
         for (var t : tasks) {
           String tid = t.getTaskId();
           String tname = t.getTaskName();
-          taskJsons.add(String.format("{\"taskId\":\"%s\",\"taskName\":\"%s\"}",
-                                      tid, tname));
+          String cycleType = t.getCycleType();
+          taskJsons.add(String.format("{\"taskId\":\"%s\",\"taskName\":\"%s\",\"cycleType\":\"%s\"}",
+                                      tid, tname, cycleType));
         }
         response = "[" + String.join(",", taskJsons) + "]";
       }
