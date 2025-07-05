@@ -500,8 +500,7 @@ public class TeamTopController {
                             Object v = data.getValue().get(colIdx);
                             return new javafx.beans.property.SimpleIntegerProperty((Integer)v).asObject();
                         });
-                        memCol.setPrefWidth(45); // 横幅を半分に
-                        // カスタムセル: 日数に応じて色を変化
+                        memCol.setPrefWidth(45);
                         memCol.setCellFactory(tc -> new TableCell<>() {
                             @Override
                             protected void updateItem(Integer daysDone, boolean empty) {
@@ -519,13 +518,14 @@ public class TeamTopController {
                                     String period = taskPeriodMap.getOrDefault(tid, "");
                                     String color = "#ffffff";
                                     if ("毎週".equals(period)) {
-                                        // 今週分にisDone==trueが1つでもあれば緑、なければ白
                                         String key = memberIds.get(colIdx-1) + "_";
                                         List<Boolean> doneList = statusMap.getOrDefault(key, Collections.emptyList());
                                         boolean anyDone = false;
                                         for (Boolean b : doneList) if (b) anyDone = true;
                                         color = anyDone ? "#4fc24f" : "#ffffff";
+                                        setText(anyDone ? "✓" : "");
                                     } else {
+                                        setText(String.valueOf(daysDone));
                                         switch (daysDone) {
                                             case 0: color = "#ffffff"; break;
                                             case 1: color = "#e0f8e0"; break;
@@ -538,8 +538,7 @@ public class TeamTopController {
                                             default: color = "#ffffff";
                                         }
                                     }
-                                    setText("");
-                                    setStyle("-fx-background-color: " + color + "; -fx-alignment: center; -fx-font-size: 15px; -fx-padding: 4 0;");
+                                    setStyle("-fx-background-color: " + color + "; -fx-alignment: center; -fx-font-size: 15px; -fx-padding: 4 0; -fx-text-fill: " + (daysDone > 4 ? "white" : "black") + ";");
                                 }
                             }
                         });
