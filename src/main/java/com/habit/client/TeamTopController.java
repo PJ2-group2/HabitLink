@@ -440,16 +440,16 @@ public class TeamTopController {
                 }
                 List<String> taskNames = new ArrayList<>();
                 List<String> taskIds = new ArrayList<>();
-                Map<String, String> taskPeriodMap = new HashMap<>(); // taskId→period
+                Map<String, String> taskCycleTypeMap = new HashMap<>(); // taskId→cycleType
                 Map<String, String> taskNameMap = new HashMap<>(); // taskId -> taskName
                 for (int i = 0; i < tasksArr.length(); i++) {
                     JSONObject obj = tasksArr.getJSONObject(i);
                     String taskId = obj.optString("taskId");
                     String taskName = obj.optString("taskName");
-                    String period = obj.optString("period", "");
+                    String cycleType = obj.optString("cycleType", "");
                     taskIds.add(taskId);
                     taskNames.add(taskName);
-                    taskPeriodMap.put(taskId, period);
+                    taskCycleTypeMap.put(taskId, cycleType);
                     taskNameMap.put(taskId, taskName);
                 }
 
@@ -515,30 +515,34 @@ public class TeamTopController {
                                         setText(""); setStyle(""); return;
                                     }
                                     String tid = taskIds.get(rowIdx);
-                                    String period = taskPeriodMap.getOrDefault(tid, "");
-                                    String color = "#ffffff";
-                                    if ("毎週".equals(period)) {
-                                        String key = memberIds.get(colIdx-1) + "_";
-                                        List<Boolean> doneList = statusMap.getOrDefault(key, Collections.emptyList());
-                                        boolean anyDone = false;
-                                        for (Boolean b : doneList) if (b) anyDone = true;
-                                        color = anyDone ? "#4fc24f" : "#ffffff";
+                                    String cycleType = taskCycleTypeMap.getOrDefault(tid, "");
+                                    String key = memberIds.get(colIdx-1) + "_" + tid;
+                                    List<Boolean> doneList = statusMap.getOrDefault(key, Collections.emptyList());
+
+                                    // daysDoneは0または1のみを使用（週次タスク）または実際の達成日数（通常タスク）
+                                    if ("weekly".equals(cycleType)) {
+                                        boolean anyDone = daysDone > 0;
                                         setText(anyDone ? "✓" : "");
+                                        setStyle("-fx-background-color: " + (anyDone ? "#b2e5b2" : "#ffffff") +
+                                                "; -fx-alignment: center; -fx-font-size: 20px; -fx-font-weight: bold; -fx-padding: 4 0;");
                                     } else {
                                         setText(String.valueOf(daysDone));
+                                        String color;
                                         switch (daysDone) {
                                             case 0: color = "#ffffff"; break;
                                             case 1: color = "#e0f8e0"; break;
                                             case 2: color = "#b2e5b2"; break;
                                             case 3: color = "#7fd87f"; break;
-                                            case 4: color = "#4fc24f"; break; // 普通の緑
+                                            case 4: color = "#4fc24f"; break;
                                             case 5: color = "#2e9e2e"; break;
                                             case 6: color = "#176b17"; break;
-                                            case 7: color = "#0a2d0a"; break; // 黒に近い緑
+                                            case 7: color = "#0a2d0a"; break;
                                             default: color = "#ffffff";
                                         }
+                                        setStyle("-fx-background-color: " + color +
+                                                "; -fx-alignment: center; -fx-font-size: 15px; -fx-padding: 4 0; " +
+                                                "-fx-text-fill: " + (daysDone > 4 ? "white" : "black") + ";");
                                     }
-                                    setStyle("-fx-background-color: " + color + "; -fx-alignment: center; -fx-font-size: 15px; -fx-padding: 4 0; -fx-text-fill: " + (daysDone > 4 ? "white" : "black") + ";");
                                 }
                             }
                         });
@@ -554,9 +558,17 @@ public class TeamTopController {
                         for (String uid : memberIds) {
                             String key = uid + "_" + tid;
                             List<Boolean> doneList = statusMap.getOrDefault(key, Collections.emptyList());
-                            int daysDone = 0;
-                            for (Boolean b : doneList) if (b) daysDone++;
-                            row.add(daysDone);
+                            String cycleType = taskCycleTypeMap.getOrDefault(tid, "");
+                            
+                            if ("weekly".equals(cycleType)) {
+                                // 週次タスクの場合は、いずれかが達成されているかどうかを1か0で表現
+                                boolean anyDone = doneList.stream().anyMatch(b -> b);
+                                row.add(anyDone ? 1 : 0);
+                            } else {
+                                // 通常タスクの場合は達成日数をカウント
+                                int daysDone = (int) doneList.stream().filter(b -> b).count();
+                                row.add(daysDone);
+                            }
                         }
                         rows.add(row);
                     }
