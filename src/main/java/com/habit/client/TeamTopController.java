@@ -199,6 +199,7 @@ public class TeamTopController {
     /**
      * チームタスク・ユーザタスク取得メソッド
      * チームIDがセットされたタイミングで呼び出される。
+     * PersonalPageと同じAPIを使用して同じタスクを表示する。
      */
     private void loadTeamTasksAndUserTasks() {
         new Thread(() -> {
@@ -209,28 +210,45 @@ public class TeamTopController {
                     return;
                 }
                 String sessionId = LoginController.getSessionId();
+                java.time.LocalDate today = java.time.LocalDate.now();
                 HttpClient client = HttpClient.newHttpClient();
-                String url = "http://localhost:8080/getUserTeamTasks?teamID=" + URLEncoder.encode(teamID, "UTF-8");
+                // PersonalPageと同じAPIを使用
+                String url = "http://localhost:8080/getUserIncompleteTasks?teamID=" + URLEncoder.encode(teamID, "UTF-8")
+                           + "&date=" + today.toString();
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(url))
-                        .timeout(java.time.Duration.ofSeconds(3))
+                        .timeout(java.time.Duration.ofSeconds(10))
                         .header("SESSION_ID", sessionId)
                         .GET()
                         .build();
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                // レスポンスは [{"taskId":"...","taskName":"..."}] のJSON配列
+                // レスポンスは [{"taskId":"...","taskName":"...","dueDate":"..."}] のJSON配列
                 java.util.List<String> taskNames = new java.util.ArrayList<>();
                 String json = response.body();
+                System.out.println("[TeamTopController] API response: " + json);
                 if (json != null && json.startsWith("[")) {
                     org.json.JSONArray arr = new org.json.JSONArray(json);
                     for (int i = 0; i < arr.length(); i++) {
                         org.json.JSONObject obj = arr.getJSONObject(i);
-                        String name = obj.optString("taskName", null);
-                        if (name != null) {
-                            taskNames.add(name);
+                        String taskName = obj.optString("taskName", null);
+                        String dueDateStr = obj.optString("dueDate", null);
+                        java.time.LocalDate dueDate = null;
+                        if (dueDateStr != null && !dueDateStr.isEmpty() && !"null".equals(dueDateStr)) {
+                            try {
+                                dueDate = java.time.LocalDate.parse(dueDateStr);
+                            } catch (Exception ignore) {}
+                        }
+                        
+                        // PersonalPageと同じ条件：期限切れタスクはスキップ
+                        if (taskName != null) {
+                            if (dueDate != null && today.isAfter(dueDate)) {
+                                continue; // Skip overdue tasks
+                            }
+                            taskNames.add(taskName);
                         }
                     }
                 }
+                System.out.println("[TeamTopController] Total tasks to display: " + taskNames.size());
                 Platform.runLater(() -> {
                     Callback<ListView<String>,ListCell<String>> cellFactory = p ->
                     {
@@ -370,19 +388,29 @@ public class TeamTopController {
                         .build();
                 // レスポンスを取得
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                
                 // レスポンスのボディをJSONとして解析し、メッセージリストを作成
-                List<String> messages = new ArrayList<>();
+                List<com.habit.domain.Message> messages = new ArrayList<>();
                 JSONArray arr = new JSONArray(response.body());
                 for (int i = 0; i < arr.length(); i++) {
                     JSONObject obj = arr.getJSONObject(i);
-                    String username = obj.optString("username", null);
-                    String sender = username != null && !username.isEmpty() ? username : obj.optString("senderId", "unknown");
-                    String content = obj.optString("content", "");
-                    messages.add(sender + ": " + content);
+                    messages.add(com.habit.domain.Message.fromJson(obj));
+                }
+                
+                // タイムスタンプでソート
+                messages.sort(java.util.Comparator.comparing(com.habit.domain.Message::getTimestamp));
+                
+                // ユーザー名とメッセージ内容のみの表示形式に整形
+                List<String> chatItems = new ArrayList<>();
+                for (var msg : messages) {
+                    StringBuilder sb = new StringBuilder();
+                    sb.append('[' + msg.getSender().getUsername() + ']');
+                    sb.append(": " + msg.getContent());
+                    chatItems.add(sb.toString());
                 }
 
                 Platform.runLater(() -> {
-                    chatList.getItems().setAll(messages);
+                    chatList.getItems().setAll(chatItems);
                 });
             } catch (Exception e) {
                 e.printStackTrace();
