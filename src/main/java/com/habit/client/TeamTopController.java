@@ -96,9 +96,85 @@ public class TeamTopController {
     @FXML
     public void initialize() {
         // UI部品の初期化のみ行う（データ取得はsetTeamIDで行う）
-        // googleの適当絵文字、画像を用意してPathを指定してください。
-        teamCharView.setImage(new Image(
-            "https://raw.githubusercontent.com/google/material-design-icons/master/png/social/mood/materialicons/48dp/2x/baseline_mood_black_48dp.png", true));
+
+        int level = new java.util.Random().nextInt(10); // 仮の評価値。実際はサーバやDBから取得
+
+        String imagePath = "/images/TaskCharacterLv" + level + ".png";
+
+        try {
+            Image characterImage = new Image(getClass().getResource(imagePath).toExternalForm());
+            teamCharView.setImage(characterImage);
+        } catch (NullPointerException e) {
+            System.err.println("画像が見つかりません: " + imagePath);
+            e.printStackTrace();
+        }
+
+        String[][] cheersByLevel = {
+            // Lv0
+            {
+                "また何もやってないの？才能だね、ダメな方の。",
+                "あんたがやる気出す日は地球が止まるね。",
+                "やらない理由だけは毎日天才的に思いつくね。"
+            },
+            // Lv1
+            {
+                "一日やっただけで満足？よっ、三日坊主未満！",
+                "そのやる気、どこかに落としてきたの？",
+                "進捗ゼロでも、言い訳は一流だね！"
+            },
+            // Lv2
+            {
+                "たった2日でドヤ顔？笑わせないで。",
+                "まだその程度？やっぱ期待しなきゃよかった。",
+                "奇跡的に続いてるけど、明日は期待してないよ。"
+            },
+            // Lv3
+            {
+                "へぇ…やればできるじゃん。って言うと思った？",
+                "やってる姿はそこそこ様になってきたね、初心者感は抜けないけど。",
+                "意外と根性あるじゃん、10年前の君よりマシかもね。"
+            },
+            // Lv4
+            {
+                "ようやく人間らしくなってきたね。",
+                "5日続けただけで満足？まだ半人前以下だよ？",
+                "“努力してるフリ”はもう卒業したら？"
+            },
+            // Lv5
+            {
+                "おっ、ちゃんと続いてる。奇跡って起きるんだね。",
+                "ちょっとだけ期待しても…いいのかもね。",
+                "君にしてはよくやってる。あくまで“君にしては”ね。"
+            },
+            // Lv6
+            {
+                "……思ってたより、ちゃんとやるんだね。",
+                "認めたくないけど、ちょっとカッコいいかも。",
+                "まあ、君なりに頑張ってるってことは分かるよ。"
+            },
+            // Lv7
+            {
+                "ここまで続けられるなんて、尊敬する。",
+                "もう君の努力は本物だよ。堂々と胸張っていい。",
+                "信じて見ててよかったよ、本当に。"
+            },
+            // Lv8
+            {
+                "ここまで来た君を誰もバカにできない。",
+                "地道な積み重ねがここまで美しいものだなんて、思わなかったよ。",
+                "“継続できる人”って、君のことなんだね。"
+            },
+            // Lv9
+            {
+                "君は誰よりも強く、誰よりも誠実な人だ。",
+                "今の君なら、何だって叶えられるよ。",
+                "君が君であることに、世界中が感謝するレベルだよ。"
+            }
+        };
+
+        String[] cheers = cheersByLevel[level];
+        String selectedCheer = cheers[new java.util.Random().nextInt(cheers.length)];
+        cheerMessageLabel.setText(selectedCheer);
 
         // ホームへ戻るボタンのアクション設定
         btnBackHome.setOnAction(unused -> {
@@ -175,24 +251,6 @@ public class TeamTopController {
 
         //未消化タスクを横並びにする
         todayTaskList.setOrientation(Orientation.HORIZONTAL);
-        
-        // 応援セリフリスト
-        String[] cheers = {
-            "今日も一歩前進だね！",
-            "君なら絶対できるよ！",
-            "小さな積み重ねが大きな力になるよ！",
-            "焦らずコツコツいこう！",
-            "昨日の自分を超えよう！",
-            "休むのも大事、無理しないでね！",
-            "一緒に頑張ろう！応援してるよ！",
-            "できたことをしっかり褒めてあげて！",
-            "継続は力なり、君はすごい！",
-            "どんな日も君の味方だよ！"
-        };
-        java.util.Random rand = new java.util.Random();
-        if (cheerMessageLabel != null) {
-            cheerMessageLabel.setText(cheers[rand.nextInt(cheers.length)]);
-        }
     }
 
 
