@@ -25,7 +25,7 @@
                 </VBox>
                 <VBox>
                     <Label text="チームチャット"/>
-                    <ListView fx:id="chatList" prefHeight="90" prefWidth="90"/>
+                    <ListView fx:id="chatList" prefHeight="90" prefWidth="300"/>
                 </VBox>
             </HBox>
         </VBox>
