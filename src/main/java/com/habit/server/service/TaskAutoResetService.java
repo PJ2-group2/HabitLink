@@ -5,12 +5,18 @@ import com.habit.domain.UserTaskStatus;
 import com.habit.server.repository.TaskRepository;
 import com.habit.server.repository.UserTaskStatusRepository;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * タスクの自動再設定サービス
@@ -23,6 +29,8 @@ public class TaskAutoResetService {
     private final TaskRepository taskRepository;
     private final UserTaskStatusRepository userTaskStatusRepository;
     private final Clock clock;
+    private static final Path LAST_EXECUTION_FILE = Paths.get("last_execution.log");
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
     
     // 重複実行防止用のフラグ（1分ごと実行のため、処理が重複しないよう制御）
     private volatile boolean isRunning = false;
@@ -34,6 +42,27 @@ public class TaskAutoResetService {
         this.taskRepository = taskRepository;
         this.userTaskStatusRepository = userTaskStatusRepository;
         this.clock = clock;
+    }
+
+    public void catchUpMissedExecutions() {
+        LocalDate lastExecutionDate = loadLastExecutionTime();
+        LocalDate today = LocalDate.now(clock);
+
+        if (lastExecutionDate == null) {
+            lastExecutionDate = today.minusDays(1); //
+        }
+
+        List<LocalDate> missedDates = lastExecutionDate.plusDays(1).datesUntil(today.plusDays(1))
+                                       .collect(Collectors.toList());
+
+        if (!missedDates.isEmpty()) {
+            System.out.println("サーバー停止期間中の未処理のタスク更新を開始します: " + missedDates.size() + "日分");
+            for (LocalDate date : missedDates) {
+                System.out.println(date + " のタスクを更新します。");
+                runScheduledCheckForDate(date);
+            }
+            System.out.println("未処理のタスク更新が完了しました。");
+        }
     }
     
     /**
@@ -48,6 +77,10 @@ public class TaskAutoResetService {
      * 4. 実行結果をログ出力（処理チーム数、再設定タスク数）
      */
     public void runScheduledCheck() {
+        runScheduledCheckForDate(LocalDate.now(clock));
+    }
+
+    public void runScheduledCheckForDate(LocalDate date) {
         // 重複実行防止（前回の処理がまだ終わっていない場合はスキップ）
         if (isRunning) {
             System.out.println("自動再設定処理が実行中のため、今回はスキップします");
@@ -70,7 +103,7 @@ public class TaskAutoResetService {
             // 各チームを順次処理
             for (String teamId : allTeamIds) {
                 try {
-                    int resets = checkAndResetTasks(teamId); // checkAndResetTasksWithCount から checkAndResetTasks に変更
+                    int resets = checkAndResetTasks(teamId, date); // checkAndResetTasksWithCount から checkAndResetTasks に変更
                     totalResets += resets;
                     processedTeams++;
                 } catch (Exception e) {
@@ -81,6 +114,8 @@ public class TaskAutoResetService {
             
             System.out.println("自動再設定チェック完了: " + processedTeams + "チームで処理, " +
                 totalResets + "タスクを再設定 at " + java.time.LocalDateTime.now(clock));
+            
+            saveLastExecutionTime(date);
         } catch (Exception e) {
             System.err.println("自動再設定の定期実行でエラー: " + e.getMessage());
             e.printStackTrace();
@@ -101,9 +136,8 @@ public class TaskAutoResetService {
      * 2. 各タスクに対して再設定チェックを実施
      * 3. 対象タスクの全ユーザー分をチェック・再設定
      */
-    public int checkAndResetTasks(String teamId) { // private から public に変更
+    public int checkAndResetTasks(String teamId, LocalDate executionDate) { // private から public に変更
         List<Task> teamTasks = taskRepository.findTeamTasksByTeamID(teamId);
-        LocalDate today = LocalDate.now(clock);
         int resetCount = 0;
 
         for (Task task : teamTasks) {
@@ -112,12 +146,12 @@ public class TaskAutoResetService {
                 continue; // 繰り返し設定のないタスクはスキップ
             }
 
-            LocalDate dateToCheck = today.minusDays(1); // チェック対象は昨日
+            LocalDate dateToCheck = executionDate.minusDays(1); // チェック対象は実行日の前日
             LocalDate newDueDate = null;
 
             switch (cycleType) {
                 case "DAILY":
-                    newDueDate = today;
+                    newDueDate = executionDate;
                     break;
                 case "WEEKLY":
                     newDueDate = dateToCheck.plusWeeks(1); // 基準日（昨日）から1週間後
@@ -170,5 +204,26 @@ public class TaskAutoResetService {
             }
         }
         return resetCount;
+    }
+
+    private void saveLastExecutionTime(LocalDate date) {
+        try {
+            Files.writeString(LAST_EXECUTION_FILE, date.format(DATE_FORMATTER));
+        } catch (IOException e) {
+            System.err.println("最終実行日時の保存に失敗しました: " + e.getMessage());
+        }
+    }
+
+    private LocalDate loadLastExecutionTime() {
+        if (!Files.exists(LAST_EXECUTION_FILE)) {
+            return null;
+        }
+        try {
+            String content = Files.readString(LAST_EXECUTION_FILE);
+            return LocalDate.parse(content, DATE_FORMATTER);
+        } catch (IOException e) {
+            System.err.println("最終実行日時の読み込みに失敗しました: " + e.getMessage());
+            return null;
+        }
     }
 }

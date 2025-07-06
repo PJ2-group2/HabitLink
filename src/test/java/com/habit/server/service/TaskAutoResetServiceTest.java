@@ -79,7 +79,7 @@ class TaskAutoResetServiceTest {
 
         // --- When (実行) ---
         // チームAのタスクリセット処理を実行
-        int resetCount = taskAutoResetService.checkAndResetTasks(teamId);
+        int resetCount = taskAutoResetService.checkAndResetTasks(teamId, today);
 
         // --- Then (検証) ---
         assertEquals(1, resetCount, "1件のタスクが再設定されるはず");
@@ -113,7 +113,7 @@ class TaskAutoResetServiceTest {
         userTaskStatusRepository.save(yesterdayStatus);
 
         // --- When (実行) ---
-        int resetCount = taskAutoResetService.checkAndResetTasks(teamId);
+        int resetCount = taskAutoResetService.checkAndResetTasks(teamId, today);
 
         // --- Then (検証) ---
         assertEquals(1, resetCount, "1件のタスクが再設定されるはず");
@@ -149,7 +149,7 @@ class TaskAutoResetServiceTest {
         userTaskStatusRepository.save(user4_yesterday);
 
         // --- When (実行) ---
-        int resetCount = taskAutoResetService.checkAndResetTasks(teamId);
+        int resetCount = taskAutoResetService.checkAndResetTasks(teamId, today);
 
         // --- Then (検証) ---
         assertEquals(2, resetCount, "2ユーザー分のタスクが再設定されるはず");
