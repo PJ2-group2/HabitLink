@@ -9,7 +9,7 @@
     <left>
         <VBox alignment="CENTER">
             <Label fx:id="cheerMessageLabel" text="" style="-fx-font-size: 14px; -fx-background-color: #fffbe7; -fx-border-color: #cccccc; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 8; -fx-text-fill: #3a3a3a;" wrapText="true" maxWidth="250" alignment="CENTER_LEFT"/>
-            <ImageView fx:id="characterView" fitWidth="80" fitHeight="120"/>
+            <ImageView fx:id="characterView" fitWidth="120" fitHeight="120"/>
         </VBox>
     </left>
     <center>
