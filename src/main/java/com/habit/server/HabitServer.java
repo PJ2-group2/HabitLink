@@ -78,6 +78,9 @@ public class HabitServer {
     taskAutoResetScheduler = new TaskAutoResetScheduler(taskAutoResetService);
     taskAutoResetController = new TaskAutoResetController(taskAutoResetService);
 
+    // サーバー起動時に未処理のタスク更新を実行
+    taskAutoResetService.catchUpMissedExecutions();
+
     // 各APIエンドポイントを登録
     server.createContext("/hello", new HelloController()); // 動作確認用
 

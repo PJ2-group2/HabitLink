@@ -118,7 +118,7 @@ public class TaskAutoResetController {
             } else {
                 try {
                     // 指定チームのタスク自動再設定を実行
-                    taskAutoResetService.checkAndResetTasks(teamId);
+                    taskAutoResetService.checkAndResetTasks(teamId, java.time.LocalDate.now());
                     response = "チーム " + teamId + " のタスク自動再設定を実行しました";
                 } catch (Exception e) {
                     response = "エラーが発生しました: " + e.getMessage();
