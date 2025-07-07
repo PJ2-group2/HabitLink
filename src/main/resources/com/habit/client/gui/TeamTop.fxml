@@ -16,26 +16,40 @@
         </HBox>
     </top>
     <center>
-        <VBox spacing="10">
-            <TableView fx:id="taskTable" prefHeight="470"/>
-            <HBox spacing="20">
-                <VBox>
-                    <Label text="本日の未消化タスク一覧"/>
-                    <ListView fx:id="todayTaskList" prefHeight="120" prefWidth="360"/>
+        <HBox spacing="20">
+            <!-- 左側: ランキング、キャラクター表示領域 -->
+            <VBox spacing="10" prefWidth="300">
+                <!-- サボりランキング -->
+                <VBox spacing="5">
+                    <Label text="🏆 チーム内サボりランキング" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #d32f2f;"/>
+                    <ListView fx:id="sabotageRankingList" prefHeight="120" style="-fx-background-color: #fff3f3; -fx-border-color: #ffcdd2; -fx-border-radius: 5;"/>
                 </VBox>
-                <VBox>
-                    <Label text="チームチャット"/>
-                    <ListView fx:id="chatList" prefHeight="90" prefWidth="300"/>
+                
+                <!-- キャラクターとメッセージ -->
+                <VBox alignment="CENTER" spacing="10">
+                    <Label fx:id="cheerMessageLabel" text="" style="-fx-font-size: 16px; -fx-background-color: #fffbe7; -fx-border-color: #cccccc; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 10; -fx-text-fill: #3a3a3a;" wrapText="true" maxWidth="280" alignment="CENTER"/>
+                    <ImageView fx:id="teamCharView" fitWidth="200" fitHeight="200" preserveRatio="true"/>
                 </VBox>
-            </HBox>
-        </VBox>
+            </VBox>
+            
+            <!-- 右側: タスク表とその他の要素 -->
+            <VBox spacing="10" prefWidth="580">
+                <TableView fx:id="taskTable" prefHeight="350"/>
+                <HBox spacing="20">
+                    <VBox>
+                        <Label text="本日の未消化タスク一覧"/>
+                        <ListView fx:id="todayTaskList" prefHeight="120" prefWidth="280"/>
+                    </VBox>
+                    <VBox>
+                        <Label text="チームチャット"/>
+                        <ListView fx:id="chatList" prefHeight="90" prefWidth="280"/>
+                    </VBox>
+                </HBox>
+            </VBox>
+        </HBox>
     </center>
     <bottom>
     </bottom>
     <left>
-        <VBox alignment="BOTTOM_LEFT">
-            <Label fx:id="cheerMessageLabel" text="" style="-fx-font-size: 14px; -fx-background-color: #fffbe7; -fx-border-color: #cccccc; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 8; -fx-text-fill: #3a3a3a;" wrapText="true" maxWidth="250" alignment="CENTER_LEFT"/>
-            <ImageView fx:id="teamCharView" fitWidth="100" fitHeight="100"/>
-        </VBox>
     </left>
 </BorderPane>

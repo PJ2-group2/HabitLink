@@ -57,6 +57,9 @@ public class TeamTopController {
     /* 応援セリフ表示用ラベル */
     @FXML
     private Label cheerMessageLabel;
+    /* サボりランキング表示用リストビュー */
+    @FXML
+    private ListView<String> sabotageRankingList;
 
     private final String serverUrl = "http://localhost:8080/sendChatMessage";
     private final String chatLogUrl = "http://localhost:8080/getChatLog";
@@ -77,9 +80,17 @@ public class TeamTopController {
     public void setTeamID(String teamID) {
         this.teamID = teamID;
         System.out.println("teamID set: " + teamID);
-        // teamIDがセットされたタイミングでタスク、チャットを読み込む。
+        // teamIDがセットされたタイミングでタスク、チャット、サボりランキングを読み込む。
         loadTeamTasksAndUserTasks();
         loadChatLog();
+        loadSabotageRanking();
+    }
+
+    /**
+     * 外部からサボりランキングを再読み込みするためのパブリックメソッド
+     */
+    public void refreshSabotageRanking() {
+        loadSabotageRanking();
     }
     // チーム名のセッター
     public void setTeamName(String teamName) {
@@ -756,5 +767,99 @@ public class TeamTopController {
                 e.printStackTrace();
             }
         }).start();
+    }
+
+    /**
+     * チーム内サボりランキングをサーバーから取得し、表示するメソッド。
+     * チームIDがセットされたタイミングで呼び出される。
+     */
+    private void loadSabotageRanking() {
+        new Thread(() -> {
+            try {
+                // teamIDがnullの場合は処理をスキップ
+                if (teamID == null) {
+                    System.err.println("teamID is null, skipping loadSabotageRanking");
+                    return;
+                }
+                
+                // HTTPリクエストを送信するためのクライアントオブジェクトを作成
+                HttpClient client = HttpClient.newHttpClient();
+                // サボりランキングのURLを作成
+                String url = "http://localhost:8080/getTeamSabotageRanking?teamID=" + URLEncoder.encode(teamID, "UTF-8");
+                // リクエストを送信
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(url))
+                        .timeout(java.time.Duration.ofSeconds(5))
+                        .GET()
+                        .build();
+                // レスポンスを取得
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                
+                // レスポンスのボディをJSONとして解析し、ランキングリストを作成
+                List<String> rankingItems = new ArrayList<>();
+                String json = response.body();
+                if (json != null && json.startsWith("[")) {
+                    JSONArray arr = new JSONArray(json);
+                    for (int i = 0; i < arr.length(); i++) {
+                        JSONObject obj = arr.getJSONObject(i);
+                        int rank = obj.optInt("rank", i + 1);
+                        String username = obj.optString("username", "Unknown");
+                        int sabotagePoints = obj.optInt("sabotagePoints", 0);
+                        
+                        // ランキング表示用の文字列を作成
+                        String rankEmoji = getRankEmoji(rank);
+                        String rankingText = String.format("%s %d位: %s (%dpt)", rankEmoji, rank, username, sabotagePoints);
+                        rankingItems.add(rankingText);
+                    }
+                }
+                
+                Platform.runLater(() -> {
+                    sabotageRankingList.getItems().setAll(rankingItems);
+                    // ランキングリストのスタイル設定
+                    sabotageRankingList.setCellFactory(listView -> new ListCell<String>() {
+                        @Override
+                        protected void updateItem(String item, boolean empty) {
+                            super.updateItem(item, empty);
+                            if (empty || item == null) {
+                                setText(null);
+                                setStyle("");
+                            } else {
+                                setText(item);
+                                // 順位に応じて背景色を変更
+                                if (item.contains("1位")) {
+                                    setStyle("-fx-background-color: #ffecb3; -fx-text-fill: #e65100; -fx-font-weight: bold;");
+                                } else if (item.contains("2位")) {
+                                    setStyle("-fx-background-color: #f3e5f5; -fx-text-fill: #4a148c; -fx-font-weight: bold;");
+                                } else if (item.contains("3位")) {
+                                    setStyle("-fx-background-color: #e8f5e8; -fx-text-fill: #1b5e20; -fx-font-weight: bold;");
+                                } else {
+                                    setStyle("-fx-background-color: #fafafa; -fx-text-fill: #424242;");
+                                }
+                            }
+                        }
+                    });
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+                Platform.runLater(() -> {
+                    List<String> errorMessage = List.of("ランキング取得エラー");
+                    sabotageRankingList.getItems().setAll(errorMessage);
+                });
+            }
+        }).start();
+    }
+
+    /**
+     * 順位に応じた絵文字を返すヘルパーメソッド
+     */
+    private String getRankEmoji(int rank) {
+        switch (rank) {
+            case 1: return "🥇";
+            case 2: return "🥈";
+            case 3: return "🥉";
+            case 4: return "4️⃣";
+            case 5: return "5️⃣";
+            default: return "🔸";
+        }
     }
 }

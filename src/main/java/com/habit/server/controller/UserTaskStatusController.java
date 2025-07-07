@@ -389,6 +389,23 @@ public class UserTaskStatusController {
                     // タスク完了ステータスを更新(保存)
                     status.setDone(true);
                     repo.save(status);
+                    
+                    // タスク完了時にサボりポイントを即座に減らす
+                    try {
+                        com.habit.server.repository.UserRepository userRepo = new com.habit.server.repository.UserRepository();
+                        com.habit.domain.User user = userRepo.findById(userId[0]);
+                        if (user != null) {
+                            int currentPoints = user.getSabotagePoints();
+                            int newPoints = Math.max(0, currentPoints - 1); // 0未満にはしない
+                            user.setSabotagePoints(newPoints);
+                            userRepo.save(user);
+                            System.out.println("タスク完了によりサボりポイント更新: " + user.getUsername() + " " + currentPoints + "pt → " + newPoints + "pt");
+                        }
+                    } catch (Exception e) {
+                        System.err.println("サボりポイント更新エラー: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                    
                     response = "タスク完了: userId=" + userId[0] + ", taskId=" + taskId[0] + ", date=" + dateStr;
                 } else {
                     response = "パラメータが不正です";
