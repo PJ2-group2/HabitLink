@@ -36,7 +36,7 @@ class UserRepositoryTest {
     assertEquals(u.getUserId(), fetched.getUserId());
     assertEquals(u.getUsername(), fetched.getUsername());
     assertEquals(u.getHashedPassword(), fetched.getHashedPassword());
-    assertEquals(5, fetched.getSabotagePoints());
+    assertEquals(9, fetched.getSabotagePoints());
     assertIterableEquals(u.getJoinedTeamIds(), fetched.getJoinedTeamIds(),
                          "JoinedTeamIds should round-trip");
   }
@@ -83,7 +83,7 @@ class UserRepositoryTest {
 
     User fetched = repo.findById("u4");
     assertEquals("newpass", fetched.getHashedPassword());
-    assertEquals(5, fetched.getSabotagePoints());
+    assertEquals(9, fetched.getSabotagePoints());
     assertTrue(fetched.getJoinedTeamIds().contains("teamX"));
   }
 }

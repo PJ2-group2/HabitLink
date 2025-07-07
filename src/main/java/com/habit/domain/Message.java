@@ -24,6 +24,19 @@ public class Message {
     this.timestamp = LocalDateTime.now();
   }
 
+  /**
+   * 新しいコンストラクタ。messageIdを自動生成し、タイムスタンプを受け取る。
+   * サーバからのサボり通知用
+   */
+  public Message(User sender, String teamID, String content, LocalDateTime timestamp) {
+    this.messageId = java.util.UUID.randomUUID().toString(); // messageIdを自動生成
+    this.sender = sender;
+    this.teamID = teamID;
+    this.content = content;
+    this.type = null;
+    this.timestamp = timestamp;
+  }
+
   public String getMessageId() { return messageId; }
 
   public User getSender() { return sender; }

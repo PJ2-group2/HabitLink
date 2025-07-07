@@ -5,8 +5,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.habit.domain.Message;
 import com.habit.domain.Task;
 import com.habit.domain.UserTaskStatus;
+import com.habit.server.repository.MessageRepository;
 import com.habit.server.repository.TaskRepository;
 import com.habit.server.repository.UserTaskStatusRepository;
 
@@ -15,6 +17,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -32,6 +35,7 @@ class TaskAutoResetServiceTest {
     private TaskRepository taskRepository;
     private UserTaskStatusRepository userTaskStatusRepository;
     private com.habit.server.repository.UserRepository userRepository;
+    private MessageRepository messageRepository; // 追加
     private TaskAutoResetService taskAutoResetService;
 
     private static final String TEST_DB_PATH = "test_habit.db";
@@ -51,9 +55,10 @@ class TaskAutoResetServiceTest {
         taskRepository = new TaskRepository(TEST_DB_URL);
         userTaskStatusRepository = new UserTaskStatusRepository(TEST_DB_URL);
         userRepository = new com.habit.server.repository.UserRepository(TEST_DB_URL);
+        messageRepository = new MessageRepository(TEST_DB_URL); // 追加
 
         // テスト対象のサービスに、テスト用リポジトリと「固定した時計」を注入
-        taskAutoResetService = new TaskAutoResetService(taskRepository, userTaskStatusRepository, userRepository, fixedClock);
+        taskAutoResetService = new TaskAutoResetService(taskRepository, userTaskStatusRepository, userRepository, messageRepository, fixedClock);
     }
 
     @AfterEach
@@ -196,6 +201,14 @@ class TaskAutoResetServiceTest {
         com.habit.domain.User updatedUser = userRepository.findById(userId);
         assertNotNull(updatedUser);
         assertEquals(1, updatedUser.getSabotagePoints(), "未完了タスクでサボりポイントが1増加するはず");
+
+        // システムメッセージが送信されていることを確認
+        List<MessageRepository.MessageEntry> messages = messageRepository.findMessagesByteamID(teamId, 10); // findByTeamId -> findMessagesByteamID, limit追加
+        assertEquals(1, messages.size(), "サボり報告メッセージが1件送信されているはず");
+        MessageRepository.MessageEntry sentMessage = messages.get(0);
+        assertEquals("system", sentMessage.senderId, "送信者がsystemであるはず"); // getSender().getUserId() -> senderId
+        assertTrue(sentMessage.content.contains(user.getUsername()), "メッセージにユーザー名が含まれているはず"); // getContent() -> content
+        assertTrue(sentMessage.content.contains(dailyTask.getTaskName()), "メッセージにタスク名が含まれているはず"); // getContent() -> content
     }
 
     @Test
