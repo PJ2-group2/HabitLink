@@ -15,7 +15,7 @@
             <VBox.margin>
                <Insets left="5.0" />
             </VBox.margin></Label>
-            <ImageView fx:id="characterView" fitHeight="120" fitWidth="80" />
+            <ImageView fx:id="characterView" fitHeight="120" fitWidth="120" />
         </VBox>
     </left>
     <center>
