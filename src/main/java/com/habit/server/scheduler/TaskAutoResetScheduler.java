@@ -35,16 +35,29 @@ public class TaskAutoResetScheduler {
         long initialDelay = now.until(nextRun, ChronoUnit.SECONDS); // 初回実行までの遅延（秒単位）
         long period = TimeUnit.DAYS.toSeconds(1); // 24時間
 
-        scheduler.scheduleAtFixedRate(
-            this::executeAutoReset, // 実行するメソッド
-            initialDelay,           // 初回実行までの遅延(次の午前0時まで)
-            period,                 // 実行間隔(24時間ごと)
-            TimeUnit.SECONDS        // 時間単位
-        );
-        
-        System.out.println("タスク自動再設定スケジューラーを開始しました。");
-        System.out.println("初回実行まで: " + initialDelay + "秒 (次の午前0時)");
+        System.out.println("=== タスク自動再設定スケジューラー初期化 ===");
+        System.out.println("現在時刻: " + now);
+        System.out.println("次回実行予定: " + nextRun);
+        System.out.println("初回実行まで: " + initialDelay + "秒 (" + (initialDelay / 3600) + "時間" + ((initialDelay % 3600) / 60) + "分)");
         System.out.println("実行間隔: 24時間ごと");
+
+        try {
+            scheduler.scheduleAtFixedRate(
+                this::executeAutoReset, // 実行するメソッド
+                initialDelay,           // 初回実行までの遅延(次の午前0時まで)
+                period,                 // 実行間隔(24時間ごと)
+                TimeUnit.SECONDS        // 時間単位
+            );
+            
+            System.out.println("[SUCCESS] タスク自動再設定スケジューラーを正常に開始しました。");
+            
+        } catch (Exception e) {
+            System.err.println("[ERROR] タスク自動再設定スケジューラーの開始に失敗しました: " + e.getMessage());
+            e.printStackTrace();
+            throw e; // 初期化失敗を上位に伝える
+        }
+        
+        System.out.println("=== スケジューラー初期化完了 ===");
     }
     
     /**
@@ -75,15 +88,32 @@ public class TaskAutoResetScheduler {
      *  例外が発生してもスケジューラーは停止せず、次回実行を継続
      */
     private void executeAutoReset() {
+        LocalDateTime startTime = LocalDateTime.now();
+        System.out.println("=== タスク自動再設定を開始 ===");
+        System.out.println("開始時刻: " + startTime);
+        System.out.println("スレッド: " + Thread.currentThread().getName());
+        
         try {
-            System.out.println("タスク自動再設定を開始: " + LocalDateTime.now());
-            taskAutoResetService.runScheduledCheck(); // メイン処理を実行
-            System.out.println("タスク自動再設定を完了: " + LocalDateTime.now());
+            // メイン処理を実行
+            taskAutoResetService.runScheduledCheck();
+            
+            LocalDateTime endTime = LocalDateTime.now();
+            System.out.println("=== タスク自動再設定を正常完了 ===");
+            System.out.println("完了時刻: " + endTime);
+            System.out.println("処理時間: " + java.time.Duration.between(startTime, endTime).toMillis() + "ms");
+            
         } catch (Exception e) {
-            // エラーログを出力（スケジューラーは継続）
-            System.err.println("タスク自動再設定でエラーが発生: " + e.getMessage());
+            LocalDateTime errorTime = LocalDateTime.now();
+            System.err.println("=== タスク自動再設定でエラーが発生 ===");
+            System.err.println("エラー発生時刻: " + errorTime);
+            System.err.println("エラー内容: " + e.getMessage());
+            System.err.println("スタックトレース:");
             e.printStackTrace();
+            
+            // エラー後も次回実行を継続するため、ここで例外を再スローしない
         }
+        
+        System.out.println("=== タスク自動再設定処理終了 ===");
     }
     
     /**
@@ -99,5 +129,22 @@ public class TaskAutoResetScheduler {
      */
     public void executeNow() {
         executeAutoReset();
+    }
+    
+    /**
+     * デバッグ用：指定秒後に自動実行をテストする
+     *
+     * @param delaySeconds 実行までの遅延秒数
+     */
+    public void scheduleTestExecution(int delaySeconds) {
+        System.out.println("=== デバッグ用テスト実行をスケジュール ===");
+        System.out.println("実行予定: " + delaySeconds + "秒後");
+        System.out.println("予定時刻: " + LocalDateTime.now().plusSeconds(delaySeconds));
+        
+        scheduler.schedule(() -> {
+            System.out.println("=== デバッグ用テスト実行開始 ===");
+            executeAutoReset();
+            System.out.println("=== デバッグ用テスト実行完了 ===");
+        }, delaySeconds, TimeUnit.SECONDS);
     }
 }

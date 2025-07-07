@@ -76,7 +76,7 @@ public class HabitServer {
     // ServiceとSchedulerを初期化
     taskAutoResetService = new TaskAutoResetService(taskRepository, userTaskStatusRepository, userRepository, messageRepository, clock);
     taskAutoResetScheduler = new TaskAutoResetScheduler(taskAutoResetService);
-    taskAutoResetController = new TaskAutoResetController(taskAutoResetService);
+    taskAutoResetController = new TaskAutoResetController(taskAutoResetService, taskAutoResetScheduler);
 
     // サーバー起動時に未処理のタスク更新を実行
     taskAutoResetService.catchUpMissedExecutions();
@@ -166,6 +166,14 @@ public class HabitServer {
         taskAutoResetController
             .getManualResetTeamHandler()); // 特定チーム手動実行
     server.createContext(
+        "/debugScheduledReset",
+        taskAutoResetController
+            .getDebugScheduledResetHandler()); // デバッグ用スケジュール実行
+    server.createContext(
+        "/debugSabotageReport",
+        taskAutoResetController
+            .getDebugSabotageReportHandler()); // デバッグ用サボり報告（今日まで）
+    server.createContext(
         "/saveUserTaskStatus",
         userTaskStatusController.getSaveUserTaskStatusHandler());
     server.createContext(
@@ -190,7 +198,15 @@ public class HabitServer {
     server.start();
 
     // 自動実行スケジューラーを開始
-    taskAutoResetScheduler.start();
+    try {
+      System.out.println("タスク自動再設定スケジューラーを開始します...");
+      taskAutoResetScheduler.start();
+      System.out.println("タスク自動再設定スケジューラーが正常に開始されました。");
+    } catch (Exception e) {
+      System.err.println("タスク自動再設定スケジューラーの開始に失敗しました: " + e.getMessage());
+      e.printStackTrace();
+      // スケジューラーが失敗してもサーバー自体は起動を継続
+    }
 
     // サーバーシャットダウン時の処理を登録
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -206,5 +222,7 @@ public class HabitServer {
         "タスク自動再設定機能が有効になりました");
     System.out.println(
         "手動実行API: /manualTaskReset, /manualTaskResetTeam?teamId=xxx");
+    System.out.println(
+        "デバッグAPI: /debugScheduledReset?delay=秒数, /debugSabotageReport");
   }
 }

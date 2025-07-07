@@ -190,9 +190,12 @@ public class TaskAutoResetService {
             System.out.println("[DEBUG] " + dateToCheck + " のUserTaskStatus数: " + statusesToCheck.size());
 
             if (!statusesToCheck.isEmpty()) {
+                System.out.println("[INFO] " + dateToCheck + " の未処理UserTaskStatus件数: " + statusesToCheck.size());
+                
                 for (UserTaskStatus oldStatus : statusesToCheck) {
-                    System.out.println("[DEBUG] UserTaskStatus処理: userId=" + oldStatus.getUserId() +
-                                     ", isDone=" + oldStatus.isDone() + ", teamId=" + oldStatus.getTeamId());
+                    System.out.println("[DEBUG] UserTaskStatus処理開始: userId=" + oldStatus.getUserId() +
+                                     ", isDone=" + oldStatus.isDone() + ", teamId=" + oldStatus.getTeamId() +
+                                     ", date=" + oldStatus.getDate());
                     
                     // isDoneを判定
                     com.habit.domain.User user = userRepository.findById(oldStatus.getUserId());
@@ -205,20 +208,48 @@ public class TaskAutoResetService {
                             // 完了していたらポイントを減らす（0未満にはしない）
                             newPoints = Math.max(0, currentPoints - 1);
                             changeAmount = newPoints - currentPoints;
+                            System.out.println("[INFO] タスク完了により " + user.getUsername() + " のサボりポイントを減少");
                         } else {
                             // 未完了ならポイントを増やす（9を超えない）
                             newPoints = Math.min(9, currentPoints + 1);
                             changeAmount = newPoints - currentPoints;
+                            System.out.println("[INFO] タスク未完了により " + user.getUsername() + " のサボりポイントを増加 → サボり報告メッセージを送信");
 
                             // サボり報告メッセージを送信
-                            String reportMessage = user.getUsername() + "さんが昨日のタスク「" + task.getTaskName() + "」をサボりました。";
-                            Message systemMessage = new Message(SERVER_USER, oldStatus.getTeamId(), reportMessage, LocalDateTime.now(clock));
-                            messageRepository.save(systemMessage);
-                            System.out.println("[" + oldStatus.getTeamId() + "]へサボり報告メッセージを送信しました: " + reportMessage);
+                            try {
+                                String reportMessage = user.getUsername() + "さんが昨日のタスク「" + task.getTaskName() + "」をサボりました。";
+                                Message systemMessage = new Message(SERVER_USER, oldStatus.getTeamId(), reportMessage, LocalDateTime.now(clock));
+                                
+                                System.out.println("[DEBUG] メッセージ保存前: " +
+                                                  "sender=" + systemMessage.getSender().getUserId() +
+                                                  ", teamId=" + oldStatus.getTeamId() +
+                                                  ", content=" + systemMessage.getContent());
+                                
+                                messageRepository.save(systemMessage);
+                                
+                                System.out.println("[SUCCESS] サボり報告メッセージ送信完了: チーム=" + oldStatus.getTeamId() +
+                                                  ", ユーザー=" + user.getUsername() +
+                                                  ", タスク=" + task.getTaskName() +
+                                                  ", 実行時刻=" + LocalDateTime.now(clock));
+                            } catch (Exception messageException) {
+                                System.err.println("[ERROR] サボり報告メッセージの送信に失敗: チーム=" + oldStatus.getTeamId() +
+                                                  ", ユーザー=" + user.getUsername() +
+                                                  ", タスク=" + task.getTaskName() +
+                                                  ", エラー=" + messageException.getMessage());
+                                messageException.printStackTrace();
+                            }
                         }
-                        user.setSabotagePoints(newPoints);
-                        userRepository.save(user);
-                        System.out.println(user.getUsername() + " のサボりポイントを " + currentPoints + " Ptから " + newPoints + " Ptに変更 (変動量: " + (changeAmount > 0 ? "+" : "") + changeAmount + ")");
+                        
+                        try {
+                            user.setSabotagePoints(newPoints);
+                            userRepository.save(user);
+                            System.out.println("[SUCCESS] " + user.getUsername() + " のサボりポイントを " + currentPoints + " Ptから " + newPoints + " Ptに変更 (変動量: " + (changeAmount > 0 ? "+" : "") + changeAmount + ")");
+                        } catch (Exception userSaveException) {
+                            System.err.println("[ERROR] ユーザーのサボりポイント保存に失敗: " + user.getUsername() + ", エラー=" + userSaveException.getMessage());
+                            userSaveException.printStackTrace();
+                        }
+                    } else {
+                        System.err.println("[ERROR] ユーザーが見つかりません: userId=" + oldStatus.getUserId());
                     }
 
                     // 新しいdueDateでisDoneがfalseのUserTaskStatusを生成
@@ -251,6 +282,139 @@ public class TaskAutoResetService {
             }
         }
         return resetCount;
+    }
+
+    /**
+     * デバッグ用：「今日まで」の未消化タスクでサボり報告を送信
+     * 通常の処理は「昨日まで」だが、デバッグ時は「今日まで」をチェック
+     *
+     * @param teamId 対象チームID
+     * @param executionDate 実行日（今日の日付）
+     * @return 処理されたタスクの数
+     */
+    public int checkAndReportTasksForToday(String teamId, LocalDate executionDate) {
+        List<Task> teamTasks = taskRepository.findTeamTasksByTeamID(teamId);
+        int processedCount = 0;
+        
+        System.out.println("[DEBUG] デバッグ用サボり報告チェック開始: チーム " + teamId + " のタスク数: " + teamTasks.size());
+        System.out.println("[DEBUG] 実行日: " + executionDate + ", チェック対象日(今日): " + executionDate);
+
+        for (Task task : teamTasks) {
+            System.out.println("[DEBUG] タスク処理開始: " + task.getTaskName() + " (ID: " + task.getTaskId() + ")");
+            
+            String cycleType = task.getCycleType();
+            System.out.println("[DEBUG] cycleType: " + cycleType);
+            
+            if (cycleType == null) {
+                System.out.println("[DEBUG] cycleTypeがnullのためスキップ: " + task.getTaskName());
+                continue; // 繰り返し設定のないタスクはスキップ
+            }
+
+            LocalDate dateToCheck = executionDate; // チェック対象は実行日（今日）
+
+            // 今日の日付でUserTaskStatusを検索
+            List<UserTaskStatus> statusesToCheck = userTaskStatusRepository.findByTaskIdAndDate(task.getTaskId(), dateToCheck);
+            System.out.println("[DEBUG] " + dateToCheck + " のUserTaskStatus数: " + statusesToCheck.size());
+
+            if (!statusesToCheck.isEmpty()) {
+                System.out.println("[INFO] " + dateToCheck + " の未処理UserTaskStatus件数: " + statusesToCheck.size());
+                
+                for (UserTaskStatus status : statusesToCheck) {
+                    System.out.println("[DEBUG] UserTaskStatus処理開始: userId=" + status.getUserId() +
+                                     ", isDone=" + status.isDone() + ", teamId=" + status.getTeamId() +
+                                     ", date=" + status.getDate());
+                    
+                    // 未完了の場合のみサボり報告メッセージを送信
+                    if (!status.isDone()) {
+                        com.habit.domain.User user = userRepository.findById(status.getUserId());
+                        if (user != null) {
+                            System.out.println("[INFO] デバッグ用サボり報告: " + user.getUsername() + " のタスク「" + task.getTaskName() + "」が未完了");
+
+                            // サボり報告メッセージを送信
+                            try {
+                                String reportMessage = "[デバッグ] " + user.getUsername() + "さんが今日のタスク「" + task.getTaskName() + "」をサボりました。";
+                                Message systemMessage = new Message(SERVER_USER, status.getTeamId(), reportMessage, LocalDateTime.now(clock));
+                                
+                                System.out.println("[DEBUG] メッセージ保存前: " +
+                                                  "sender=" + systemMessage.getSender().getUserId() +
+                                                  ", teamId=" + status.getTeamId() +
+                                                  ", content=" + systemMessage.getContent());
+                                
+                                messageRepository.save(systemMessage);
+                                
+                                System.out.println("[SUCCESS] デバッグ用サボり報告メッセージ送信完了: チーム=" + status.getTeamId() +
+                                                  ", ユーザー=" + user.getUsername() +
+                                                  ", タスク=" + task.getTaskName() +
+                                                  ", 実行時刻=" + LocalDateTime.now(clock));
+                                processedCount++;
+                            } catch (Exception messageException) {
+                                System.err.println("[ERROR] デバッグ用サボり報告メッセージの送信に失敗: チーム=" + status.getTeamId() +
+                                                  ", ユーザー=" + user.getUsername() +
+                                                  ", タスク=" + task.getTaskName() +
+                                                  ", エラー=" + messageException.getMessage());
+                                messageException.printStackTrace();
+                            }
+                        } else {
+                            System.err.println("[ERROR] ユーザーが見つかりません: userId=" + status.getUserId());
+                        }
+                    } else {
+                        System.out.println("[DEBUG] タスク完了済みのためスキップ: userId=" + status.getUserId() + ", taskName=" + task.getTaskName());
+                    }
+                }
+            } else {
+                System.out.println("[DEBUG] " + dateToCheck + " の日付でUserTaskStatusが見つからないため、タスク「" + task.getTaskName() + "」をスキップ");
+            }
+        }
+        return processedCount;
+    }
+
+    /**
+     * デバッグ用：全チームの「今日まで」の未消化タスクでサボり報告を送信
+     */
+    public void runDebugSabotageReportForToday() {
+        // 重複実行防止（前回の処理がまだ終わっていない場合はスキップ）
+        if (isRunning) {
+            System.out.println("自動再設定処理が実行中のため、デバッグ処理をスキップします");
+            return;
+        }
+        
+        isRunning = true;
+        try {
+            LocalDate today = LocalDate.now(clock);
+            
+            // TeamRepositoryから全チームIDを取得
+            com.habit.server.repository.TeamRepository teamRepository =
+                new com.habit.server.repository.TeamRepository();
+            List<String> allTeamIds = teamRepository.findAllTeamIds();
+            
+            System.out.println("デバッグ用サボり報告チェック開始: " + allTeamIds.size() + "チーム対象 at " +
+                java.time.LocalDateTime.now(clock));
+            
+            int processedTeams = 0;
+            int totalReports = 0;
+            
+            // 各チームを順次処理
+            for (String teamId : allTeamIds) {
+                try {
+                    int reports = checkAndReportTasksForToday(teamId, today);
+                    totalReports += reports;
+                    processedTeams++;
+                } catch (Exception e) {
+                    System.err.println("チーム " + teamId + " のデバッグ用サボり報告でエラー: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+            
+            System.out.println("デバッグ用サボり報告チェック完了: " + processedTeams + "チームで処理, " +
+                totalReports + "件のサボり報告を送信 at " + java.time.LocalDateTime.now(clock));
+            
+        } catch (Exception e) {
+            System.err.println("デバッグ用サボり報告の実行でエラー: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            // 必ず実行フラグをリセット
+            isRunning = false;
+        }
     }
 
     private void saveLastExecutionTime(LocalDate date) {
