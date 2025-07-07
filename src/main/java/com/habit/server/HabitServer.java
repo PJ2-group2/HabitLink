@@ -118,6 +118,9 @@ public class HabitServer {
         "/getJoinedTeamInfo",
         userController.getGetJoinedTeamInfoHandler()); // 参加チーム取得
     server.createContext(
+        "/getSabotagePoints",
+        userController.getSabotagePointsHandler()); // サボりポイント取得
+    server.createContext(
         "/getUserTaskIds",
         userTaskStatusController
             .getGetUserTaskIdsHandler()); // UserTaskStatusからTaskId取得

@@ -122,7 +122,38 @@ public class HomeController {
             teamListView.getItems().add("サーバ接続エラー");
         }
 
-        int level = new java.util.Random().nextInt(10); //仮の評価値。実際はサーバやDBから取得
+        int level = 0; // 初期値
+        try {
+            // HTTPリクエストを送信するためのクライアントオブジェクトを作成。
+            HttpClient client = HttpClient.newHttpClient();
+            // URLを作成
+            HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:8080/getSabotagePoints"))
+                .GET();
+            // セッションIDをヘッダに付与
+            String sessionId = LoginController.getSessionId();
+            if (sessionId != null && !sessionId.isEmpty()) {
+                reqBuilder.header("SESSION_ID", sessionId);
+            }
+            // リクエストを送信
+            HttpRequest request = reqBuilder.build();
+            // レスポンスを受け取り、ボディを文字列として取得
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            String body = response.body();
+            if (body != null && !body.trim().isEmpty()) {
+                try {
+                    int sabotagePoints = Integer.parseInt(body.trim());
+                    // サボりポイントに応じてレベルを計算 (0-9の範囲)
+                    level = Math.max(0, 9 - sabotagePoints);
+                } catch (NumberFormatException e) {
+                    System.err.println("サボりポイントの解析に失敗しました: " + body);
+                    level = 0; // エラー時は最低レベル
+                }
+            }
+        } catch (Exception ex) {
+            System.err.println("サボりポイントの取得に失敗しました: " + ex.getMessage());
+            level = 0; // エラー時は最低レベル
+        }
 
         // パス組み立て
         String imagePath = "/images/TaskCharacterLv" + level + ".png";
