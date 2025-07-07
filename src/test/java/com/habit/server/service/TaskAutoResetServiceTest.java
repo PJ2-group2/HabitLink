@@ -31,6 +31,7 @@ class TaskAutoResetServiceTest {
 
     private TaskRepository taskRepository;
     private UserTaskStatusRepository userTaskStatusRepository;
+    private com.habit.server.repository.UserRepository userRepository;
     private TaskAutoResetService taskAutoResetService;
 
     private static final String TEST_DB_PATH = "test_habit.db";
@@ -49,9 +50,10 @@ class TaskAutoResetServiceTest {
         // テスト用のリポジトリを初期化
         taskRepository = new TaskRepository(TEST_DB_URL);
         userTaskStatusRepository = new UserTaskStatusRepository(TEST_DB_URL);
+        userRepository = new com.habit.server.repository.UserRepository(TEST_DB_URL);
 
         // テスト対象のサービスに、テスト用リポジトリと「固定した時計」を注入
-        taskAutoResetService = new TaskAutoResetService(taskRepository, userTaskStatusRepository, fixedClock);
+        taskAutoResetService = new TaskAutoResetService(taskRepository, userTaskStatusRepository, userRepository, fixedClock);
     }
 
     @AfterEach
@@ -162,5 +164,69 @@ class TaskAutoResetServiceTest {
         assertFalse(user3_today.get().isDone());
         assertTrue(user4_today.isPresent());
         assertFalse(user4_today.get().isDone());
+    }
+
+    @Test
+    void testSabotagePointsIncreaseOnIncompleteTask() {
+        // --- Given (前提条件) ---
+        final String teamId = "team-e";
+        final String userId = "user-5";
+        final String taskId = "task-sabotage-incomplete";
+        final LocalDate today = LocalDate.now(fixedClock);
+        final LocalDate yesterday = today.minusDays(1);
+
+        // ユーザーを初期サボりポイント0で作成
+        com.habit.domain.User user = new com.habit.domain.User(userId, "testuser5", "hashedpass");
+        user.setSabotagePoints(0);
+        userRepository.save(user);
+
+        // 毎日繰り返しのタスクを作成
+        Task dailyTask = new Task(taskId, "未完了タスク", "サボりポイント増加テスト", teamId, "DAILY");
+        taskRepository.save(dailyTask);
+
+        // 昨日のタスク状況を**未完了**にしておく
+        UserTaskStatus yesterdayStatus = new UserTaskStatus(userId, taskId, teamId, yesterday, false);
+        userTaskStatusRepository.save(yesterdayStatus);
+
+        // --- When (実行) ---
+        taskAutoResetService.checkAndResetTasks(teamId, today);
+
+        // --- Then (検証) ---
+        // サボりポイントが1増加していることを確認
+        com.habit.domain.User updatedUser = userRepository.findById(userId);
+        assertNotNull(updatedUser);
+        assertEquals(1, updatedUser.getSabotagePoints(), "未完了タスクでサボりポイントが1増加するはず");
+    }
+
+    @Test
+    void testSabotagePointsDecreaseOnCompleteTask() {
+        // --- Given (前提条件) ---
+        final String teamId = "team-f";
+        final String userId = "user-6";
+        final String taskId = "task-sabotage-complete";
+        final LocalDate today = LocalDate.now(fixedClock);
+        final LocalDate yesterday = today.minusDays(1);
+
+        // ユーザーを初期サボりポイント5で作成
+        com.habit.domain.User user = new com.habit.domain.User(userId, "testuser6", "hashedpass");
+        user.setSabotagePoints(5);
+        userRepository.save(user);
+
+        // 毎日繰り返しのタスクを作成
+        Task dailyTask = new Task(taskId, "完了タスク", "サボりポイント減少テスト", teamId, "DAILY");
+        taskRepository.save(dailyTask);
+
+        // 昨日のタスク状況を**完了済み**にしておく
+        UserTaskStatus yesterdayStatus = new UserTaskStatus(userId, taskId, teamId, yesterday, true);
+        userTaskStatusRepository.save(yesterdayStatus);
+
+        // --- When (実行) ---
+        taskAutoResetService.checkAndResetTasks(teamId, today);
+
+        // --- Then (検証) ---
+        // サボりポイントが1減少していることを確認
+        com.habit.domain.User updatedUser = userRepository.findById(userId);
+        assertNotNull(updatedUser);
+        assertEquals(4, updatedUser.getSabotagePoints(), "完了タスクでサボりポイントが1減少するはず");
     }
 }

@@ -34,7 +34,14 @@ public class User {
 
   public void addSabotagePoints(int points) { this.sabotagePoints += points; }
 
-  public int getSabotagePoints() { return sabotagePoints; }
+  public int getSabotagePoints() {
+        return sabotagePoints;
+    }
+
+    public void setSabotagePoints(int sabotagePoints) {
+        this.sabotagePoints = sabotagePoints;
+    }
+
 
   public String getUserId() { return userId; }
 
