@@ -42,6 +42,9 @@ public class TeamTopController {
     /* チャットページへ遷移するボタン */
     @FXML
     private Button btnToChat;
+    /* デバッグリセットボタン */
+    @FXML
+    private Button btnDebugReset;
     /* チームタスク一覧テーブル（型を汎用化） */
     @FXML
     private TableView<ObservableList<Object>> taskTable;
@@ -252,7 +255,7 @@ public class TeamTopController {
             {
                 "ここまで来た君を誰もバカにできない。",
                 "地道な積み重ねがここまで美しいものだなんて、思わなかったよ。",
-                "“継続できる人”って、君のことなんだね。"
+                "\"継続できる人\"って、君のことなんだね。"
             },
             // Lv9
             {
@@ -336,6 +339,11 @@ public class TeamTopController {
             }
         });
 
+        // デバッグリセットボタンのアクション設定
+        btnDebugReset.setOnAction(unused -> {
+            executeDebugReset();
+        });
+
         // タスク進捗表の表示
         loadTaskStatusTable();
 
@@ -343,6 +351,94 @@ public class TeamTopController {
         todayTaskList.setOrientation(Orientation.HORIZONTAL);
     }
 
+    /**
+     * デバッグ用リセットボタンが押されたときの処理
+     * サーバーの手動タスクリセットAPIを呼び出し、0時と同じ日付切り替わり処理を実行する
+     */
+    private void executeDebugReset() {
+        new Thread(() -> {
+            try {
+                // 確認ダイアログを表示
+                Platform.runLater(() -> {
+                    Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
+                    confirmAlert.setTitle("デバッグリセット確認");
+                    confirmAlert.setHeaderText("タスク自動リセットを実行しますか？");
+                    confirmAlert.setContentText("この操作により、0時と同じ日付切り替わり処理が実行されます。\n" +
+                                               "・未完了タスクはサボりポイントが増加\n" +
+                                               "・完了タスクはサボりポイントが減少\n" +
+                                               "・新しい日付のタスクが生成されます");
+                    
+                    Optional<ButtonType> result = confirmAlert.showAndWait();
+                    if (result.isPresent() && result.get() == ButtonType.OK) {
+                        // 実際のリセット処理を別スレッドで実行
+                        new Thread(() -> performDebugReset()).start();
+                    }
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    /**
+     * 実際のデバッグリセット処理を実行
+     */
+    private void performDebugReset() {
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            String resetUrl = "http://localhost:8080/manualTaskReset";
+            
+            // リクエストを送信
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(resetUrl))
+                    .timeout(java.time.Duration.ofSeconds(30))
+                    .GET()
+                    .build();
+            
+            Platform.runLater(() -> {
+                Alert processingAlert = new Alert(Alert.AlertType.INFORMATION);
+                processingAlert.setTitle("処理中");
+                processingAlert.setHeaderText("デバッグリセット実行中...");
+                processingAlert.setContentText("処理が完了するまでお待ちください");
+                processingAlert.show();
+            });
+            
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            
+            Platform.runLater(() -> {
+                Alert resultAlert;
+                if (response.statusCode() == 200) {
+                    resultAlert = new Alert(Alert.AlertType.INFORMATION);
+                    resultAlert.setTitle("デバッグリセット完了");
+                    resultAlert.setHeaderText("タスクリセットが正常に実行されました");
+                    resultAlert.setContentText("サーバーからの応答:\n" + response.body());
+                    
+                    // 画面を更新
+                    loadTeamTasksAndUserTasks();
+                    loadTaskStatusTable();
+                    loadSabotageRanking();
+                    loadChatLog();
+                } else {
+                    resultAlert = new Alert(Alert.AlertType.ERROR);
+                    resultAlert.setTitle("デバッグリセット失敗");
+                    resultAlert.setHeaderText("タスクリセットに失敗しました");
+                    resultAlert.setContentText("HTTPステータス: " + response.statusCode() + "\n" +
+                                             "エラー内容: " + response.body());
+                }
+                resultAlert.showAndWait();
+            });
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            Platform.runLater(() -> {
+                Alert errorAlert = new Alert(Alert.AlertType.ERROR);
+                errorAlert.setTitle("通信エラー");
+                errorAlert.setHeaderText("サーバーとの通信に失敗しました");
+                errorAlert.setContentText("エラー詳細: " + e.getMessage());
+                errorAlert.showAndWait();
+            });
+        }
+    }
 
     /**
      * チームタスク・ユーザタスク取得メソッド

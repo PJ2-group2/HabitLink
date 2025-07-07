@@ -13,6 +13,7 @@
             <Label fx:id="teamNameLabel" text="チーム名" style="-fx-font-size: 22px; -fx-font-weight: bold;"/>
             <Button fx:id="btnToPersonal" text="タスク消化ページへ"/>
             <Button fx:id="btnToChat" text="チャットページへ"/>
+            <Button fx:id="btnDebugReset" text="🔄 デバッグリセット" style="-fx-background-color: #ff6b6b; -fx-text-fill: white; -fx-font-weight: bold;"/>
         </HBox>
     </top>
     <center>
