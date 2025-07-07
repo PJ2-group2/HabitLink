@@ -12,12 +12,7 @@
 	-fx-border-color: #1e90ff;
 }
 
-.button:hover {
+.button:hover, .button:focused {
     -fx-background-color: #00bfff;
-	-fx-border-color: #000080;
-}
-
-.button:focused{
-	-fx-background-color: #00bfff;
 	-fx-border-color: #000080;
 }
