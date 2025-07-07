@@ -1,8 +1,12 @@
 package com.habit.server.service;
 
+import com.habit.domain.Message;
 import com.habit.domain.Task;
+import com.habit.domain.User;
 import com.habit.domain.UserTaskStatus;
+import com.habit.server.repository.MessageRepository;
 import com.habit.server.repository.TaskRepository;
+import com.habit.server.repository.UserRepository;
 import com.habit.server.repository.UserTaskStatusRepository;
 
 import java.io.IOException;
@@ -28,7 +32,8 @@ import java.util.stream.Collectors;
 public class TaskAutoResetService {
     private final TaskRepository taskRepository;
     private final UserTaskStatusRepository userTaskStatusRepository;
-    private final com.habit.server.repository.UserRepository userRepository; // UserRepositoryを追加
+    private final UserRepository userRepository; // UserRepositoryを追加
+    private final MessageRepository messageRepository; // MessageRepositoryを追加
     private final Clock clock;
     private static final Path LAST_EXECUTION_FILE = Paths.get("last_execution.log");
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
@@ -36,13 +41,17 @@ public class TaskAutoResetService {
     // 重複実行防止用のフラグ（1分ごと実行のため、処理が重複しないよう制御）
     private volatile boolean isRunning = false;
 
+    // システムメッセージ用の固定ユーザー
+    private static final User SERVER_USER = new User("system", "System", "");
+
     /**
      * コンストラクタ
      */ 
-    public TaskAutoResetService(TaskRepository taskRepository, UserTaskStatusRepository userTaskStatusRepository, com.habit.server.repository.UserRepository userRepository, Clock clock) {
+    public TaskAutoResetService(TaskRepository taskRepository, UserTaskStatusRepository userTaskStatusRepository, UserRepository userRepository, MessageRepository messageRepository, Clock clock) {
         this.taskRepository = taskRepository;
         this.userTaskStatusRepository = userTaskStatusRepository;
         this.userRepository = userRepository; // UserRepositoryを初期化
+        this.messageRepository = messageRepository; // MessageRepositoryを初期化
         this.clock = clock;
     }
 
@@ -186,6 +195,12 @@ public class TaskAutoResetService {
                             // 未完了ならポイントを増やす（9を超えない）
                             newPoints = Math.min(9, currentPoints + 1);
                             changeAmount = newPoints - currentPoints;
+
+                            // サボり報告メッセージを送信
+                            String reportMessage = user.getUsername() + "さんが昨日のタスク「" + task.getTaskName() + "」をサボりました。";
+                            Message systemMessage = new Message(SERVER_USER, oldStatus.getTeamId(), reportMessage, LocalDateTime.now(clock));
+                            messageRepository.save(systemMessage);
+                            System.out.println("[" + oldStatus.getTeamId() + "]へサボり報告メッセージを送信しました: " + reportMessage);
                         }
                         user.setSabotagePoints(newPoints);
                         userRepository.save(user);

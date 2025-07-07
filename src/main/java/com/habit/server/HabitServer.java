@@ -74,7 +74,7 @@ public class HabitServer {
     // Clockを生成（本番環境ではシステムデフォルトの時刻を使用）
     Clock clock = Clock.systemDefaultZone();
     // ServiceとSchedulerを初期化
-    taskAutoResetService = new TaskAutoResetService(taskRepository, userTaskStatusRepository, userRepository, clock);
+    taskAutoResetService = new TaskAutoResetService(taskRepository, userTaskStatusRepository, userRepository, messageRepository, clock);
     taskAutoResetScheduler = new TaskAutoResetScheduler(taskAutoResetService);
     taskAutoResetController = new TaskAutoResetController(taskAutoResetService);
 
