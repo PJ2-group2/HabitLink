@@ -1,0 +1,64 @@
+.root{
+	-fx-background-color: #e0ffff;
+}
+
+.custom-button{
+	-fx-background-color:  #87cefa;
+	-fx-background-radius: 20pt;
+	-fx-border-width: 1pt;
+	-fx-border-color: #87cefa;
+	-fx-border-radius: 20pt;
+}
+
+.custom-button:hover, .custom-button:focused{
+	-fx-background-color: #00bfff;
+	-fx-border-color: #000080;
+}
+
+.vBox{
+	-fx-background-color: #e0ffff;
+}
+
+.listView{
+	-fx-background-radius: 20pt;
+	-fx-background-insets: 0;
+	-fx-padding: 8;
+}
+
+.listView .list-cell{
+	-fx-background-color: #f0ffff;
+	-fx-alignment: center;
+	-fx-text-alignment: center;
+	-fx-background-radius: 20pt;
+	-fx-background-insets: 4;
+	-fx-padding: 8;
+	-fx-border-color: transparent;
+	-fx-border-radius: 20pt;
+}
+
+.listView .list-cell:filled{
+	-fx-background-color: #00bfff;
+
+	-fx-border-width: 1pt;
+	-fx-border-color: #00bfff;
+
+	
+}
+
+.listView .list-cell:filled:hover, .listView .listcell:filled:selected{
+	-fx-background-color: #1e90ff;
+	-fx-border-color: #000080;
+
+}
+
+.label{
+	-fx-font-size: 14px;
+	-fx-background-color: #87cefa;
+	-fx-border-color: #cccccc;
+	-fx-border-radius: 10;
+	-fx-background-radius: 10;
+	-fx-padding: 8;
+	-fx-text-fil: #3a3a3a;
+	-fx-alignment: center;
+}
+

@@ -8,7 +8,7 @@
 <?import javafx.scene.text.Font?>
 
 
-<VBox alignment="CENTER" maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="500.0" prefWidth="500.0" spacing="10" stylesheets="@login.css" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.habit.client.LoginController">
+<VBox alignment="CENTER" maxHeight="-Infinity" maxWidth="-Infinity" prefHeight="500.0" prefWidth="500.0" spacing="10" stylesheets="@login.css" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.habit.client.LoginController">
     <Label style="-fx-font-size: 60; -fx-font-family: 'Arial Black'; -fx-text-fill: rgb(100, 170, 250); -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 5, 0.5, 2, 2);" text="HabitLink">
       <font>
          <Font size="24.0" />
