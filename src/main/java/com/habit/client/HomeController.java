@@ -9,6 +9,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.image.ImageView;
+import javafx.application.Platform;
+import javafx.scene.control.Alert;
 
 
 /**
@@ -145,6 +147,18 @@ public class HomeController {
                     int sabotagePoints = Integer.parseInt(body.trim());
                     // サボりポイントに応じてレベルを計算 (0-9の範囲)
                     level = Math.max(0, 9 - sabotagePoints);
+
+                    // サボりポイントが閾値を超えたら嫌がらせポップアップを表示
+                    final int SABOTAGE_THRESHOLD = 5; // 例: 5ポイント以上でポップアップ表示
+                    if (sabotagePoints >= SABOTAGE_THRESHOLD) {
+                        Platform.runLater(() -> {
+                            Alert alert = new Alert(Alert.AlertType.WARNING);
+                            alert.setTitle("警告: サボりすぎです！");
+                            alert.setHeaderText(null);
+                            alert.setContentText("タスクをサボりすぎです！もっと頑張りましょう！\n現在のサボりポイント: " + sabotagePoints);
+                            alert.showAndWait();
+                        });
+                    }
                 } catch (NumberFormatException e) {
                     System.err.println("サボりポイントの解析に失敗しました: " + body);
                     level = 0; // エラー時は最低レベル
