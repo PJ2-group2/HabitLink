@@ -159,9 +159,20 @@ public class HomeController {
                                     .getVisualBounds();
 
                             for (int i = 0; i < popupCount; i++) {
+                                // 警告メッセージの候補
+                                String[] warningMessages = {
+                                        "タスクをサボりすぎです！もっと頑張りましょう！",
+                                        "このままでは、目標達成は夢のまた夢ですよ...",
+                                        "仲間は見ています。あなたのそのサボりっぷりを...",
+                                        "今日のサボりは、明日の後悔。",
+                                        "『明日から本気出す』って、何回言いましたか？",
+                                        "何やってるんですか？サボらないでください！"
+                                };
+                                String randomMessage = warningMessages[random.nextInt(warningMessages.length)];
+
                                 Alert alert = new Alert(Alert.AlertType.WARNING);
                                 alert.setTitle("警告: サボりすぎです！");
-                                alert.setHeaderText("もっと頑張りましょう！");
+                                alert.setHeaderText(randomMessage);
                                 alert.setContentText("現在のサボりポイント: " + sabotagePoints);
 
                                 // ランダムなサイズ設定 (幅: 300-500, 高さ: 200-400)
