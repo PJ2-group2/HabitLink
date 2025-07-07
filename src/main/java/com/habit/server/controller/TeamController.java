@@ -63,6 +63,10 @@ public class TeamController {
     return new GetTeamIdByPasscodeHandler();
   }
 
+  public HttpHandler getGetTeamSabotageRankingHandler() {
+    return new GetTeamSabotageRankingHandler();
+  }
+
   // --- チーム作成API ---
   class CreateTeamHandler implements HttpHandler {
     @Override
@@ -416,6 +420,74 @@ public class TeamController {
       OutputStream os = exchange.getResponseBody();
       os.write(response.getBytes("UTF-8"));
       os.close();
+    }
+  }
+
+  // --- チーム内サボりランキング取得API ---
+  class GetTeamSabotageRankingHandler implements HttpHandler {
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
+      String query = exchange.getRequestURI().getQuery();
+      String teamID = null;
+      if (query != null && query.contains("teamID=")) {
+        for (String param : query.split("&")) {
+          if (param.startsWith("teamID=")) {
+            teamID = java.net.URLDecoder.decode(param.substring(7), "UTF-8");
+            break;
+          }
+        }
+      }
+      String response;
+      if (teamID == null || teamID.isEmpty()) {
+        response = "[]";
+      } else {
+        TeamRepository repo = new TeamRepository();
+        List<String> userIds = repo.findMemberIdsByTeamId(teamID);
+        List<String> rankingJsons = new ArrayList<>();
+        
+        // ユーザーIDとサボりポイントのペアを作成
+        List<UserSabotageInfo> userInfos = new ArrayList<>();
+        for (String uid : userIds) {
+          var user = userRepository.findById(uid);
+          if (user != null) {
+            userInfos.add(new UserSabotageInfo(uid, user.getUsername(), user.getSabotagePoints()));
+          }
+        }
+        
+        // サボりポイントの降順でソート
+        userInfos.sort((a, b) -> Integer.compare(b.sabotagePoints, a.sabotagePoints));
+        
+        // 上位5名まで取得
+        int count = Math.min(5, userInfos.size());
+        for (int i = 0; i < count; i++) {
+          UserSabotageInfo info = userInfos.get(i);
+          String rankingJson = String.format(
+            "{\"rank\":%d,\"userId\":\"%s\",\"username\":\"%s\",\"sabotagePoints\":%d}",
+            i + 1, info.userId, info.username, info.sabotagePoints
+          );
+          rankingJsons.add(rankingJson);
+        }
+        
+        response = "[" + String.join(",", rankingJsons) + "]";
+      }
+      exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+      exchange.sendResponseHeaders(200, response.getBytes("UTF-8").length);
+      OutputStream os = exchange.getResponseBody();
+      os.write(response.getBytes("UTF-8"));
+      os.close();
+    }
+  }
+
+  // サボりポイント情報を保持するヘルパークラス
+  private static class UserSabotageInfo {
+    public final String userId;
+    public final String username;
+    public final int sabotagePoints;
+    
+    public UserSabotageInfo(String userId, String username, int sabotagePoints) {
+      this.userId = userId;
+      this.username = username;
+      this.sabotagePoints = sabotagePoints;
     }
   }
 }

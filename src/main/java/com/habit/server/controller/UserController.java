@@ -28,6 +28,10 @@ public class UserController {
     return new GetSabotagePointsHandler();
   }
 
+  public HttpHandler getUpdateSabotagePointsHandler() {
+    return new UpdateSabotagePointsHandler();
+  }
+
   private class GetSabotagePointsHandler implements HttpHandler {
     @Override
     public void handle(HttpExchange exchange) throws IOException {
@@ -79,6 +83,62 @@ public class UserController {
           response += "\njoinedTeamNames=" + String.join(",", teamNames);
         }
       }
+      exchange.sendResponseHeaders(200, response.getBytes().length);
+      OutputStream os = exchange.getResponseBody();
+      os.write(response.getBytes());
+      os.close();
+    }
+  }
+
+  private class UpdateSabotagePointsHandler implements HttpHandler {
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
+      if (!"POST".equals(exchange.getRequestMethod())) {
+        String response = "POSTメソッドのみ対応";
+        exchange.sendResponseHeaders(405, response.getBytes().length);
+        OutputStream os = exchange.getResponseBody();
+        os.write(response.getBytes());
+        os.close();
+        return;
+      }
+      
+      byte[] bodyBytes = exchange.getRequestBody().readAllBytes();
+      String bodyStr = (bodyBytes != null) ? new String(bodyBytes, java.nio.charset.StandardCharsets.UTF_8) : "";
+      String response;
+      
+      try {
+        String[] params = bodyStr.split("&");
+        String userId = null;
+        int newPoints = -1;
+        
+        for (String param : params) {
+          String[] kv = param.split("=", 2);
+          if (kv.length < 2) continue;
+          if (kv[0].equals("userId")) {
+            userId = java.net.URLDecoder.decode(kv[1], "UTF-8");
+          } else if (kv[0].equals("sabotagePoints")) {
+            newPoints = Integer.parseInt(kv[1]);
+          }
+        }
+        
+        if (userId != null && newPoints >= 0) {
+          com.habit.server.repository.UserRepository userRepo = new com.habit.server.repository.UserRepository();
+          User user = userRepo.findById(userId);
+          if (user != null) {
+            int oldPoints = user.getSabotagePoints();
+            user.setSabotagePoints(Math.max(0, Math.min(9, newPoints))); // 0-9の範囲に制限
+            userRepo.save(user);
+            response = "サボりポイント更新成功: " + user.getUsername() + " " + oldPoints + "pt → " + user.getSabotagePoints() + "pt";
+          } else {
+            response = "ユーザーが見つかりません";
+          }
+        } else {
+          response = "パラメータが不正です";
+        }
+      } catch (Exception ex) {
+        response = "サボりポイント更新失敗: " + ex.getMessage();
+      }
+      
       exchange.sendResponseHeaders(200, response.getBytes().length);
       OutputStream os = exchange.getResponseBody();
       os.write(response.getBytes());

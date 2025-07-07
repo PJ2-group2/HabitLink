@@ -121,6 +121,9 @@ public class HabitServer {
         "/getSabotagePoints",
         userController.getSabotagePointsHandler()); // サボりポイント取得
     server.createContext(
+        "/updateSabotagePoints",
+        userController.getUpdateSabotagePointsHandler()); // サボりポイント更新（テスト用）
+    server.createContext(
         "/getUserTaskIds",
         userTaskStatusController
             .getGetUserTaskIdsHandler()); // UserTaskStatusからTaskId取得
@@ -171,6 +174,9 @@ public class HabitServer {
     server.createContext(
         "/getTeamTasks",
         teamController.getGetTeamTasksHandler()); // チームタスク一覧
+    server.createContext(
+        "/getTeamSabotageRanking",
+        teamController.getGetTeamSabotageRankingHandler()); // チーム内サボりランキング
     
     // チーム共通タスク管理API
     server.createContext(
