@@ -51,6 +51,22 @@
 
 }
 
+.list-view .scroll-bar {
+    -fx-background-color: transparent;
+}
+
+.list-view .scroll-bar .thumb {
+    -fx-background-color: #87cefa;
+    -fx-background-insets: 2;
+    -fx-background-radius: 10;
+}
+
+.list-view .scroll-bar .track {
+    -fx-background-color: #e0e0e0;
+    -fx-background-insets: 0;
+    -fx-background-radius: 10;
+}
+
 .label{
 	-fx-font-size: 14px;
 	-fx-background-color: #87cefa;
@@ -61,4 +77,3 @@
 	-fx-text-fil: #3a3a3a;
 	-fx-alignment: center;
 }
-
