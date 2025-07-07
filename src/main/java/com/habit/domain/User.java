@@ -23,7 +23,7 @@ public class User {
     this.userId = userId;
     this.username = username;
     this.hashedPassword = hashedPassword;
-    this.sabotagePoints = 5; // 初期サボりポイントは5
+    this.sabotagePoints = 4; // 初期サボりポイントは4
     this.joinedTeamIds = new java.util.ArrayList<>();
   }
 
