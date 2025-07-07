@@ -88,10 +88,7 @@ public class PersonalPageController {
             java.time.LocalDate dueDate = task.getDueDate();
             java.time.LocalDate today = LocalDate.now();
 
-            // 期限切れタスクは現在スキップする仕様
-            if (today.isAfter(dueDate)) {
-                continue; // Skip overdue tasks
-            }
+            
 
             Button tileBtn = new Button();
             tileBtn.setStyle("-fx-border-color: #aaa; -fx-padding: 30; -fx-background-color: #f9f9f9; -fx-min-width: 320px; -fx-min-height: 150px; -fx-alignment: center; -fx-font-size: 22px; -fx-font-weight: bold;");
@@ -189,12 +186,10 @@ public class PersonalPageController {
     private List<com.habit.domain.Task> fetchUserTasksForPersonalPage() {
         try {
             String sessionId = com.habit.client.LoginController.getSessionId();
-            java.time.LocalDate today = java.time.LocalDate.now();
             java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
             
-            // ★修正：getUserIncompleteTasksAPIを使用（このAPIは既に修正済み）
-            String url = "http://localhost:8080/getUserIncompleteTasks?teamID=" + java.net.URLEncoder.encode(teamID, "UTF-8")
-                       + "&date=" + today.toString();
+            // 新しいAPIを使用
+            String url = "http://localhost:8080/getIncompleteUserTaskStatus?teamID=" + java.net.URLEncoder.encode(teamID, "UTF-8");
             System.out.println("[PersonalPageController] Fetching user tasks from: " + url);
             
             java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()

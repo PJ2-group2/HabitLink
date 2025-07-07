@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 /**
  * タスクの自動再設定サービス
  *  タスクが期限を過ぎても未完了の場合、次回サイクルのタスクを自動生成
- *  1分ごとに自動実行（TaskAutoResetSchedulerによる）
  *  手動実行も可能（TaskAutoResetControllerのAPI経由）
  *  既に同じ日付のタスクが存在する場合は重複作成しない
  */
@@ -38,7 +37,7 @@ public class TaskAutoResetService {
     private static final Path LAST_EXECUTION_FILE = Paths.get("last_execution.log");
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
     
-    // 重複実行防止用のフラグ（1分ごと実行のため、処理が重複しないよう制御）
+    // 重複実行防止用のフラグ
     private volatile boolean isRunning = false;
 
     // システムメッセージ用の固定ユーザー

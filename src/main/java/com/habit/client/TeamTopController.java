@@ -344,11 +344,9 @@ public class TeamTopController {
                     return;
                 }
                 String sessionId = LoginController.getSessionId();
-                java.time.LocalDate today = java.time.LocalDate.now();
                 HttpClient client = HttpClient.newHttpClient();
-                // PersonalPageと同じAPIを使用
-                String url = "http://localhost:8080/getUserIncompleteTasks?teamID=" + URLEncoder.encode(teamID, "UTF-8")
-                           + "&date=" + today.toString();
+                // 新しいAPIを呼び出す
+                String url = "http://localhost:8080/getIncompleteUserTaskStatus?teamID=" + URLEncoder.encode(teamID, "UTF-8");
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(url))
                         .timeout(java.time.Duration.ofSeconds(10))
@@ -356,7 +354,7 @@ public class TeamTopController {
                         .GET()
                         .build();
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                // レスポンスは [{"taskId":"...","taskName":"...","dueDate":"..."}] のJSON配列
+                // レスポンスは [{"taskId":"...","taskName":"...","dueDate":"...","isDone":false}] のJSON配列
                 java.util.List<String> taskNames = new java.util.ArrayList<>();
                 String json = response.body();
                 System.out.println("[TeamTopController] API response: " + json);
@@ -365,19 +363,7 @@ public class TeamTopController {
                     for (int i = 0; i < arr.length(); i++) {
                         org.json.JSONObject obj = arr.getJSONObject(i);
                         String taskName = obj.optString("taskName", null);
-                        String dueDateStr = obj.optString("dueDate", null);
-                        java.time.LocalDate dueDate = null;
-                        if (dueDateStr != null && !dueDateStr.isEmpty() && !"null".equals(dueDateStr)) {
-                            try {
-                                dueDate = java.time.LocalDate.parse(dueDateStr);
-                            } catch (Exception ignore) {}
-                        }
-                        
-                        // PersonalPageと同じ条件：期限切れタスクはスキップ
                         if (taskName != null) {
-                            if (dueDate != null && today.isAfter(dueDate)) {
-                                continue; // Skip overdue tasks
-                            }
                             taskNames.add(taskName);
                         }
                     }
@@ -453,10 +439,9 @@ public class TeamTopController {
                 return new java.util.ArrayList<>();
             }
             String sessionId = LoginController.getSessionId();
-            java.time.LocalDate today = java.time.LocalDate.now();
             HttpClient client = HttpClient.newHttpClient();
-            String url = "http://localhost:8080/getUserIncompleteTasks?teamID=" + URLEncoder.encode(teamID, "UTF-8")
-                       + "&date=" + today.toString();
+            // 新しいAPIを呼び出す
+            String url = "http://localhost:8080/getIncompleteUserTaskStatus?teamID=" + URLEncoder.encode(teamID, "UTF-8");
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .timeout(java.time.Duration.ofSeconds(10))

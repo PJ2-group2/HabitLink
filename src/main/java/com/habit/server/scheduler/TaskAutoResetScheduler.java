@@ -14,7 +14,6 @@ import java.time.temporal.ChronoUnit;
 /**
  * タスク自動再設定の定期実行スケジューラー
  *  タスクの自動再設定を定期的に実行する。
- *  1分ごとに実行
  * 期限切れタスクの検出が目的
  */
 public class TaskAutoResetScheduler {
