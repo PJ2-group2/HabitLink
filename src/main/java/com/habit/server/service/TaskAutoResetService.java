@@ -149,26 +149,37 @@ public class TaskAutoResetService {
     public int checkAndResetTasks(String teamId, LocalDate executionDate) { // private から public に変更
         List<Task> teamTasks = taskRepository.findTeamTasksByTeamID(teamId);
         int resetCount = 0;
+        
+        System.out.println("[DEBUG] チーム " + teamId + " のタスク数: " + teamTasks.size());
+        System.out.println("[DEBUG] 実行日: " + executionDate + ", チェック対象日(前日): " + executionDate.minusDays(1));
 
         for (Task task : teamTasks) {
+            System.out.println("[DEBUG] タスク処理開始: " + task.getTaskName() + " (ID: " + task.getTaskId() + ")");
+            
             String cycleType = task.getCycleType();
+            System.out.println("[DEBUG] cycleType: " + cycleType);
+            
             if (cycleType == null) {
+                System.out.println("[DEBUG] cycleTypeがnullのためスキップ: " + task.getTaskName());
                 continue; // 繰り返し設定のないタスクはスキップ
             }
 
             LocalDate dateToCheck = executionDate.minusDays(1); // チェック対象は実行日の前日
             LocalDate newDueDate = null;
 
-            switch (cycleType) {
-                case "DAILY":
+            switch (cycleType.toLowerCase()) {
+                case "daily":
                     newDueDate = executionDate;
                     break;
-                case "WEEKLY":
+                case "weekly":
                     newDueDate = dateToCheck.plusWeeks(1); // 基準日（昨日）から1週間後
                     break;
                 default:
+                    System.out.println("[DEBUG] 未対応のcycleTypeのためスキップ: " + cycleType + " (タスク: " + task.getTaskName() + ")");
                     continue; // 未対応のサイクルタイプはスキップ
             }
+
+            System.out.println("[DEBUG] 新しい期限日: " + newDueDate);
 
             // Task自体のdueDateを更新して保存
             task.setDueDate(newDueDate);
@@ -176,9 +187,13 @@ public class TaskAutoResetService {
 
             // 昨日の日付でUserTaskStatusを検索
             List<UserTaskStatus> statusesToCheck = userTaskStatusRepository.findByTaskIdAndDate(task.getTaskId(), dateToCheck);
+            System.out.println("[DEBUG] " + dateToCheck + " のUserTaskStatus数: " + statusesToCheck.size());
 
             if (!statusesToCheck.isEmpty()) {
                 for (UserTaskStatus oldStatus : statusesToCheck) {
+                    System.out.println("[DEBUG] UserTaskStatus処理: userId=" + oldStatus.getUserId() +
+                                     ", isDone=" + oldStatus.isDone() + ", teamId=" + oldStatus.getTeamId());
+                    
                     // isDoneを判定
                     com.habit.domain.User user = userRepository.findById(oldStatus.getUserId());
                     if (user != null) {
@@ -231,6 +246,8 @@ public class TaskAutoResetService {
                             ", date=" + newStatus.getDate());
                     }
                 }
+            } else {
+                System.out.println("[DEBUG] " + dateToCheck + " の日付でUserTaskStatusが見つからないため、タスク「" + task.getTaskName() + "」をスキップ");
             }
         }
         return resetCount;
