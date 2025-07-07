@@ -11,11 +11,14 @@
 <BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="350" prefWidth="600" stylesheets="@home.css" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.habit.client.HomeController">
     <left>
         <VBox alignment="CENTER" styleClass="vBox">
-            <Label fx:id="cheerMessageLabel" alignment="CENTER_LEFT" focusTraversable="false" maxWidth="-Infinity" minWidth="-Infinity" prefHeight="38.0" prefWidth="250.0" text="" wrapText="true">
+            <Label fx:id="cheerMessageLabel" alignment="CENTER_LEFT" focusTraversable="false" maxWidth="-Infinity" minWidth="-Infinity" prefHeight="60.0" prefWidth="250.0" wrapText="true">
             <VBox.margin>
                <Insets left="5.0" />
             </VBox.margin></Label>
-            <ImageView fx:id="characterView" fitHeight="120" fitWidth="120" />
+            <ImageView fx:id="characterView" fitHeight="120" fitWidth="120" styleClass="imageView">
+            <VBox.margin>
+               <Insets top="30.0" />
+            </VBox.margin></ImageView>
         </VBox>
     </left>
     <center>
