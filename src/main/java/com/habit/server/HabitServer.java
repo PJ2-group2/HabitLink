@@ -74,7 +74,7 @@ public class HabitServer {
     // Clockを生成（本番環境ではシステムデフォルトの時刻を使用）
     Clock clock = Clock.systemDefaultZone();
     // ServiceとSchedulerを初期化
-    taskAutoResetService = new TaskAutoResetService(taskRepository, userTaskStatusRepository, clock);
+    taskAutoResetService = new TaskAutoResetService(taskRepository, userTaskStatusRepository, userRepository, clock);
     taskAutoResetScheduler = new TaskAutoResetScheduler(taskAutoResetService);
     taskAutoResetController = new TaskAutoResetController(taskAutoResetService);
 
@@ -117,6 +117,9 @@ public class HabitServer {
     server.createContext(
         "/getJoinedTeamInfo",
         userController.getGetJoinedTeamInfoHandler()); // 参加チーム取得
+    server.createContext(
+        "/getSabotagePoints",
+        userController.getSabotagePointsHandler()); // サボりポイント取得
     server.createContext(
         "/getUserTaskIds",
         userTaskStatusController

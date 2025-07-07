@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 public class TaskAutoResetService {
     private final TaskRepository taskRepository;
     private final UserTaskStatusRepository userTaskStatusRepository;
+    private final com.habit.server.repository.UserRepository userRepository; // UserRepositoryを追加
     private final Clock clock;
     private static final Path LAST_EXECUTION_FILE = Paths.get("last_execution.log");
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE;
@@ -38,9 +39,10 @@ public class TaskAutoResetService {
     /**
      * コンストラクタ
      */ 
-    public TaskAutoResetService(TaskRepository taskRepository, UserTaskStatusRepository userTaskStatusRepository, Clock clock) {
+    public TaskAutoResetService(TaskRepository taskRepository, UserTaskStatusRepository userTaskStatusRepository, com.habit.server.repository.UserRepository userRepository, Clock clock) {
         this.taskRepository = taskRepository;
         this.userTaskStatusRepository = userTaskStatusRepository;
+        this.userRepository = userRepository; // UserRepositoryを初期化
         this.clock = clock;
     }
 
@@ -169,11 +171,25 @@ public class TaskAutoResetService {
 
             if (!statusesToCheck.isEmpty()) {
                 for (UserTaskStatus oldStatus : statusesToCheck) {
-                    // isDoneを判定（この部分は後で実装）
-                    if(oldStatus.isDone()) {
-                        // 後で実装(サボりポイントの処理など)
-                    } else {
-                        // 後で実装(サボりポイントの処理など)
+                    // isDoneを判定
+                    com.habit.domain.User user = userRepository.findById(oldStatus.getUserId());
+                    if (user != null) {
+                        int currentPoints = user.getSabotagePoints();
+                        int newPoints;
+                        int changeAmount;
+
+                        if(oldStatus.isDone()) {
+                            // 完了していたらポイントを減らす（0未満にはしない）
+                            newPoints = Math.max(0, currentPoints - 1);
+                            changeAmount = newPoints - currentPoints;
+                        } else {
+                            // 未完了ならポイントを増やす（9を超えない）
+                            newPoints = Math.min(9, currentPoints + 1);
+                            changeAmount = newPoints - currentPoints;
+                        }
+                        user.setSabotagePoints(newPoints);
+                        userRepository.save(user);
+                        System.out.println(user.getUsername() + " のサボりポイントを " + currentPoints + " Ptから " + newPoints + " Ptに変更 (変動量: " + (changeAmount > 0 ? "+" : "") + changeAmount + ")");
                     }
 
                     // 新しいdueDateでisDoneがfalseのUserTaskStatusを生成

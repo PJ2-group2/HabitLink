@@ -24,6 +24,35 @@ public class UserController {
     return new GetJoinedTeamInfoHandler();
   }
 
+  public HttpHandler getSabotagePointsHandler() {
+    return new GetSabotagePointsHandler();
+  }
+
+  private class GetSabotagePointsHandler implements HttpHandler {
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
+      String sessionId = null;
+      var headers = exchange.getRequestHeaders();
+      if (headers.containsKey("SESSION_ID")) {
+        sessionId = headers.getFirst("SESSION_ID");
+      }
+
+      int sabotagePoints = 0; // Default to 0 or an appropriate error code
+      if (sessionId != null) {
+        User user = authService.getUserBySession(sessionId);
+        if (user != null) {
+          sabotagePoints = user.getSabotagePoints();
+        }
+      }
+
+      String response = String.valueOf(sabotagePoints);
+      exchange.sendResponseHeaders(200, response.getBytes().length);
+      OutputStream os = exchange.getResponseBody();
+      os.write(response.getBytes());
+      os.close();
+    }
+  }
+
   private class GetJoinedTeamInfoHandler implements HttpHandler {
     @Override
     public void handle(HttpExchange exchange) throws IOException {

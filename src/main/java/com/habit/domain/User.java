@@ -23,7 +23,7 @@ public class User {
     this.userId = userId;
     this.username = username;
     this.hashedPassword = hashedPassword;
-    this.sabotagePoints = 0;
+    this.sabotagePoints = 4; // 初期サボりポイントは4
     this.joinedTeamIds = new java.util.ArrayList<>();
   }
 
@@ -34,7 +34,14 @@ public class User {
 
   public void addSabotagePoints(int points) { this.sabotagePoints += points; }
 
-  public int getSabotagePoints() { return sabotagePoints; }
+  public int getSabotagePoints() {
+        return sabotagePoints;
+    }
+
+    public void setSabotagePoints(int sabotagePoints) {
+        this.sabotagePoints = sabotagePoints;
+    }
+
 
   public String getUserId() { return userId; }
 
