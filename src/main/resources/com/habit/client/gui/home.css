@@ -1,0 +1,24 @@
+.custom-button{
+	-fx-background-color:  #87cefa;
+	-fx-background-radius: 20pt;
+	-fx-border-width: 1pt;
+	-fx-border-color: #87cefa;
+	-fx-border-radius: 20pt;
+}
+
+.custom-button:focus{
+	-fx-border-color: #000080;
+}
+
+.custom-button:hover{
+	-fx-background-color: #00bfff;
+	-fx-border-color: #000080;
+}
+
+.vBox{
+	-fx-background-color: #e0ffff;
+}
+
+.listView{
+	-fx-background-color: #f0ffff;
+}
