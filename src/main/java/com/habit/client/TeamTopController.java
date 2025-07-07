@@ -119,18 +119,38 @@ public class TeamTopController {
             if (body != null && !body.trim().isEmpty()) {
                 try {
                     int sabotagePoints = Integer.parseInt(body.trim());
-                    // サボりポイントに応じてレベルを計算 (0-9の範囲)
-                    level = Math.max(0, 9 - sabotagePoints);
 
                     // サボりポイントが閾値を超えたら嫌がらせポップアップを表示
-                    final int SABOTAGE_THRESHOLD = 7; // 例: 7ポイント以上でポップアップ表示
+                    final int SABOTAGE_THRESHOLD = 5; // 5ポイント以上でポップアップ表示
                     if (sabotagePoints >= SABOTAGE_THRESHOLD) {
+                        // レベルに応じてポップアップ数を増やす (5で1つ、6で2つ...)
+                        int popupCount = 1 + (sabotagePoints - SABOTAGE_THRESHOLD);
+                        
                         Platform.runLater(() -> {
-                            Alert alert = new Alert(Alert.AlertType.WARNING);
-                            alert.setTitle("警告: サボりすぎです！");
-                            alert.setHeaderText(null);
-                            alert.setContentText("タスクをサボりすぎです！もっと頑張りましょう！\n現在のサボりポイント: " + sabotagePoints);
-                            alert.showAndWait();
+                            java.util.Random random = new java.util.Random();
+                            // 画面サイズを取得して、その範囲内にポップアップを出す
+                            javafx.geometry.Rectangle2D screenBounds = javafx.stage.Screen.getPrimary().getVisualBounds();
+
+                            for (int i = 0; i < popupCount; i++) {
+                                Alert alert = new Alert(Alert.AlertType.WARNING);
+                                alert.setTitle("警告: サボりすぎです！");
+                                alert.setHeaderText("もっと頑張りましょう！");
+                                alert.setContentText("現在のサボりポイント: " + sabotagePoints);
+
+                                // ランダムなサイズ設定 (幅: 300-500, 高さ: 200-400)
+                                double randomWidth = 300 + random.nextDouble() * 200;
+                                double randomHeight = 200 + random.nextDouble() * 200;
+                                alert.getDialogPane().setPrefSize(randomWidth, randomHeight);
+
+                                // ランダムな位置設定
+                                double x = screenBounds.getMinX() + random.nextDouble() * (screenBounds.getWidth() - randomWidth);
+                                double y = screenBounds.getMinY() + random.nextDouble() * (screenBounds.getHeight() - randomHeight);
+                                alert.setX(x);
+                                alert.setY(y);
+                                
+                                // show() に変更して、複数のウィンドウが同時に表示されるようにする
+                                alert.show(); 
+                            }
                         });
                     }
 
