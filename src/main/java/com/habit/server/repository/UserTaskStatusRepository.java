@@ -65,6 +65,28 @@ public class UserTaskStatusRepository {
         }
         return result;
     }
+    // ユーザID・チームIDで検索
+    public List<UserTaskStatus> findByUserIdAndTeamId(String userId, String teamId) {
+        List<UserTaskStatus> result = new ArrayList<>();
+        try (Connection conn = DriverManager.getConnection(dbUrl)) {
+            String sql = "SELECT uts.* FROM user_task_statuses uts " +
+                         "JOIN tasks t ON uts.taskId = t.taskId " +
+                         "WHERE uts.userId = ? AND t.teamID = ?";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, userId);
+                pstmt.setString(2, teamId);
+                ResultSet rs = pstmt.executeQuery();
+                while (rs.next()) {
+                    UserTaskStatus status = mapRowToStatus(rs);
+                    result.add(status);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
     // userIdとteamIdで、そのユーザーが担当するチーム内タスクID一覧を取得
     public List<String> findTaskIdsByUserIdAndTeamId(String userId, String teamId) {
         List<String> result = new ArrayList<>();

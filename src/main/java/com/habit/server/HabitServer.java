@@ -58,7 +58,7 @@ public class HabitServer {
       new UserTaskStatusController(authService, userTaskStatusRepository);
 
   // タスク自動再設定関連コンポーネント
-  // スケジューラー: 1時間ごとの自動実行を担当
+  // スケジューラー: 自動実行を担当
   private static TaskAutoResetService taskAutoResetService;
   private static TaskAutoResetScheduler taskAutoResetScheduler;
   
@@ -136,6 +136,10 @@ public class HabitServer {
     server.createContext(
         "/getUserIncompleteTasks",
         userTaskStatusController.getUserIncompleteTasksHandler(authService));
+    // ユーザーの未完了タスク(isDone=false, dueDate > now)一覧取得API
+    server.createContext(
+        "/getIncompleteUserTaskStatus",
+        userTaskStatusController.getIncompleteUserTaskStatusHandler(authService));
     // チーム全員分のタスク進捗一覧API
     server.createContext(
         "/getTeamTaskStatusList",
@@ -179,7 +183,7 @@ public class HabitServer {
     server.setExecutor(null);
     server.start();
 
-    // 1時間ごとの自動実行スケジューラーを開始
+    // 自動実行スケジューラーを開始
     taskAutoResetScheduler.start();
 
     // サーバーシャットダウン時の処理を登録
@@ -193,7 +197,7 @@ public class HabitServer {
 
     System.out.println("サーバが起動しました: http://localhost:8080/hello");
     System.out.println(
-        "タスク自動再設定機能が有効になりました（1時間ごと実行）");
+        "タスク自動再設定機能が有効になりました");
     System.out.println(
         "手動実行API: /manualTaskReset, /manualTaskResetTeam?teamId=xxx");
   }

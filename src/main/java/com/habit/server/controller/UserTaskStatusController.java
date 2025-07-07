@@ -66,6 +66,100 @@ public class UserTaskStatusController {
             os.close();
         }
     }
+
+    // --- ユーザーの未完了タスク(isDone=false, dueDate > now)一覧取得API ---
+    public HttpHandler getIncompleteUserTaskStatusHandler(com.habit.server.service.AuthService authService) {
+        return new GetIncompleteUserTaskStatusHandler(authService);
+    }
+
+    public static class GetIncompleteUserTaskStatusHandler implements com.sun.net.httpserver.HttpHandler {
+        private final com.habit.server.service.AuthService authService;
+
+        public GetIncompleteUserTaskStatusHandler(com.habit.server.service.AuthService authService) {
+            this.authService = authService;
+        }
+
+        @Override
+        public void handle(com.sun.net.httpserver.HttpExchange exchange) throws java.io.IOException {
+            // System.out.println("[UserTaskStatusController] getIncompleteUserTaskStatus API called");
+            java.io.OutputStream os = null;
+            try {
+                String sessionId = null;
+                var headers = exchange.getRequestHeaders();
+                if (headers.containsKey("SESSION_ID")) {
+                    sessionId = headers.getFirst("SESSION_ID");
+                }
+                String query = exchange.getRequestURI().getQuery();
+                String teamID = null;
+                if (query != null) {
+                    String[] params = query.split("&");
+                    for (String param : params) {
+                        if (param.startsWith("teamID=")) teamID = java.net.URLDecoder.decode(param.substring(7), "UTF-8");
+                    }
+                }
+                
+                String response = "[]";
+                if (sessionId != null && teamID != null) {
+                    var user = authService.getUserBySession(sessionId);
+                    if (user != null) {
+                        String userId = user.getUserId();
+                        com.habit.server.repository.UserTaskStatusRepository utsRepo = new com.habit.server.repository.UserTaskStatusRepository();
+                        com.habit.server.repository.TaskRepository taskRepo = new com.habit.server.repository.TaskRepository();
+                        
+                        java.util.List<com.habit.domain.UserTaskStatus> allUserTaskStatuses = utsRepo.findByUserIdAndTeamId(userId, teamID);
+                        java.util.List<com.habit.domain.Task> allTeamTasks = taskRepo.findTeamTasksByTeamID(teamID);
+                        java.util.Map<String, com.habit.domain.Task> taskMap = new java.util.HashMap<>();
+                        for(com.habit.domain.Task task : allTeamTasks) {
+                            taskMap.put(task.getTaskId(), task);
+                        }
+
+                        java.util.List<com.habit.domain.UserTaskStatus> incompleteStatuses = new java.util.ArrayList<>();
+                        for (com.habit.domain.UserTaskStatus status : allUserTaskStatuses) {
+                            com.habit.domain.Task correspondingTask = taskMap.get(status.getTaskId());
+                            if (correspondingTask != null) {
+                                java.time.LocalDate dueDate = correspondingTask.getDueDate();
+                                if (!status.isDone() && dueDate != null && dueDate.isAfter(java.time.LocalDate.now().minusDays(1))) {
+                                    incompleteStatuses.add(status);
+                                }
+                            }
+                        }
+                        
+                        StringBuilder sb = new StringBuilder("[");
+                        for (int i = 0; i < incompleteStatuses.size(); i++) {
+                            com.habit.domain.UserTaskStatus s = incompleteStatuses.get(i);
+                            com.habit.domain.Task t = taskMap.get(s.getTaskId());
+                            sb.append("{");
+                            sb.append("\"taskId\":\"").append(s.getTaskId().replace("\"", "\\")).append("\",");
+                            sb.append("\"taskName\":\"").append(t.getTaskName().replace("\"", "\\")).append("\",");
+                            sb.append("\"dueDate\":\"").append(t.getDueDate().toString().replace("\"", "\\")).append("\",");
+                            sb.append("\"isDone\":").append(s.isDone());
+                            sb.append("}");
+                            if (i < incompleteStatuses.size() - 1) sb.append(",");
+                        }
+                        sb.append("]");
+                        response = sb.toString();
+
+                        System.out.println("[UserTaskStatusController] Responding with incomplete tasks: " + response);
+                    }
+                }
+                exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+                exchange.sendResponseHeaders(200, response.getBytes("UTF-8").length);
+                os = exchange.getResponseBody();
+                os.write(response.getBytes("UTF-8"));
+            } catch (Exception e) {
+                e.printStackTrace();
+                String errJson = "{\"error\":\"" + e.getClass().getSimpleName() + ": " + e.getMessage() + "\"}";
+                exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+                exchange.sendResponseHeaders(500, errJson.getBytes("UTF-8").length);
+                os = exchange.getResponseBody();
+                os.write(errJson.getBytes("UTF-8"));
+            } finally {
+                if (os != null) {
+                    try { os.close(); } catch (Exception ignore) {}
+                }
+            }
+        }
+    }
     // --- ユーザーの未完了タスク一覧取得API ---
     public HttpHandler getUserIncompleteTasksHandler(com.habit.server.service.AuthService authService) {
         return new GetUserIncompleteTasksHandler(authService);
@@ -176,7 +270,7 @@ public class UserTaskStatusController {
                         response = sb.toString();
                     }
                 }
-                System.out.println("[UserTaskStatusController] Final response: " + response);
+                System.out.println("[UserTaskStatusController] Responding with: " + response);
                 exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
                 exchange.sendResponseHeaders(200, response.getBytes("UTF-8").length);
                 os = exchange.getResponseBody();
