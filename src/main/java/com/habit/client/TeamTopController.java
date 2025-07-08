@@ -336,10 +336,13 @@ public class TeamTopController {
             }
         });
 
-        // デバッグリセットボタンのアクション設定
-        btnDebugReset.setOnAction(unused -> {
-            executeDebugReset();
-        });
+	final boolean is_debug = true;
+	if(is_debug){
+          // デバッグリセットボタンのアクション設定
+          btnDebugReset.setOnAction(unused -> { executeDebugReset(); });
+        }
+	btnDebugReset.setVisible(is_debug);
+	btnDebugReset.setManaged(is_debug);
 
         // タスク進捗表の表示
         loadTaskStatusTable();
