@@ -6,6 +6,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.*;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -15,6 +17,7 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.util.Callback;
+import javafx.util.Duration;
 import org.json.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -188,15 +191,38 @@ public class TeamTopController {
       level = 0; // エラー時は最低レベル
     }
 
-    String imagePath = "/images/TaskCharacterLv" + level + ".png";
+    List<Image> animationFrames = new ArrayList<>();
+    for (int i = 1; i <= 3; i++) {
+      String framePath = "/images/TaskCharacterLv" + level + "-" + i + ".png";
+      try {
+        Image frameImage =
+            new Image(getClass().getResource(framePath).toExternalForm());
+        animationFrames.add(frameImage);
+      } catch (Exception e) {
+        logger.error("アニメーションフレームの読み込み失敗: " + framePath);
+      }
+    }
 
-    try {
-      Image characterImage =
-          new Image(getClass().getResource(imagePath).toExternalForm());
-      teamCharView.setImage(characterImage);
-    } catch (NullPointerException e) {
-      logger.error("画像が見つかりません: " + imagePath);
-      e.printStackTrace();
+    if (!animationFrames.isEmpty()) {
+      final int[] frameIndex = {0};
+
+      Timeline animationTimeline =
+          new Timeline(new KeyFrame(Duration.seconds(1.0), event -> {
+            teamCharView.setImage(animationFrames.get(frameIndex[0]));
+            frameIndex[0] = (frameIndex[0] + 1) % animationFrames.size();
+          }));
+      animationTimeline.setCycleCount(Timeline.INDEFINITE);
+      animationTimeline.play();
+    } else {
+      // 画像がない場合は1枚のみにフォールバック
+      String fallbackPath = "/images/TaskCharacterLv" + level + ".png";
+      try {
+        Image fallbackImage =
+            new Image(getClass().getResource(fallbackPath).toExternalForm());
+        teamCharView.setImage(fallbackImage);
+      } catch (NullPointerException e) {
+        logger.error("フォールバック画像も見つかりません: " + fallbackPath);
+      }
     }
 
     String[][] cheersByLevel = {
@@ -388,7 +414,7 @@ public class TeamTopController {
       });
 
       // 1. 通常のタスクリセット処理を実行
-      String resetUrl = "http://localhost:8080/manualTaskReset";
+      String resetUrl = Config.getServerUrl() + "/manualTaskReset";
       HttpRequest resetRequest = HttpRequest.newBuilder()
                                      .uri(URI.create(resetUrl))
                                      .timeout(java.time.Duration.ofSeconds(30))
@@ -399,7 +425,8 @@ public class TeamTopController {
           client.send(resetRequest, HttpResponse.BodyHandlers.ofString());
 
       // 2. 今日の未消化タスクのサボり報告を実行
-      String sabotageReportUrl = "http://localhost:8080/debugSabotageReport";
+      String sabotageReportUrl = Config.getServerUrl() + ("/debugSabotageRepor" +
+                                                          "t");
       HttpRequest sabotageRequest =
           HttpRequest.newBuilder()
               .uri(URI.create(sabotageReportUrl))
