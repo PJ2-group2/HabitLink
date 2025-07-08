@@ -56,6 +56,11 @@ public class MessageController {
               messageRepository.findMessagesByteamID(teamID, limit);
           for (var entry : messages) {
             User sender = userRepository.findById(entry.senderId);
+            // senderがnullの場合（例：システムユーザー）のための代替処理
+            if (sender == null) {
+                // システムメッセージ用の代替ユーザーを作成
+                sender = new User(entry.senderId, "System", "");
+            }
             Message msg = new Message(entry.id, sender, entry.teamId,
                                       entry.content, MessageType.NORMAL);
             msg.setTimeStamp(entry.time);

@@ -382,36 +382,49 @@ public class TeamTopController {
 
     /**
      * 実際のデバッグリセット処理を実行
+     * 1. 通常のタスクリセット処理（昨日の未消化タスク処理）
+     * 2. 今日の未消化タスクのサボり報告送信
      */
     private void performDebugReset() {
         try {
             HttpClient client = HttpClient.newHttpClient();
-            String resetUrl = "http://localhost:8080/manualTaskReset";
-            
-            // リクエストを送信
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(resetUrl))
-                    .timeout(java.time.Duration.ofSeconds(30))
-                    .GET()
-                    .build();
             
             Platform.runLater(() -> {
                 Alert processingAlert = new Alert(Alert.AlertType.INFORMATION);
                 processingAlert.setTitle("処理中");
                 processingAlert.setHeaderText("デバッグリセット実行中...");
-                processingAlert.setContentText("処理が完了するまでお待ちください");
+                processingAlert.setContentText("タスクリセットとサボり報告を実行しています...");
                 processingAlert.show();
             });
             
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            // 1. 通常のタスクリセット処理を実行
+            String resetUrl = "http://localhost:8080/manualTaskReset";
+            HttpRequest resetRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(resetUrl))
+                    .timeout(java.time.Duration.ofSeconds(30))
+                    .GET()
+                    .build();
+            
+            HttpResponse<String> resetResponse = client.send(resetRequest, HttpResponse.BodyHandlers.ofString());
+            
+            // 2. 今日の未消化タスクのサボり報告を実行
+            String sabotageReportUrl = "http://localhost:8080/debugSabotageReport";
+            HttpRequest sabotageRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(sabotageReportUrl))
+                    .timeout(java.time.Duration.ofSeconds(30))
+                    .GET()
+                    .build();
+            
+            HttpResponse<String> sabotageResponse = client.send(sabotageRequest, HttpResponse.BodyHandlers.ofString());
             
             Platform.runLater(() -> {
                 Alert resultAlert;
-                if (response.statusCode() == 200) {
+                if (resetResponse.statusCode() == 200 && sabotageResponse.statusCode() == 200) {
                     resultAlert = new Alert(Alert.AlertType.INFORMATION);
                     resultAlert.setTitle("デバッグリセット完了");
-                    resultAlert.setHeaderText("タスクリセットが正常に実行されました");
-                    resultAlert.setContentText("サーバーからの応答:\n" + response.body());
+                    resultAlert.setHeaderText("タスクリセットとサボり報告が正常に実行されました");
+                    resultAlert.setContentText("タスクリセット結果:\n" + resetResponse.body() +
+                                             "\n\nサボり報告結果:\n" + sabotageResponse.body());
                     
                     // 画面を更新
                     loadTeamTasksAndUserTasks();
@@ -421,9 +434,15 @@ public class TeamTopController {
                 } else {
                     resultAlert = new Alert(Alert.AlertType.ERROR);
                     resultAlert.setTitle("デバッグリセット失敗");
-                    resultAlert.setHeaderText("タスクリセットに失敗しました");
-                    resultAlert.setContentText("HTTPステータス: " + response.statusCode() + "\n" +
-                                             "エラー内容: " + response.body());
+                    resultAlert.setHeaderText("処理に失敗しました");
+                    String errorContent = "";
+                    if (resetResponse.statusCode() != 200) {
+                        errorContent += "タスクリセット失敗 (HTTP " + resetResponse.statusCode() + "): " + resetResponse.body() + "\n";
+                    }
+                    if (sabotageResponse.statusCode() != 200) {
+                        errorContent += "サボり報告失敗 (HTTP " + sabotageResponse.statusCode() + "): " + sabotageResponse.body();
+                    }
+                    resultAlert.setContentText(errorContent);
                 }
                 resultAlert.showAndWait();
             });
