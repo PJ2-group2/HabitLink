@@ -21,6 +21,9 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import javafx.application.Platform;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.util.Duration;
 
 /**
  * チームトップ画面のコントローラークラス。
@@ -189,14 +192,38 @@ public class TeamTopController {
             level = 0; // エラー時は最低レベル
         }
 
-        String imagePath = "/images/TaskCharacterLv" + level + ".png";
+        List<Image> animationFrames = new ArrayList<>();
 
-        try {
-            Image characterImage = new Image(getClass().getResource(imagePath).toExternalForm());
-            teamCharView.setImage(characterImage);
-        } catch (NullPointerException e) {
-            System.err.println("画像が見つかりません: " + imagePath);
-            e.printStackTrace();
+        for (int i = 1; i <= 3; i++) {
+            String framePath = "/images/TaskCharacterLv" + level + "-" + i + ".png";
+            try {
+                Image frameImage = new Image(getClass().getResource(framePath).toExternalForm());
+                animationFrames.add(frameImage);
+            } catch (Exception e) {
+                System.err.println("アニメーションフレームの読み込み失敗: " + framePath);
+            }
+        }
+
+        if (!animationFrames.isEmpty()) {
+            final int[] frameIndex = {0};
+
+            Timeline animationTimeline = new Timeline(
+                new KeyFrame(Duration.seconds(1.0), event -> {
+                    teamCharView.setImage(animationFrames.get(frameIndex[0]));
+                    frameIndex[0] = (frameIndex[0] + 1) % animationFrames.size();
+                })
+            );
+            animationTimeline.setCycleCount(Timeline.INDEFINITE);
+            animationTimeline.play();
+        } else {
+            // 画像がない場合は1枚のみにフォールバック
+            String fallbackPath = "/images/TaskCharacterLv" + level + ".png";
+            try {
+                Image fallbackImage = new Image(getClass().getResource(fallbackPath).toExternalForm());
+                teamCharView.setImage(fallbackImage);
+            } catch (NullPointerException e) {
+                System.err.println("フォールバック画像も見つかりません: " + fallbackPath);
+            }
         }
 
         String[][] cheersByLevel = {

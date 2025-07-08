@@ -11,7 +11,12 @@ import javafx.scene.control.ListView;
 import javafx.scene.image.ImageView;
 import javafx.application.Platform;
 import javafx.scene.control.Alert;
-
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.util.Duration;
+import java.util.List;
+import java.util.ArrayList;
+import javafx.scene.image.Image;
 
 /**
  * ホーム画面のコントローラークラス。
@@ -33,6 +38,9 @@ public class HomeController {
     /* 応援セリフ表示用ラベル */
     @FXML
     private Label cheerMessageLabel;
+    @FXML
+    /* チームキャラクター画像 */
+    private ImageView teamCharView;
 
     // チーム名→IDのマップ
     private java.util.Map<String, String> teamNameToIdMap = new java.util.HashMap<>();
@@ -207,15 +215,38 @@ public class HomeController {
         }
 
         // パス組み立て
-        String imagePath = "/images/TaskCharacterLv" + level + ".png";
+        List<Image> animationFrames = new ArrayList<>();
 
-        try {
-            javafx.scene.image.Image image = new javafx.scene.image.Image(
-                getClass().getResource(imagePath).toExternalForm());
-            characterView.setImage(image);
-        } catch (Exception e) {
-            System.err.println("キャラクター画像の読み込みに失敗しました: " + imagePath);
-            e.printStackTrace();
+        for (int i = 1; i <= 3; i++) {
+            String framePath = "/images/TaskCharacterLv" + level + "-" + i + ".png";
+            try {
+                Image frameImage = new Image(getClass().getResource(framePath).toExternalForm());
+                animationFrames.add(frameImage);
+            } catch (Exception e) {
+                System.err.println("アニメーションフレームの読み込み失敗: " + framePath);
+            }
+        }
+
+        if (!animationFrames.isEmpty()) {
+            final int[] frameIndex = {0};
+
+            Timeline animationTimeline = new Timeline(
+                new KeyFrame(Duration.seconds(1.0), event -> {
+                    teamCharView.setImage(animationFrames.get(frameIndex[0]));
+                    frameIndex[0] = (frameIndex[0] + 1) % animationFrames.size();
+                })
+            );
+            animationTimeline.setCycleCount(Timeline.INDEFINITE);
+            animationTimeline.play();
+        } else {
+            // 画像がない場合は1枚のみにフォールバック
+            String fallbackPath = "/images/TaskCharacterLv" + level + ".png";
+            try {
+                Image fallbackImage = new Image(getClass().getResource(fallbackPath).toExternalForm());
+                teamCharView.setImage(fallbackImage);
+            } catch (NullPointerException e) {
+                System.err.println("フォールバック画像も見つかりません: " + fallbackPath);
+            }
         }
 
         String[][] cheersByLevel = {
