@@ -4,15 +4,10 @@ import javafx.fxml.FXML;
 import javafx.scene.Cursor;
 import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.BackgroundFill;
 import javafx.scene.image.Image;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
-import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.geometry.Orientation;
-import javafx.geometry.Insets;
-import javafx.scene.layout.*;
-import javafx.scene.paint.*;
 import javafx.util.Callback;
 import java.net.*;
 import java.util.*;
@@ -20,13 +15,15 @@ import org.json.*;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import javafx.application.Platform;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * チームトップ画面のコントローラークラス。
  * チーム名の表示、タスク作成、個人ページやチャットページへの遷移を担当する。
  */
 public class TeamTopController {
+    private static final Logger logger = LoggerFactory.getLogger(TeamTopController.class);
     /* チーム名ラベル */
     @FXML
     private Label teamNameLabel;
@@ -42,6 +39,9 @@ public class TeamTopController {
     /* チャットページへ遷移するボタン */
     @FXML
     private Button btnToChat;
+    /* デバッグリセットボタン */
+    @FXML
+    private Button btnDebugReset;
     /* チームタスク一覧テーブル（型を汎用化） */
     @FXML
     private TableView<ObservableList<Object>> taskTable;
@@ -73,13 +73,13 @@ public class TeamTopController {
     private String teamName = "チーム名未取得";
     // ユーザIDのセッター
     public void setUserId(String userId) {
-        System.out.println("userId set: " + userId);
+        logger.info("userId set: " + userId);
         this.userId = userId;
     }
     // チームIDのセッター
     public void setTeamID(String teamID) {
         this.teamID = teamID;
-        System.out.println("teamID set: " + teamID);
+        logger.info("teamID set: " + teamID);
         // teamIDがセットされたタイミングでタスク、チャット、サボりランキングを読み込む。
         loadTeamTasksAndUserTasks();
         loadChatLog();
@@ -95,7 +95,7 @@ public class TeamTopController {
     // チーム名のセッター
     public void setTeamName(String teamName) {
         this.teamName = teamName;
-        System.out.println("teamName set: " + teamName);
+        logger.info("teamName set: " + teamName);
         if (teamNameLabel != null) {
             teamNameLabel.setText(teamName);
         }
@@ -180,12 +180,12 @@ public class TeamTopController {
                     }
 
                 } catch (NumberFormatException e) {
-                    System.err.println("サボりポイントの解析に失敗しました: " + body);
+                    logger.error("サボりポイントの解析に失敗しました: " + body);
                     level = 0; // エラー時は最低レベル
                 }
             }
         } catch (Exception ex) {
-            System.err.println("サボりポイントの取得に失敗しました: " + ex.getMessage());
+            logger.error("サボりポイントの取得に失敗しました: " + ex.getMessage());
             level = 0; // エラー時は最低レベル
         }
 
@@ -195,7 +195,7 @@ public class TeamTopController {
             Image characterImage = new Image(getClass().getResource(imagePath).toExternalForm());
             teamCharView.setImage(characterImage);
         } catch (NullPointerException e) {
-            System.err.println("画像が見つかりません: " + imagePath);
+            logger.error("画像が見つかりません: " + imagePath);
             e.printStackTrace();
         }
 
@@ -336,6 +336,14 @@ public class TeamTopController {
             }
         });
 
+	final boolean is_debug = true;
+	if(is_debug){
+          // デバッグリセットボタンのアクション設定
+          btnDebugReset.setOnAction(unused -> { executeDebugReset(); });
+        }
+	btnDebugReset.setVisible(is_debug);
+	btnDebugReset.setManaged(is_debug);
+
         // タスク進捗表の表示
         loadTaskStatusTable();
 
@@ -343,6 +351,113 @@ public class TeamTopController {
         todayTaskList.setOrientation(Orientation.HORIZONTAL);
     }
 
+    /**
+     * デバッグ用リセットボタンが押されたときの処理
+     * サーバーの手動タスクリセットAPIを呼び出し、0時と同じ日付切り替わり処理を実行する
+     */
+    private void executeDebugReset() {
+        new Thread(() -> {
+            try {
+                // 確認ダイアログを表示
+                Platform.runLater(() -> {
+                    Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
+                    confirmAlert.setTitle("デバッグリセット確認");
+                    confirmAlert.setHeaderText("タスク自動リセットを実行しますか？");
+                    confirmAlert.setContentText("この操作により、0時と同じ日付切り替わり処理が実行されます。\n" +
+                                               "・未完了タスクはサボりポイントが増加\n" +
+                                               "・完了タスクはサボりポイントが減少\n" +
+                                               "・新しい日付のタスクが生成されます");
+                    
+                    Optional<ButtonType> result = confirmAlert.showAndWait();
+                    if (result.isPresent() && result.get() == ButtonType.OK) {
+                        // 実際のリセット処理を別スレッドで実行
+                        new Thread(() -> performDebugReset()).start();
+                    }
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    /**
+     * 実際のデバッグリセット処理を実行
+     * 1. 通常のタスクリセット処理（昨日の未消化タスク処理）
+     * 2. 今日の未消化タスクのサボり報告送信
+     */
+    private void performDebugReset() {
+        try {
+            HttpClient client = HttpClient.newHttpClient();
+            
+            Platform.runLater(() -> {
+                Alert processingAlert = new Alert(Alert.AlertType.INFORMATION);
+                processingAlert.setTitle("処理中");
+                processingAlert.setHeaderText("デバッグリセット実行中...");
+                processingAlert.setContentText("タスクリセットとサボり報告を実行しています...");
+                processingAlert.show();
+            });
+            
+            // 1. 通常のタスクリセット処理を実行
+            String resetUrl = "http://localhost:8080/manualTaskReset";
+            HttpRequest resetRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(resetUrl))
+                    .timeout(java.time.Duration.ofSeconds(30))
+                    .GET()
+                    .build();
+            
+            HttpResponse<String> resetResponse = client.send(resetRequest, HttpResponse.BodyHandlers.ofString());
+            
+            // 2. 今日の未消化タスクのサボり報告を実行
+            String sabotageReportUrl = "http://localhost:8080/debugSabotageReport";
+            HttpRequest sabotageRequest = HttpRequest.newBuilder()
+                    .uri(URI.create(sabotageReportUrl))
+                    .timeout(java.time.Duration.ofSeconds(30))
+                    .GET()
+                    .build();
+            
+            HttpResponse<String> sabotageResponse = client.send(sabotageRequest, HttpResponse.BodyHandlers.ofString());
+            
+            Platform.runLater(() -> {
+                Alert resultAlert;
+                if (resetResponse.statusCode() == 200 && sabotageResponse.statusCode() == 200) {
+                    resultAlert = new Alert(Alert.AlertType.INFORMATION);
+                    resultAlert.setTitle("デバッグリセット完了");
+                    resultAlert.setHeaderText("タスクリセットとサボり報告が正常に実行されました");
+                    resultAlert.setContentText("タスクリセット結果:\n" + resetResponse.body() +
+                                             "\n\nサボり報告結果:\n" + sabotageResponse.body());
+                    
+                    // 画面を更新
+                    loadTeamTasksAndUserTasks();
+                    loadTaskStatusTable();
+                    loadSabotageRanking();
+                    loadChatLog();
+                } else {
+                    resultAlert = new Alert(Alert.AlertType.ERROR);
+                    resultAlert.setTitle("デバッグリセット失敗");
+                    resultAlert.setHeaderText("処理に失敗しました");
+                    String errorContent = "";
+                    if (resetResponse.statusCode() != 200) {
+                        errorContent += "タスクリセット失敗 (HTTP " + resetResponse.statusCode() + "): " + resetResponse.body() + "\n";
+                    }
+                    if (sabotageResponse.statusCode() != 200) {
+                        errorContent += "サボり報告失敗 (HTTP " + sabotageResponse.statusCode() + "): " + sabotageResponse.body();
+                    }
+                    resultAlert.setContentText(errorContent);
+                }
+                resultAlert.showAndWait();
+            });
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            Platform.runLater(() -> {
+                Alert errorAlert = new Alert(Alert.AlertType.ERROR);
+                errorAlert.setTitle("通信エラー");
+                errorAlert.setHeaderText("サーバーとの通信に失敗しました");
+                errorAlert.setContentText("エラー詳細: " + e.getMessage());
+                errorAlert.showAndWait();
+            });
+        }
+    }
 
     /**
      * チームタスク・ユーザタスク取得メソッド
@@ -354,7 +469,7 @@ public class TeamTopController {
             try {
                 // teamIDがnullの場合は処理をスキップ
                 if (teamID == null) {
-                    System.err.println("teamID is null, skipping loadTeamTasksAndUserTasks");
+                    logger.error("teamID is null, skipping loadTeamTasksAndUserTasks");
                     return;
                 }
                 String sessionId = LoginController.getSessionId();
@@ -371,7 +486,7 @@ public class TeamTopController {
                 // レスポンスは [{"taskId":"...","taskName":"...","dueDate":"...","isDone":false}] のJSON配列
                 java.util.List<String> taskNames = new java.util.ArrayList<>();
                 String json = response.body();
-                System.out.println("[TeamTopController] API response: " + json);
+                logger.info("[TeamTopController] API response: " + json);
                 if (json != null && json.startsWith("[")) {
                     org.json.JSONArray arr = new org.json.JSONArray(json);
                     for (int i = 0; i < arr.length(); i++) {
@@ -382,7 +497,7 @@ public class TeamTopController {
                         }
                     }
                 }
-                System.out.println("[TeamTopController] Total tasks to display: " + taskNames.size());
+                logger.info("[TeamTopController] Total tasks to display: " + taskNames.size());
                 Platform.runLater(() -> {
                     Callback<ListView<String>,ListCell<String>> cellFactory = p ->
                     {
@@ -449,7 +564,7 @@ public class TeamTopController {
         try {
             // teamIDがnullの場合は空のリストを返す
             if (teamID == null) {
-                System.err.println("teamID is null, returning empty task list");
+                logger.error("teamID is null, returning empty task list");
                 return new java.util.ArrayList<>();
             }
             String sessionId = LoginController.getSessionId();
@@ -506,7 +621,7 @@ public class TeamTopController {
             try {
                 // teamIDがnullの場合は処理をスキップ
                 if (teamID == null) {
-                    System.err.println("teamID is null, skipping loadChatLog");
+                    logger.error("teamID is null, skipping loadChatLog");
                     return;
                 }
                 // HTTPリクエストを送信するためのクライアントオブジェクトを作成
@@ -572,7 +687,7 @@ public class TeamTopController {
                 if (membersBody != null && membersBody.trim().startsWith("[")) {
                     membersArr = new JSONArray(membersBody);
                 } else {
-                    System.out.println("[loadTaskStatusTable] getTeamMembers APIレスポンスが配列形式ではありません: " + membersBody);
+                    logger.info("[loadTaskStatusTable] getTeamMembers APIレスポンスが配列形式ではありません: " + membersBody);
                     membersArr = new JSONArray();
                 }
                 List<String> memberIds = new ArrayList<>();
@@ -596,7 +711,7 @@ public class TeamTopController {
                 if (tasksBody != null && tasksBody.trim().startsWith("[")) {
                     tasksArr = new JSONArray(tasksBody);
                 } else {
-                    System.out.println("[loadTaskStatusTable] getTeamTasks APIレスポンスが配列形式ではありません: " + tasksBody);
+                    logger.info("[loadTaskStatusTable] getTeamTasks APIレスポンスが配列形式ではありません: " + tasksBody);
                     tasksArr = new JSONArray();
                 }
                 List<String> taskNames = new ArrayList<>();
@@ -629,7 +744,7 @@ public class TeamTopController {
                 if (statusBody != null && statusBody.trim().startsWith("[")) {
                     statusArr = new JSONArray(statusBody);
                 } else {
-                    System.out.println("[loadTaskStatusTable] getTeamTaskStatusList APIレスポンスが配列形式ではありません: " + statusBody);
+                    logger.info("[loadTaskStatusTable] getTeamTaskStatusList APIレスポンスが配列形式ではありません: " + statusBody);
                     statusArr = new JSONArray();
                 }
                 // Map<userId+taskId, List<isDone>>
@@ -748,7 +863,7 @@ public class TeamTopController {
             try {
                 // teamIDがnullの場合は処理をスキップ
                 if (teamID == null) {
-                    System.err.println("teamID is null, skipping sendChatMessage");
+                    logger.error("teamID is null, skipping sendChatMessage");
                     return;
                 }
                 HttpClient client = HttpClient.newHttpClient();
@@ -778,7 +893,7 @@ public class TeamTopController {
             try {
                 // teamIDがnullの場合は処理をスキップ
                 if (teamID == null) {
-                    System.err.println("teamID is null, skipping loadSabotageRanking");
+                    logger.error("teamID is null, skipping loadSabotageRanking");
                     return;
                 }
                 

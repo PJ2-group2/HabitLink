@@ -8,11 +8,14 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
 import java.time.LocalTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * タスク作成画面のコントローラー
  */
 public class TaskCreateController {
+    private static final Logger logger = LoggerFactory.getLogger(TaskCreateController.class);
     /* タスク名入力フィールド */
     @FXML 
     private TextField taskNameField;
@@ -114,7 +117,7 @@ public class TaskCreateController {
             return;
         }
         // ログ出力
-        System.out.println("タスク作成: " +
+        logger.info("タスク作成: " +
             "taskId=" + task.getTaskId() +
             ", name=" + task.getTaskName() +
             ", description=" + task.getDescription() +
@@ -137,7 +140,7 @@ public class TaskCreateController {
                 .POST(HttpRequest.BodyPublishers.ofString(body))
                 .build();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            System.out.println("タスク保存APIレスポンス: " + response.body());
+            logger.info("タスク保存APIレスポンス: " + response.body());
         } catch (Exception e) {
             showAlert("タスク保存APIエラー: " + e.getMessage());
             return;

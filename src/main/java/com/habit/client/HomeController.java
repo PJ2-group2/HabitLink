@@ -11,6 +11,8 @@ import javafx.scene.control.ListView;
 import javafx.scene.image.ImageView;
 import javafx.application.Platform;
 import javafx.scene.control.Alert;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -18,6 +20,7 @@ import javafx.scene.control.Alert;
  * チーム一覧・キャラクターの表示や、チーム作成・検索画面への遷移を担当する。
  */
 public class HomeController {
+    private static final Logger logger = LoggerFactory.getLogger(HomeController.class);
     /* キャラクター画像 */
     @FXML
     private ImageView characterView;
@@ -85,7 +88,7 @@ public class HomeController {
                         }
                         // userIdをログ出力
                         if (userId != null) {
-                            System.out.println("HomeController: userId=" + userId);
+                            logger.info("HomeController: userId={}", userId);
                         }
                     }
                     if (line.startsWith("joinedTeamIds=")) {
@@ -197,12 +200,12 @@ public class HomeController {
                         });
                     }
                 } catch (NumberFormatException e) {
-                    System.err.println("サボりポイントの解析に失敗しました: " + body);
+                    logger.error("サボりポイントの解析に失敗しました: {}", body);
                     level = 0; // エラー時は最低レベル
                 }
             }
         } catch (Exception ex) {
-            System.err.println("サボりポイントの取得に失敗しました: " + ex.getMessage());
+            logger.error("サボりポイントの取得に失敗しました: {}", ex.getMessage(), ex);
             level = 0; // エラー時は最低レベル
         }
 
@@ -214,8 +217,7 @@ public class HomeController {
                 getClass().getResource(imagePath).toExternalForm());
             characterView.setImage(image);
         } catch (Exception e) {
-            System.err.println("キャラクター画像の読み込みに失敗しました: " + imagePath);
-            e.printStackTrace();
+            logger.error("キャラクター画像の読み込みに失敗しました: {}", imagePath, e);
         }
 
         String[][] cheersByLevel = {
@@ -305,7 +307,7 @@ public class HomeController {
                     // userIdも渡す
                     if (userId != null) {
                         controller.setUserId(userId);
-                        System.out.println("HomeController: TeamTopControllerにuserIdを渡しました: " + userId);
+                        logger.info("HomeController: TeamTopControllerにuserIdを渡しました: {}", userId);
                     }
                     stage.setScene(new javafx.scene.Scene(root));
                     stage.setTitle("チームトップ");

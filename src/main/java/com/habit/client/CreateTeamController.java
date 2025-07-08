@@ -8,8 +8,11 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CreateTeamController {
+    private static final Logger logger = LoggerFactory.getLogger(CreateTeamController.class);
     /** チーム名入力フィールド */
     @FXML
     private TextField teamNameField;
@@ -44,12 +47,12 @@ public class CreateTeamController {
 
     public void setUserId(String userId) {
         this.userId = userId;
-        System.out.println("userId set: " + userId);
+        logger.info("userId set: {}", userId);
     }
 
     public void setTeamID(String teamID) {
         this.teamID = teamID;
-        System.out.println("teamID set: " + teamID);
+        logger.info("teamID set: {}", teamID);
     }
 
     private ObservableList<String> invitedMembers = FXCollections.observableArrayList(); // 招待されたメンバーのリスト

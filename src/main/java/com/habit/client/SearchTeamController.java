@@ -10,8 +10,11 @@ import javafx.stage.Stage;
 import javafx.scene.Parent;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SearchTeamController {
+    private static final Logger logger = LoggerFactory.getLogger(SearchTeamController.class);
     /** 合言葉入力フィールド */
     @FXML 
     private TextField passcodeField;
@@ -37,11 +40,11 @@ public class SearchTeamController {
 
     public void setUserId(String userId) {
         this.userId = userId;
-        System.out.println("userId set: " + userId);
+        logger.info("userId set: {}", userId);
     }
 
     public void setTeamID(String teamID) {
-        System.out.println("teamID set: " + teamID);
+        logger.info("teamID set: {}", teamID);
         this.teamID = teamID;
     }
 
@@ -176,7 +179,7 @@ public class SearchTeamController {
                 return teamId.trim();
             }
         } catch (Exception ex) {
-            System.err.println("チームID取得エラー: " + ex.getMessage());
+            logger.error("チームID取得エラー: {}", ex.getMessage(), ex);
         }
         // 取得できない場合はパスコードをフォールバックとして使用
         return passcode;

@@ -10,11 +10,14 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.time.LocalDate;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * チーム共通タスク関連APIのコントローラ
  */
 public class TeamTaskController {
+    private static final Logger logger = LoggerFactory.getLogger(TeamTaskController.class);
     private final TeamTaskService teamTaskService;
 
     public TeamTaskController() {
@@ -61,7 +64,7 @@ public class TeamTaskController {
                                 break;
                         }
                     } catch (Exception e) {
-                        System.err.println("パラメータ解析エラー: " + e.getMessage());
+                        logger.error("パラメータ解析エラー: {}", e.getMessage(), e);
                     }
                 }
             }
@@ -112,7 +115,7 @@ public class TeamTaskController {
                                 break;
                         }
                     } catch (Exception e) {
-                        System.err.println("パラメータ解析エラー: " + e.getMessage());
+                        logger.error("パラメータ解析エラー: {}", e.getMessage(), e);
                     }
                 }
             }

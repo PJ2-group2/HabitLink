@@ -13,11 +13,14 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * チーム関連APIのコントローラ
  */
 public class TeamController {
+  private static final Logger logger = LoggerFactory.getLogger(TeamController.class);
   private final AuthService authService;
   private final UserRepository userRepository;
   private final TaskRepository taskRepository;
@@ -230,9 +233,9 @@ public class TeamController {
               // 新メンバーに既存のチーム共通タスクを自動紐づけ
               try {
                 teamTaskService.createUserTaskStatusForNewMember(teamID, memberId);
-                System.out.println("新メンバー " + memberId + " にチーム " + teamID + " の既存タスクを紐づけました");
+                logger.info("新メンバー {} にチーム {} の既存タスクを紐づけました", memberId, teamID);
               } catch (Exception e) {
-                System.err.println("チーム共通タスクの自動紐づけに失敗: " + e.getMessage());
+                logger.error("チーム共通タスクの自動紐づけに失敗: {}", e.getMessage(), e);
               }
             }
           }

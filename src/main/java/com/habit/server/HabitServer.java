@@ -10,9 +10,9 @@ import com.habit.server.controller.MessageController;
 import com.habit.server.controller.TaskAutoResetController;
 import com.habit.server.controller.TaskController;
 import com.habit.server.controller.TeamController;
+import com.habit.server.controller.TeamTaskController;
 import com.habit.server.controller.UserController;
 import com.habit.server.controller.UserTaskStatusController;
-import com.habit.server.controller.TeamTaskController;
 import com.habit.server.repository.MessageRepository;
 import com.habit.server.repository.TaskRepository;
 import com.habit.server.repository.TeamRepository;
@@ -24,6 +24,8 @@ import com.habit.server.service.TaskAutoResetService;
 import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
 import java.time.Clock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // JDBC based team management
 // import com.habit.server.DatabaseTeamManager;
@@ -34,6 +36,9 @@ import java.time.Clock;
  * SQLiteによる永続化や、チャット・チーム機能も実装。
  */
 public class HabitServer {
+
+  private static final Logger logger =
+      LoggerFactory.getLogger(HabitServer.class);
 
   private static UserRepository userRepository = new UserRepository();
   private static TaskRepository taskRepository = new TaskRepository();
@@ -61,9 +66,10 @@ public class HabitServer {
   // スケジューラー: 自動実行を担当
   private static TaskAutoResetService taskAutoResetService;
   private static TaskAutoResetScheduler taskAutoResetScheduler;
-  
+
   // チーム共通タスク管理関連コンポーネント
-  private static TeamTaskController teamTaskController = new TeamTaskController();
+  private static TeamTaskController teamTaskController =
+      new TeamTaskController();
   private static TaskAutoResetController taskAutoResetController;
 
   public static void main(String[] args) throws Exception {
@@ -74,9 +80,12 @@ public class HabitServer {
     // Clockを生成（本番環境ではシステムデフォルトの時刻を使用）
     Clock clock = Clock.systemDefaultZone();
     // ServiceとSchedulerを初期化
-    taskAutoResetService = new TaskAutoResetService(taskRepository, userTaskStatusRepository, userRepository, messageRepository, clock);
+    taskAutoResetService =
+        new TaskAutoResetService(taskRepository, userTaskStatusRepository,
+                                 userRepository, messageRepository, clock);
     taskAutoResetScheduler = new TaskAutoResetScheduler(taskAutoResetService);
-    taskAutoResetController = new TaskAutoResetController(taskAutoResetService);
+    taskAutoResetController = new TaskAutoResetController(
+        taskAutoResetService, taskAutoResetScheduler);
 
     // サーバー起動時に未処理のタスク更新を実行
     taskAutoResetService.catchUpMissedExecutions();
@@ -84,8 +93,8 @@ public class HabitServer {
     // 各APIエンドポイントを登録
     server.createContext("/hello", new HelloController()); // 動作確認用
 
-    taskController =
-        new TaskController(taskRepository, teamRepository,userTaskStatusRepository);
+    taskController = new TaskController(taskRepository, teamRepository,
+                                        userTaskStatusRepository);
 
     AuthController authController = new AuthController(authService);
     server.createContext("/login",
@@ -122,7 +131,8 @@ public class HabitServer {
         userController.getSabotagePointsHandler()); // サボりポイント取得
     server.createContext(
         "/updateSabotagePoints",
-        userController.getUpdateSabotagePointsHandler()); // サボりポイント更新（テスト用）
+        userController
+            .getUpdateSabotagePointsHandler()); // サボりポイント更新（テスト用）
     server.createContext(
         "/getUserTaskIds",
         userTaskStatusController
@@ -142,7 +152,8 @@ public class HabitServer {
     // ユーザーの未完了タスク(isDone=false, dueDate > now)一覧取得API
     server.createContext(
         "/getIncompleteUserTaskStatus",
-        userTaskStatusController.getIncompleteUserTaskStatusHandler(authService));
+        userTaskStatusController.getIncompleteUserTaskStatusHandler(
+            authService));
     // チーム全員分のタスク進捗一覧API
     server.createContext(
         "/getTeamTaskStatusList",
@@ -156,15 +167,29 @@ public class HabitServer {
                          userTaskStatusController.getCompleteUserTaskHandler());
     // タスク保存API
     server.createContext("/saveTask", taskController.getSaveTaskHandler());
-    // UserTaskStatus保存API
-    // タスク自動再設定手動実行API
-    server.createContext(
-        "/manualTaskReset",
-        taskAutoResetController.getManualResetHandler()); // 全チーム手動実行
-    server.createContext(
-        "/manualTaskResetTeam",
-        taskAutoResetController
-            .getManualResetTeamHandler()); // 特定チーム手動実行
+
+    final boolean is_debug = true;
+    if (is_debug) {
+      // UserTaskStatus保存API
+      // タスク自動再設定手動実行API
+      server.createContext(
+          "/manualTaskReset",
+          taskAutoResetController.getManualResetHandler()); // 全チーム手動実行
+      server.createContext(
+          "/manualTaskResetTeam",
+          taskAutoResetController
+              .getManualResetTeamHandler()); // 特定チーム手動実行
+
+      server.createContext(
+          "/debugScheduledReset",
+          taskAutoResetController
+              .getDebugScheduledResetHandler()); // デバッグ用スケジュール実行
+      server.createContext(
+          "/debugSabotageReport",
+          taskAutoResetController
+              .getDebugSabotageReportHandler()); // デバッグ用サボり報告（今日まで）
+    }
+
     server.createContext(
         "/saveUserTaskStatus",
         userTaskStatusController.getSaveUserTaskStatusHandler());
@@ -176,35 +201,50 @@ public class HabitServer {
         teamController.getGetTeamTasksHandler()); // チームタスク一覧
     server.createContext(
         "/getTeamSabotageRanking",
-        teamController.getGetTeamSabotageRankingHandler()); // チーム内サボりランキング
-    
+        teamController
+            .getGetTeamSabotageRankingHandler()); // チーム内サボりランキング
+
     // チーム共通タスク管理API
     server.createContext(
         "/getTeamTaskCompletionRate",
-        teamTaskController.getTeamTaskCompletionRateHandler()); // チーム共通タスクの完了率取得
+        teamTaskController
+            .getTeamTaskCompletionRateHandler()); // チーム共通タスクの完了率取得
     server.createContext(
         "/getUserTeamTaskStatuses",
-        teamTaskController.getUserTeamTasksHandler()); // ユーザーのチーム共通タスク一覧取得
-        
+        teamTaskController
+            .getUserTeamTasksHandler()); // ユーザーのチーム共通タスク一覧取得
+
     server.setExecutor(null);
     server.start();
 
     // 自動実行スケジューラーを開始
-    taskAutoResetScheduler.start();
+    try {
+      logger.info("タスク自動再設定スケジューラーを開始します...");
+      taskAutoResetScheduler.start();
+      logger.info("タスク自動再設定スケジューラーが正常に開始されました。");
+    } catch (Exception e) {
+      logger.error("タスク自動再設定スケジューラーの開始に失敗しました: {}",
+                   e.getMessage(), e);
+      // スケジューラーが失敗してもサーバー自体は起動を継続
+    }
 
     // サーバーシャットダウン時の処理を登録
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-      System.out.println("サーバをシャットダウンしています...");
+      logger.info("サーバをシャットダウンしています...");
       // スケジューラーを安全に停止
       taskAutoResetScheduler.stop();
       // HTTPサーバーを停止
       server.stop(0);
     }));
 
-    System.out.println("サーバが起動しました: http://localhost:8080/hello");
-    System.out.println(
-        "タスク自動再設定機能が有効になりました");
-    System.out.println(
-        "手動実行API: /manualTaskReset, /manualTaskResetTeam?teamId=xxx");
+    logger.info("サーバが起動しました: http://localhost:8080/hello");
+    logger.info("タスク自動再設定機能が有効になりました");
+
+    if (is_debug) {
+      logger.info(
+          "手動実行API: /manualTaskReset, /manualTaskResetTeam?teamId=xxx");
+      logger.info(
+          "デバッグAPI: /debugScheduledReset?delay=秒数, /debugSabotageReport");
+    }
   }
 }
