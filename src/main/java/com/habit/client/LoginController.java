@@ -1,5 +1,6 @@
 package com.habit.client;
 
+import com.habit.domain.util.Config;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -76,8 +77,8 @@ public class LoginController {
       HttpClient client = HttpClient.newHttpClient();
 
       // モードに応じてURLを切り替え、送信先URLを組み立てる。
-      String url = isRegisterMode ? "http://localhost:8080/register"
-                                  : "http://localhost:8080/login";
+      String url = isRegisterMode ? Config.getServerUrl() + "/register"
+                                  : Config.getServerUrl() + "/login";
 
       // username, passwordをbodyに含める
       String body =

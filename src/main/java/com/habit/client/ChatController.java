@@ -1,5 +1,6 @@
 package com.habit.client;
 
+import com.habit.domain.util.Config;
 import com.habit.domain.Message;
 import java.net.*;
 import java.net.http.HttpClient;
@@ -24,8 +25,10 @@ public class ChatController {
   /* チームトップに戻るボタン */
   @FXML private Button btnBackToTeamTop;
 
-  private final String serverUrl = "http://localhost:8080/sendChatMessage";
-  private final String chatLogUrl = "http://localhost:8080/getChatLog";
+  private final String serverUrl = Config.getServerUrl() +
+     "/sendChatMessage";
+  private final String chatLogUrl = Config.getServerUrl() +
+     "/getChatLog";
 
   // 遷移時に渡すデータとセッター
   private String userId;
@@ -55,7 +58,7 @@ public class ChatController {
     new Thread(() -> {
       try {
         HttpClient client = HttpClient.newHttpClient();
-        String urlStr = "http://localhost:8080/getTeamName?teamID=" +
+        String urlStr = Config.getServerUrl() + "/getTeamName?teamID=" +
                         URLEncoder.encode(teamID, "UTF-8");
         HttpRequest request = HttpRequest.newBuilder()
                                   .uri(URI.create(urlStr))

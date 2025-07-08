@@ -1,5 +1,6 @@
 package com.habit.client;
 
+import com.habit.domain.util.Config;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -55,7 +56,7 @@ public class HomeController {
             HttpClient client = HttpClient.newHttpClient();
             // URLを作成
             HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/getJoinedTeamInfo"))
+                .uri(URI.create(Config.getServerUrl() + "/getJoinedTeamInfo"))
                 .GET();
             // セッションIDをヘッダに付与
             String sessionId = LoginController.getSessionId();
@@ -133,7 +134,7 @@ public class HomeController {
             HttpClient client = HttpClient.newHttpClient();
             // URLを作成
             HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/getSabotagePoints"))
+                .uri(URI.create(Config.getServerUrl() + "/getSabotagePoints"))
                 .GET();
             // セッションIDをヘッダに付与
             String sessionId = LoginController.getSessionId();
