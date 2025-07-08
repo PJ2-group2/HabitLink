@@ -414,7 +414,7 @@ public class TeamTopController {
       });
 
       // 1. 通常のタスクリセット処理を実行
-      String resetUrl = "http://localhost:8080/manualTaskReset";
+      String resetUrl = Config.getServerUrl() + "/manualTaskReset";
       HttpRequest resetRequest = HttpRequest.newBuilder()
                                      .uri(URI.create(resetUrl))
                                      .timeout(java.time.Duration.ofSeconds(30))
@@ -425,7 +425,8 @@ public class TeamTopController {
           client.send(resetRequest, HttpResponse.BodyHandlers.ofString());
 
       // 2. 今日の未消化タスクのサボり報告を実行
-      String sabotageReportUrl = "http://localhost:8080/debugSabotageReport";
+      String sabotageReportUrl = Config.getServerUrl() + ("/debugSabotageRepor" +
+                                                          "t");
       HttpRequest sabotageRequest =
           HttpRequest.newBuilder()
               .uri(URI.create(sabotageReportUrl))

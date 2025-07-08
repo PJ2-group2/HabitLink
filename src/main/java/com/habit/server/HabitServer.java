@@ -239,7 +239,7 @@ public class HabitServer {
       server.stop(0);
     }));
 
-    logger.info("サーバが起動しました: http://localhost:8080/hello");
+    logger.info("サーバが起動しました: {}", Config.getServerUrl());
     logger.info("タスク自動再設定機能が有効になりました");
 
     if (is_debug) {
