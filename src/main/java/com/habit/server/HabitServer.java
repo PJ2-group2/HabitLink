@@ -1,9 +1,9 @@
 package com.habit.server;
 
+import com.habit.domain.util.Config;
 // 習慣化共有プログラムのサーバ側プログラム
 // クライアントからのHTTPリクエストを受けて、チームやタスクの情報を管理します
 // サーバはSQLiteを用いてチーム・タスク情報を永続化します
-
 import com.habit.server.controller.AuthController;
 import com.habit.server.controller.HelloController;
 import com.habit.server.controller.MessageController;
@@ -73,6 +73,9 @@ public class HabitServer {
   private static TaskAutoResetController taskAutoResetController;
 
   public static void main(String[] args) throws Exception {
+    final boolean is_debug = Config.getIsDebug();
+    logger.debug("debug: {}", is_debug);
+
     // サーバを8080番ポートで起動
     HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
 
@@ -168,7 +171,6 @@ public class HabitServer {
     // タスク保存API
     server.createContext("/saveTask", taskController.getSaveTaskHandler());
 
-    final boolean is_debug = true;
     if (is_debug) {
       // UserTaskStatus保存API
       // タスク自動再設定手動実行API
