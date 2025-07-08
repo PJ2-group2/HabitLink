@@ -537,8 +537,6 @@ public class TeamTopController {
                                     }
                                     });
                                 setText(item);
-                                String white = "#FF00FF";
-                                setStyle("-fx-background-color: " + white + "; -fx-background-radius: 10;-fx-alignment: center;-fx-background-insets:5 5 5 5;");
                             }
                         };
                         int cellSize=80;
@@ -661,6 +659,37 @@ public class TeamTopController {
                 }
 
                 Platform.runLater(() -> {
+                    /* 
+                    Callback<ListView<String>,ListCell<String>> cellFactory = p ->
+                    {
+                        ListCell<String> cell = new ListCell<String>()
+                        {
+                            @Override
+                            public void updateItem(String item,boolean empty)
+                            {
+                                super.updateItem(item,empty);
+                                if(item == null){
+                                    setText("");
+                                    setCursor(Cursor.DEFAULT);
+                                    setOnMouseClicked(null);
+                                    return;
+                                }
+                                
+                                setCursor(Cursor.CLOSED_HAND);
+                                setOnMouseClicked(event ->{
+                                    try {
+                                        
+                                    } catch (Exception ex) {
+                                        ex.printStackTrace();
+                                    }
+                                    });
+                                setText(item);
+                            }
+                        };
+                        return cell;
+                    }; 
+                    chatList.setCellFactory(cellFactory);
+                    */
                     chatList.getItems().setAll(chatItems);
                 });
             } catch (Exception e) {
