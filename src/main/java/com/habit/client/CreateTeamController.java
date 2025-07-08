@@ -1,5 +1,6 @@
 package com.habit.client;
 
+import com.habit.client.util.Config;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -117,7 +118,7 @@ public class CreateTeamController {
                 HttpClient client = HttpClient.newHttpClient();
                 // リクエストビルダーを使用してリクエストを構築
                 HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
-                    .uri(URI.create("http://localhost:8080/createTeam"))
+                    .uri(URI.create(Config.getServerUrl() + "/createTeam"))
                     .header("Content-Type", "application/x-www-form-urlencoded");
                 // セッションIDをヘッダに付与
                 String sessionId = LoginController.getSessionId();

@@ -1,5 +1,6 @@
 package com.habit.client;
 
+import com.habit.client.util.Config;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.TilePane;
@@ -116,7 +117,7 @@ public class PersonalPageController {
                         LocalDate date = LocalDate.now();
                         String sessionId = com.habit.client.LoginController.getSessionId();
                         java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
-                        String url = "http://localhost:8080/completeUserTask";
+                        String url = Config.getServerUrl() + "/completeUserTask";
                         String params = "userId=" + java.net.URLEncoder.encode(userId, "UTF-8") +
                                        "&taskId=" + java.net.URLEncoder.encode(taskId, "UTF-8") +
                                        "&date=" + java.net.URLEncoder.encode(date.toString(), "UTF-8");
@@ -192,7 +193,7 @@ public class PersonalPageController {
             java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
             
             // 新しいAPIを使用
-            String url = "http://localhost:8080/getIncompleteUserTaskStatus?teamID=" + java.net.URLEncoder.encode(teamID, "UTF-8");
+            String url = Config.getServerUrl() + "/getIncompleteUserTaskStatus?teamID=" + java.net.URLEncoder.encode(teamID, "UTF-8");
             logger.info("[PersonalPageController] Fetching user tasks from: {}", url);
             
             java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()

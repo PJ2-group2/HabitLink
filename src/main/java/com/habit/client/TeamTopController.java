@@ -1,5 +1,6 @@
 package com.habit.client;
 
+import com.habit.client.util.Config;
 import javafx.fxml.FXML;
 import javafx.scene.Cursor;
 import javafx.scene.control.*;
@@ -61,8 +62,8 @@ public class TeamTopController {
     @FXML
     private ListView<String> sabotageRankingList;
 
-    private final String serverUrl = "http://localhost:8080/sendChatMessage";
-    private final String chatLogUrl = "http://localhost:8080/getChatLog";
+    private final String serverUrl = Config.getServerUrl() + "/sendChatMessage";
+    private final String chatLogUrl = Config.getServerUrl() + "/getChatLog";
 
     /*  遷移時に渡すユーザーIDとチームID, チーム名
      * これらは全てのコントローラが持つようにしてください。
@@ -115,7 +116,7 @@ public class TeamTopController {
             HttpClient client = HttpClient.newHttpClient();
             // URLを作成
             HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/getSabotagePoints"))
+                .uri(URI.create(Config.getServerUrl() + "/getSabotagePoints"))
                 .GET();
             // セッションIDをヘッダに付与
             String sessionId = LoginController.getSessionId();
@@ -475,7 +476,7 @@ public class TeamTopController {
                 String sessionId = LoginController.getSessionId();
                 HttpClient client = HttpClient.newHttpClient();
                 // 新しいAPIを呼び出す
-                String url = "http://localhost:8080/getIncompleteUserTaskStatus?teamID=" + URLEncoder.encode(teamID, "UTF-8");
+                String url = Config.getServerUrl() + "/getIncompleteUserTaskStatus?teamID=" + URLEncoder.encode(teamID, "UTF-8");
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(url))
                         .timeout(java.time.Duration.ofSeconds(10))
@@ -570,7 +571,7 @@ public class TeamTopController {
             String sessionId = LoginController.getSessionId();
             HttpClient client = HttpClient.newHttpClient();
             // 新しいAPIを呼び出す
-            String url = "http://localhost:8080/getIncompleteUserTaskStatus?teamID=" + URLEncoder.encode(teamID, "UTF-8");
+            String url = Config.getServerUrl() + "/getIncompleteUserTaskStatus?teamID=" + URLEncoder.encode(teamID, "UTF-8");
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
                     .timeout(java.time.Duration.ofSeconds(10))
@@ -675,7 +676,7 @@ public class TeamTopController {
                 String sessionId = LoginController.getSessionId();
                 HttpClient client = HttpClient.newHttpClient();
                 // チームメンバー一覧取得
-                String membersUrl = "http://localhost:8080/getTeamMembers?teamID=" + URLEncoder.encode(teamID, "UTF-8");
+                String membersUrl = Config.getServerUrl() + "/getTeamMembers?teamID=" + URLEncoder.encode(teamID, "UTF-8");
                 HttpRequest membersReq = HttpRequest.newBuilder()
                         .uri(URI.create(membersUrl))
                         .timeout(java.time.Duration.ofSeconds(5))
@@ -699,7 +700,7 @@ public class TeamTopController {
                 }
 
                 // タスク一覧取得
-                String tasksUrl = "http://localhost:8080/getTeamTasks?teamID=" + URLEncoder.encode(teamID, "UTF-8");
+                String tasksUrl = Config.getServerUrl() + "/getTeamTasks?teamID=" + URLEncoder.encode(teamID, "UTF-8");
                 HttpRequest tasksReq = HttpRequest.newBuilder()
                         .uri(URI.create(tasksUrl))
                         .timeout(java.time.Duration.ofSeconds(5))
@@ -732,7 +733,7 @@ public class TeamTopController {
                 // 進捗一覧取得（全メンバー×タスク×過去7日）
                 String date = java.time.LocalDate.now().toString();
                 int days = 7;
-                String statusUrl = "http://localhost:8080/getTeamTaskStatusList?teamID=" + URLEncoder.encode(teamID, "UTF-8") + "&date=" + date + "&days=" + days;
+                String statusUrl = Config.getServerUrl() + "/getTeamTaskStatusList?teamID=" + URLEncoder.encode(teamID, "UTF-8") + "&date=" + date + "&days=" + days;
                 HttpRequest statusReq = HttpRequest.newBuilder()
                         .uri(URI.create(statusUrl))
                         .timeout(java.time.Duration.ofSeconds(10))
@@ -900,7 +901,7 @@ public class TeamTopController {
                 // HTTPリクエストを送信するためのクライアントオブジェクトを作成
                 HttpClient client = HttpClient.newHttpClient();
                 // サボりランキングのURLを作成
-                String url = "http://localhost:8080/getTeamSabotageRanking?teamID=" + URLEncoder.encode(teamID, "UTF-8");
+                String url = Config.getServerUrl() + "/getTeamSabotageRanking?teamID=" + URLEncoder.encode(teamID, "UTF-8");
                 // リクエストを送信
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(url))

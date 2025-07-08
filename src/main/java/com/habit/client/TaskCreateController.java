@@ -1,5 +1,6 @@
 package com.habit.client;
 
+import com.habit.client.util.Config;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -135,7 +136,7 @@ public class TaskCreateController {
                 + "&cycleType=" + java.net.URLEncoder.encode(task.getCycleType(), "UTF-8")
                 + "&teamID=" + java.net.URLEncoder.encode(teamID, "UTF-8");
             HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/saveTask"))
+                .uri(URI.create(Config.getServerUrl() + "/saveTask"))
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .POST(HttpRequest.BodyPublishers.ofString(body))
                 .build();
