@@ -5,8 +5,11 @@ import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MessageRepository {
+  private static final Logger logger = LoggerFactory.getLogger(MessageRepository.class);
   public static class MessageEntry {
     public final String id, senderId, teamId, content;
     public final LocalDateTime time;
@@ -36,8 +39,7 @@ public class MessageRepository {
                    + "timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)";
       stmt.execute(sql);
     } catch (SQLException e) {
-      System.err.println("Error initializing messages table: " +
-                         e.getMessage());
+      logger.error("Error initializing messages table: {}", e.getMessage(), e);
     }
   }
 
@@ -55,7 +57,7 @@ public class MessageRepository {
       pstmt.setTimestamp(5, Timestamp.valueOf(message.getTimestamp()));
       pstmt.executeUpdate();
     } catch (SQLException e) {
-      System.err.println("Error saving message: " + e.getMessage());
+      logger.error("Error saving message: {}", e.getMessage(), e);
     }
   }
 
@@ -81,8 +83,7 @@ public class MessageRepository {
         messages.add(entries);
       }
     } catch (SQLException e) {
-      System.err.println("Error finding messages by team ID: " +
-                         e.getMessage());
+      logger.error("Error finding messages by team ID: {}", e.getMessage(), e);
     }
     return messages;
   }

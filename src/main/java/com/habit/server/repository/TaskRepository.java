@@ -5,8 +5,11 @@ import com.habit.domain.UserTaskStatus;
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TaskRepository {
+  private static final Logger logger = LoggerFactory.getLogger(TaskRepository.class);
   private final String databaseUrl;
   private static final String DB_URL = "jdbc:sqlite:habit.db";
 
@@ -65,8 +68,7 @@ public class TaskRepository {
       }
       if (hasTask && !hasTaskName) {
         // SQLiteは直接カラム名変更できないため、手動で対応が必要
-        System.out.println("注意: tasksテーブルのカラム 'task' を 'taskName' "
-                           + "にリネームしてください。");
+        logger.warn("注意: tasksテーブルのカラム 'task' を 'taskName' にリネームしてください。");
       }
 
       // ユーザーごとのタスク達成状況

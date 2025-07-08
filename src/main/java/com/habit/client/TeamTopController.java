@@ -21,12 +21,15 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import javafx.application.Platform;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * チームトップ画面のコントローラークラス。
  * チーム名の表示、タスク作成、個人ページやチャットページへの遷移を担当する。
  */
 public class TeamTopController {
+    private static final Logger logger = LoggerFactory.getLogger(TeamTopController.class);
     /* チーム名ラベル */
     @FXML
     private Label teamNameLabel;
@@ -76,13 +79,13 @@ public class TeamTopController {
     private String teamName = "チーム名未取得";
     // ユーザIDのセッター
     public void setUserId(String userId) {
-        System.out.println("userId set: " + userId);
+        logger.info("userId set: " + userId);
         this.userId = userId;
     }
     // チームIDのセッター
     public void setTeamID(String teamID) {
         this.teamID = teamID;
-        System.out.println("teamID set: " + teamID);
+        logger.info("teamID set: " + teamID);
         // teamIDがセットされたタイミングでタスク、チャット、サボりランキングを読み込む。
         loadTeamTasksAndUserTasks();
         loadChatLog();
@@ -98,7 +101,7 @@ public class TeamTopController {
     // チーム名のセッター
     public void setTeamName(String teamName) {
         this.teamName = teamName;
-        System.out.println("teamName set: " + teamName);
+        logger.info("teamName set: " + teamName);
         if (teamNameLabel != null) {
             teamNameLabel.setText(teamName);
         }
@@ -183,12 +186,12 @@ public class TeamTopController {
                     }
 
                 } catch (NumberFormatException e) {
-                    System.err.println("サボりポイントの解析に失敗しました: " + body);
+                    logger.error("サボりポイントの解析に失敗しました: " + body);
                     level = 0; // エラー時は最低レベル
                 }
             }
         } catch (Exception ex) {
-            System.err.println("サボりポイントの取得に失敗しました: " + ex.getMessage());
+            logger.error("サボりポイントの取得に失敗しました: " + ex.getMessage());
             level = 0; // エラー時は最低レベル
         }
 
@@ -198,7 +201,7 @@ public class TeamTopController {
             Image characterImage = new Image(getClass().getResource(imagePath).toExternalForm());
             teamCharView.setImage(characterImage);
         } catch (NullPointerException e) {
-            System.err.println("画像が見つかりません: " + imagePath);
+            logger.error("画像が見つかりません: " + imagePath);
             e.printStackTrace();
         }
 
@@ -469,7 +472,7 @@ public class TeamTopController {
             try {
                 // teamIDがnullの場合は処理をスキップ
                 if (teamID == null) {
-                    System.err.println("teamID is null, skipping loadTeamTasksAndUserTasks");
+                    logger.error("teamID is null, skipping loadTeamTasksAndUserTasks");
                     return;
                 }
                 String sessionId = LoginController.getSessionId();
@@ -486,7 +489,7 @@ public class TeamTopController {
                 // レスポンスは [{"taskId":"...","taskName":"...","dueDate":"...","isDone":false}] のJSON配列
                 java.util.List<String> taskNames = new java.util.ArrayList<>();
                 String json = response.body();
-                System.out.println("[TeamTopController] API response: " + json);
+                logger.info("[TeamTopController] API response: " + json);
                 if (json != null && json.startsWith("[")) {
                     org.json.JSONArray arr = new org.json.JSONArray(json);
                     for (int i = 0; i < arr.length(); i++) {
@@ -497,7 +500,7 @@ public class TeamTopController {
                         }
                     }
                 }
-                System.out.println("[TeamTopController] Total tasks to display: " + taskNames.size());
+                logger.info("[TeamTopController] Total tasks to display: " + taskNames.size());
                 Platform.runLater(() -> {
                     Callback<ListView<String>,ListCell<String>> cellFactory = p ->
                     {
@@ -564,7 +567,7 @@ public class TeamTopController {
         try {
             // teamIDがnullの場合は空のリストを返す
             if (teamID == null) {
-                System.err.println("teamID is null, returning empty task list");
+                logger.error("teamID is null, returning empty task list");
                 return new java.util.ArrayList<>();
             }
             String sessionId = LoginController.getSessionId();
@@ -621,7 +624,7 @@ public class TeamTopController {
             try {
                 // teamIDがnullの場合は処理をスキップ
                 if (teamID == null) {
-                    System.err.println("teamID is null, skipping loadChatLog");
+                    logger.error("teamID is null, skipping loadChatLog");
                     return;
                 }
                 // HTTPリクエストを送信するためのクライアントオブジェクトを作成
@@ -687,7 +690,7 @@ public class TeamTopController {
                 if (membersBody != null && membersBody.trim().startsWith("[")) {
                     membersArr = new JSONArray(membersBody);
                 } else {
-                    System.out.println("[loadTaskStatusTable] getTeamMembers APIレスポンスが配列形式ではありません: " + membersBody);
+                    logger.info("[loadTaskStatusTable] getTeamMembers APIレスポンスが配列形式ではありません: " + membersBody);
                     membersArr = new JSONArray();
                 }
                 List<String> memberIds = new ArrayList<>();
@@ -711,7 +714,7 @@ public class TeamTopController {
                 if (tasksBody != null && tasksBody.trim().startsWith("[")) {
                     tasksArr = new JSONArray(tasksBody);
                 } else {
-                    System.out.println("[loadTaskStatusTable] getTeamTasks APIレスポンスが配列形式ではありません: " + tasksBody);
+                    logger.info("[loadTaskStatusTable] getTeamTasks APIレスポンスが配列形式ではありません: " + tasksBody);
                     tasksArr = new JSONArray();
                 }
                 List<String> taskNames = new ArrayList<>();
@@ -744,7 +747,7 @@ public class TeamTopController {
                 if (statusBody != null && statusBody.trim().startsWith("[")) {
                     statusArr = new JSONArray(statusBody);
                 } else {
-                    System.out.println("[loadTaskStatusTable] getTeamTaskStatusList APIレスポンスが配列形式ではありません: " + statusBody);
+                    logger.info("[loadTaskStatusTable] getTeamTaskStatusList APIレスポンスが配列形式ではありません: " + statusBody);
                     statusArr = new JSONArray();
                 }
                 // Map<userId+taskId, List<isDone>>
@@ -863,7 +866,7 @@ public class TeamTopController {
             try {
                 // teamIDがnullの場合は処理をスキップ
                 if (teamID == null) {
-                    System.err.println("teamID is null, skipping sendChatMessage");
+                    logger.error("teamID is null, skipping sendChatMessage");
                     return;
                 }
                 HttpClient client = HttpClient.newHttpClient();
@@ -893,7 +896,7 @@ public class TeamTopController {
             try {
                 // teamIDがnullの場合は処理をスキップ
                 if (teamID == null) {
-                    System.err.println("teamID is null, skipping loadSabotageRanking");
+                    logger.error("teamID is null, skipping loadSabotageRanking");
                     return;
                 }
                 

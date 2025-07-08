@@ -11,12 +11,15 @@ import java.time.*;
 import java.util.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 個人ページのコントローラークラス。
  * ユーザーのタスク一覧を表示し、タスクの完了処理を行う。
  */
 public class PersonalPageController {
+    private static final Logger logger = LoggerFactory.getLogger(PersonalPageController.class);
     /** ユーザーIDラベル */
     @FXML
     private Label lblUserId;
@@ -33,7 +36,7 @@ public class PersonalPageController {
     // チームトップからタスク一覧を受け取る用（廃止予定 - 常に最新データを取得）
     public void setUserTasks(List<com.habit.domain.Task> tasks) {
         // 渡されたタスク一覧は無視して、常に最新データをAPIから取得
-        System.out.println("[PersonalPageController] fetching latest data from API");
+        logger.info("[PersonalPageController] fetching latest data from API");
         this.tasks = fetchUserTasksForPersonalPage();
         updateTaskTiles();
     }
@@ -106,7 +109,7 @@ public class PersonalPageController {
                     // タスク完了処理（API経由）
                     try {
                         if (userId == null || userId.isEmpty()) {
-                            System.err.println("エラー: userIdが未設定です。タスク完了処理を中止します。");
+                            logger.error("エラー: userIdが未設定です。タスク完了処理を中止します。");
                             return;
                         }
                         String taskId = task.getTaskId();
@@ -125,7 +128,7 @@ public class PersonalPageController {
                                 .POST(java.net.http.HttpRequest.BodyPublishers.ofString(params))
                                 .build();
                         java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
-                        System.out.println("タスク完了APIレスポンス: " + response.body());
+                        logger.info("タスク完了APIレスポンス: {}", response.body());
                         
                         // タスク完了成功の場合のみタイル一覧を再読み込み
                         if (response.statusCode() == 200) {
@@ -137,9 +140,9 @@ public class PersonalPageController {
                                         try {
                                             this.tasks = fetchUserTasksForPersonalPage();
                                             updateTaskTiles();
-                                            System.out.println("個人ページのタスク一覧を更新しました");
+                                            logger.info("個人ページのタスク一覧を更新しました");
                                         } catch (Exception ex) {
-                                            System.err.println("タスク一覧更新エラー: " + ex.getMessage());
+                                            logger.error("タスク一覧更新エラー: {}", ex.getMessage(), ex);
                                         }
                                     });
                                 } catch (InterruptedException ie) {
@@ -147,13 +150,13 @@ public class PersonalPageController {
                                 }
                             }).start();
                         } else {
-                            System.err.println("タスク完了APIエラー: statusCode=" + response.statusCode());
+                            logger.error("タスク完了APIエラー: statusCode={}", response.statusCode());
                         }
                         return;
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
-                    System.out.println("タスク選択: " + name);
+                    logger.info("タスク選択: {}", name);
                 }
             });
             taskTilePane.getChildren().add(tileBtn);
@@ -167,7 +170,7 @@ public class PersonalPageController {
         
         // 期限日付が指定されていない場合は今日として扱う
         if (dueDate == null) {
-            System.out.println("期限日がnullです。");
+            logger.info("期限日がnullです。");
             return null;
         }
         
@@ -190,7 +193,7 @@ public class PersonalPageController {
             
             // 新しいAPIを使用
             String url = "http://localhost:8080/getIncompleteUserTaskStatus?teamID=" + java.net.URLEncoder.encode(teamID, "UTF-8");
-            System.out.println("[PersonalPageController] Fetching user tasks from: " + url);
+            logger.info("[PersonalPageController] Fetching user tasks from: {}", url);
             
             java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
                     .uri(java.net.URI.create(url))
@@ -200,7 +203,7 @@ public class PersonalPageController {
                     .build();
             java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
             String json = response.body();
-            System.out.println("[PersonalPageController] API response: " + json);
+            logger.info("[PersonalPageController] API response: {}", json);
             
             java.util.List<com.habit.domain.Task> tasks = new java.util.ArrayList<>();
             if (json != null && json.startsWith("[")) {
@@ -235,16 +238,15 @@ public class PersonalPageController {
                             t.setDueDate(dueDate);
                         }
                         
-                        System.out.println("[PersonalPageController] Adding task: " + taskName + " (ID: " + taskId +
-                            ", dueDate: " + dueDate + ", cycleType: " + cycleType + ")");
+                        logger.info("[PersonalPageController] Adding task: {} (ID: {} , dueDate: {} , cycleType: {})", taskName, taskId, dueDate, cycleType);
                         tasks.add(t);
                     }
                 }
             }
-            System.out.println("[PersonalPageController] Total tasks returned: " + tasks.size());
+            logger.info("[PersonalPageController] Total tasks returned: {}", tasks.size());
             return tasks;
         } catch (Exception e) {
-            System.err.println("[PersonalPageController] Error fetching tasks: " + e.getMessage());
+            logger.error("[PersonalPageController] Error fetching tasks: {}", e.getMessage(), e);
             e.printStackTrace();
             return new java.util.ArrayList<>();
         }

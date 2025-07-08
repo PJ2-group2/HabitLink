@@ -5,11 +5,14 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import java.io.IOException;
 import java.io.OutputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * 認証関連APIのコントローラ
  */
 public class AuthController {
+  private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
   private final AuthService authService;
 
   public AuthController(AuthService authService) {
@@ -63,11 +66,12 @@ public class AuthController {
         if (sessionId != null) {
           var user = authService.getUserBySession(sessionId);
           if (user != null) {
-            System.out.println(
-                "ログインユーザ情報: userId=" + user.getUserId() +
-                ", username=" + user.getUsername() +
-                ", sabotagePoints=" + user.getSabotagePoints() +
-                ", joinedTeamIds=" + user.getJoinedTeamIds());
+            logger.info(
+                "ログインユーザ情報: userId={} , username={} , sabotagePoints={} , joinedTeamIds={}",
+                user.getUserId(),
+                user.getUsername(),
+                user.getSabotagePoints(),
+                user.getJoinedTeamIds());
           }
           response = "ログイン成功\nSESSION_ID:" + sessionId;
         } else {
@@ -120,11 +124,12 @@ public class AuthController {
         if (sessionId != null) {
           var user = authService.getUserBySession(sessionId);
           if (user != null) {
-            System.out.println(
-                "新規登録ユーザ情報: userId=" + user.getUserId() +
-                ", username=" + user.getUsername() +
-                ", sabotagePoints=" + user.getSabotagePoints() +
-                ", joinedTeamIds=" + user.getJoinedTeamIds());
+            logger.info(
+                "新規登録ユーザ情報: userId={} , username={} , sabotagePoints={} , joinedTeamIds={}",
+                user.getUserId(),
+                user.getUsername(),
+                user.getSabotagePoints(),
+                user.getJoinedTeamIds());
           }
           response = "登録成功\nSESSION_ID:" + sessionId;
         } else {

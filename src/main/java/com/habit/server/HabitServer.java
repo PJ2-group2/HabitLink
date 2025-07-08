@@ -24,6 +24,8 @@ import com.habit.server.service.TaskAutoResetService;
 import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
 import java.time.Clock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // JDBC based team management
 // import com.habit.server.DatabaseTeamManager;
@@ -34,6 +36,8 @@ import java.time.Clock;
  * SQLiteによる永続化や、チャット・チーム機能も実装。
  */
 public class HabitServer {
+
+  private static final Logger logger = LoggerFactory.getLogger(HabitServer.class);
 
   private static UserRepository userRepository = new UserRepository();
   private static TaskRepository taskRepository = new TaskRepository();
@@ -199,30 +203,26 @@ public class HabitServer {
 
     // 自動実行スケジューラーを開始
     try {
-      System.out.println("タスク自動再設定スケジューラーを開始します...");
+      logger.info("タスク自動再設定スケジューラーを開始します...");
       taskAutoResetScheduler.start();
-      System.out.println("タスク自動再設定スケジューラーが正常に開始されました。");
+      logger.info("タスク自動再設定スケジューラーが正常に開始されました。");
     } catch (Exception e) {
-      System.err.println("タスク自動再設定スケジューラーの開始に失敗しました: " + e.getMessage());
-      e.printStackTrace();
+      logger.error("タスク自動再設定スケジューラーの開始に失敗しました: {}", e.getMessage(), e);
       // スケジューラーが失敗してもサーバー自体は起動を継続
     }
 
     // サーバーシャットダウン時の処理を登録
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-      System.out.println("サーバをシャットダウンしています...");
+      logger.info("サーバをシャットダウンしています...");
       // スケジューラーを安全に停止
       taskAutoResetScheduler.stop();
       // HTTPサーバーを停止
       server.stop(0);
     }));
 
-    System.out.println("サーバが起動しました: http://localhost:8080/hello");
-    System.out.println(
-        "タスク自動再設定機能が有効になりました");
-    System.out.println(
-        "手動実行API: /manualTaskReset, /manualTaskResetTeam?teamId=xxx");
-    System.out.println(
-        "デバッグAPI: /debugScheduledReset?delay=秒数, /debugSabotageReport");
+    logger.info("サーバが起動しました: http://localhost:8080/hello");
+    logger.info("タスク自動再設定機能が有効になりました");
+    logger.info("手動実行API: /manualTaskReset, /manualTaskResetTeam?teamId=xxx");
+    logger.info("デバッグAPI: /debugScheduledReset?delay=秒数, /debugSabotageReport");
   }
 }

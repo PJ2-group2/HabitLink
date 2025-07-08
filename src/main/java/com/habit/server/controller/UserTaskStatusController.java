@@ -13,8 +13,11 @@ import java.util.HashSet;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.LocalDateTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class UserTaskStatusController {
+    private static final Logger logger = LoggerFactory.getLogger(UserTaskStatusController.class);
     private final AuthService authService;
     private final UserTaskStatusRepository userTaskStatusRepository;
   
@@ -81,7 +84,6 @@ public class UserTaskStatusController {
 
         @Override
         public void handle(com.sun.net.httpserver.HttpExchange exchange) throws java.io.IOException {
-            // System.out.println("[UserTaskStatusController] getIncompleteUserTaskStatus API called");
             java.io.OutputStream os = null;
             try {
                 String sessionId = null;
@@ -139,7 +141,7 @@ public class UserTaskStatusController {
                         sb.append("]");
                         response = sb.toString();
 
-                        System.out.println("[UserTaskStatusController] Responding with incomplete tasks: " + response);
+                        logger.info("[UserTaskStatusController] Responding with incomplete tasks: {}", response);
                     }
                 }
                 exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
@@ -174,7 +176,7 @@ public class UserTaskStatusController {
 
         @Override
         public void handle(com.sun.net.httpserver.HttpExchange exchange) throws java.io.IOException {
-            System.out.println("[UserTaskStatusController] getUserIncompleteTasks API called");
+            logger.info("[UserTaskStatusController] getUserIncompleteTasks API called");
             java.io.OutputStream os = null;
             try {
                 String sessionId = null;
@@ -192,21 +194,21 @@ public class UserTaskStatusController {
                         if (param.startsWith("date=")) dateStr = java.net.URLDecoder.decode(param.substring(5), "UTF-8");
                     }
                 }
-                System.out.println("[UserTaskStatusController] sessionId: " + sessionId);
-                System.out.println("[UserTaskStatusController] teamID: " + teamID);
-                System.out.println("[UserTaskStatusController] dateStr: " + dateStr);
+                logger.info("[UserTaskStatusController] sessionId: {}", sessionId);
+                logger.info("[UserTaskStatusController] teamID: {}", teamID);
+                logger.info("[UserTaskStatusController] dateStr: {}", dateStr);
                 String response = "[]";
                 if (sessionId != null && teamID != null && dateStr != null) {
                     var user = authService.getUserBySession(sessionId);
                     if (user != null) {
                         String userId = user.getUserId();
-                        System.out.println("[UserTaskStatusController] userId: " + userId);
+                        logger.info("[UserTaskStatusController] userId: {}", userId);
                         com.habit.server.repository.UserTaskStatusRepository utsRepo = new com.habit.server.repository.UserTaskStatusRepository();
                         com.habit.server.repository.TaskRepository taskRepo = new com.habit.server.repository.TaskRepository();
                         java.time.LocalDate date = java.time.LocalDate.parse(dateStr);
-                        System.out.println("[UserTaskStatusController] Parsed date: " + date);
+                        logger.info("[UserTaskStatusController] Parsed date: {}", date);
                         java.util.List<com.habit.domain.Task> teamTasks = taskRepo.findTeamTasksByTeamID(teamID);
-                        System.out.println("[UserTaskStatusController] Team tasks count: " + teamTasks.size());
+                        logger.info("[UserTaskStatusController] Team tasks count: {}", teamTasks.size());
                         java.util.List<com.habit.domain.Task> filtered = new java.util.ArrayList<>();
                         
                         // 当日と翌日の両方のUserTaskStatusを取得（再設定されたタスクを含む）
@@ -219,18 +221,18 @@ public class UserTaskStatusController {
                         java.util.List<com.habit.domain.UserTaskStatus> statusList = new java.util.ArrayList<>();
                         statusList.addAll(statusListToday);
                         statusList.addAll(statusListTomorrow);
-                        System.out.println("[UserTaskStatusController] Status list count (today+tomorrow): " + statusList.size());
+                        logger.info("[UserTaskStatusController] Status list count (today+tomorrow): {}", statusList.size());
                         
                         // 指定日のユーザーのタスク状況をマップ化
                         java.util.Map<String, com.habit.domain.UserTaskStatus> statusMapByTaskId = new java.util.HashMap<>();
                         for (com.habit.domain.UserTaskStatus status : statusList) {
                             statusMapByTaskId.put(status.getTaskId(), status);
-                            System.out.println("[UserTaskStatusController] Status - taskId: " + status.getTaskId() + ", isDone: " + status.isDone());
+                            logger.info("[UserTaskStatusController] Status - taskId: {} , isDone: {}", status.getTaskId(), status.isDone());
                         }
                         
                         // ユーザーが担当するタスクIDセットを取得
                         java.util.Set<String> userTaskIds = new java.util.HashSet<>(utsRepo.findTaskIdsByUserIdAndTeamId(userId, teamID));
-                        System.out.println("[UserTaskStatusController] User task IDs: " + userTaskIds);
+                        logger.info("[UserTaskStatusController] User task IDs: {}", userTaskIds);
                         
                         // 未完了タスクをフィルタリング
                         for (com.habit.domain.Task task : teamTasks) {
@@ -242,7 +244,7 @@ public class UserTaskStatusController {
                             }
                         }
                         
-                        System.out.println("[UserTaskStatusController] Final filtered tasks count: " + filtered.size());
+                        logger.info("[UserTaskStatusController] Final filtered tasks count: {}", filtered.size());
                         StringBuilder sb = new StringBuilder("[");
                         for (int i = 0; i < filtered.size(); i++) {
                             com.habit.domain.Task t = filtered.get(i);
@@ -270,7 +272,7 @@ public class UserTaskStatusController {
                         response = sb.toString();
                     }
                 }
-                System.out.println("[UserTaskStatusController] Responding with: " + response);
+                logger.info("[UserTaskStatusController] Responding with: {}", response);
                 exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
                 exchange.sendResponseHeaders(200, response.getBytes("UTF-8").length);
                 os = exchange.getResponseBody();
@@ -399,11 +401,10 @@ public class UserTaskStatusController {
                             int newPoints = Math.max(0, currentPoints - 1); // 0未満にはしない
                             user.setSabotagePoints(newPoints);
                             userRepo.save(user);
-                            System.out.println("タスク完了によりサボりポイント更新: " + user.getUsername() + " " + currentPoints + "pt → " + newPoints + "pt");
+                            logger.info("タスク完了によりサボりポイント更新: {} {}pt → {}pt", user.getUsername(), currentPoints, newPoints);
                         }
                     } catch (Exception e) {
-                        System.err.println("サボりポイント更新エラー: " + e.getMessage());
-                        e.printStackTrace();
+                        logger.error("サボりポイント更新エラー: {}", e.getMessage(), e);
                     }
                     
                     response = "タスク完了: userId=" + userId[0] + ", taskId=" + taskId[0] + ", date=" + dateStr;

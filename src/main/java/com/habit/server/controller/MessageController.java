@@ -11,8 +11,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
 import org.json.JSONArray;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MessageController {
+  private static final Logger logger = LoggerFactory.getLogger(MessageController.class);
   private final MessageRepository messageRepository;
   private final UserRepository userRepository;
 
@@ -151,9 +154,12 @@ public class MessageController {
                                     com.habit.domain.MessageType.NORMAL);
       messageRepository.save(message);
 
-      System.out.println(
-          "[チャット] teamID=" + teamID + ", senderId=" + senderId +
-          ", username=" + sender.getUsername() + ", content=" + content);
+      logger.info(
+          "[チャット] teamID={} , senderId={} , username={} , content={}",
+          teamID,
+          senderId,
+          sender.getUsername(),
+          content);
 
       respond(exchange, 200, "チャット送信成功");
     }
