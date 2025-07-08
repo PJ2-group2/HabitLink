@@ -1,8 +1,7 @@
 package com.habit.server.controller;
 
 import com.habit.server.service.TaskAutoResetService;
-import com.habit.server.repository.TaskRepository;
-import com.habit.server.repository.UserTaskStatusRepository;
+import com.habit.server.scheduler.TaskAutoResetScheduler;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
@@ -27,7 +26,7 @@ import java.io.OutputStream;
  */
 public class TaskAutoResetController {
     private final TaskAutoResetService taskAutoResetService;
-    private final com.habit.server.scheduler.TaskAutoResetScheduler taskAutoResetScheduler;
+    private final TaskAutoResetScheduler taskAutoResetScheduler;
     
     public TaskAutoResetController(TaskAutoResetService taskAutoResetService) {
         this.taskAutoResetService = taskAutoResetService;

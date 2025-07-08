@@ -1,13 +1,10 @@
 package com.habit.server.scheduler;
 
 import com.habit.server.service.TaskAutoResetService;
-import com.habit.server.repository.TaskRepository;
-import com.habit.server.repository.UserTaskStatusRepository;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.time.LocalTime;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import org.slf4j.Logger;
