@@ -1,6 +1,6 @@
 package com.habit.client;
 
-import com.habit.client.util.Config;
+import com.habit.domain.util.Config;
 import com.habit.domain.Message;
 import java.net.*;
 import java.net.http.HttpClient;

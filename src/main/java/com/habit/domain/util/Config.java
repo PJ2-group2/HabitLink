@@ -1,4 +1,4 @@
-package com.habit.client.util;
+package com.habit.domain.util;
 
 import java.io.IOException;
 import java.io.InputStream;

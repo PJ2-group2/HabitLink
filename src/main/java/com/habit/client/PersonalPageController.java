@@ -1,6 +1,6 @@
 package com.habit.client;
 
-import com.habit.client.util.Config;
+import com.habit.domain.util.Config;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.TilePane;
