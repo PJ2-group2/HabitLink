@@ -165,7 +165,7 @@ public class UserTaskStatusRepository {
     }
 
 
-    // ユーザID・タスクID・日付で検索 → 廃止すべき
+    // ユーザID・タスクID・日付で検索
     public Optional<UserTaskStatus> findByUserIdAndTaskIdAndDate(String userId, String taskId, LocalDate date) {
         try (Connection conn = DriverManager.getConnection(dbUrl)) {
             String sql = "SELECT * FROM user_task_statuses WHERE userId = ? AND taskId = ? AND date = ?";
