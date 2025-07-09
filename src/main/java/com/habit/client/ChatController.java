@@ -17,7 +17,7 @@ public class ChatController {
   /* チーム名ラベル */
   @FXML private Label teamNameLabel;
   /* チャットリスト */
-  @FXML private ListView<String> chatList;
+  @FXML private ListView<Message> chatList;
   /* チャット入力フィールド */
   @FXML private TextField chatInput;
   /* チャット送信ボタン */
@@ -94,6 +94,51 @@ public class ChatController {
       teamNameLabel.setText(teamName);
     }
 
+    // ListViewのセルファクトリを設定
+    chatList.setCellFactory(lv -> new ListCell<Message>() {
+      @Override
+      protected void updateItem(Message message, boolean empty) {
+        super.updateItem(message, empty);
+        if (empty || message == null) {
+          setText(null);
+        } else {
+          final String formatPattern = "yyyy-MM-dd HH:mm:ss";
+          StringBuilder sb = new StringBuilder();
+          sb.append("[" +
+              message.getTimestamp().format(
+                  DateTimeFormatter.ofPattern(formatPattern)) +
+              "]");
+          sb.append("[" + message.getSender().getUsername() + "]");
+          sb.append(": " + message.getContent());
+          setText(sb.toString());
+        }
+      }
+    });
+
+    // ContextMenuの作成
+    // 右クリックでメッセージを削除できるようにする
+    ContextMenu contextMenu = new ContextMenu();
+    MenuItem deleteItem = new MenuItem("削除");
+    deleteItem.setOnAction(event -> {
+      Message selectedMessage = chatList.getSelectionModel().getSelectedItem();
+      // 確認ダイアログを表示
+      if (selectedMessage != null) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("確認");
+        alert.setHeaderText("メッセージの削除");
+        alert.setContentText("本当にこのメッセージを削除しますか？");
+
+        Optional<ButtonType> result = alert.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+          deleteChatMessage(selectedMessage.getMessageId());
+        }
+      }
+    });
+    contextMenu.getItems().add(deleteItem);
+
+    // ListViewにContextMenuを設定
+    chatList.setContextMenu(contextMenu);
+
     // チャット送信ボタンのアクション設定
     btnSend.setOnAction(unused -> {
       String msg = chatInput.getText();
@@ -152,23 +197,7 @@ public class ChatController {
         // sort according to time stamp
         messages.sort(Comparator.comparing(Message::getTimestamp));
 
-        // sort and format messages
-        List<String> chatItems = new ArrayList<>();
-        // format is [timestamp][usrname]: [content]
-        for (var msg : messages) {
-          final String formatPattern = "yyyy-MM-dd HH:mm:ss";
-
-          StringBuilder sb = new StringBuilder();
-          sb.append('[' +
-                    msg.getTimestamp().format(
-                        DateTimeFormatter.ofPattern(formatPattern)) +
-                    ']');
-          sb.append('[' + msg.getSender().getUsername() + ']');
-          sb.append(": " + msg.getContent());
-          chatItems.add(sb.toString());
-        }
-
-        Platform.runLater(() -> { chatList.getItems().setAll(chatItems); });
+        Platform.runLater(() -> { chatList.getItems().setAll(messages); });
       } catch (Exception e) {
         e.printStackTrace();
       }
@@ -198,6 +227,32 @@ public class ChatController {
                 .build();
         HttpResponse<String> response =
             client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() == 200) {
+          loadChatLog();
+        }
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }).start();
+  }
+
+  /**
+   * チャットメッセージをサーバーから削除するメソッド。 
+   * 新しいスレッドで実行される。
+   *
+   * @param messageId 削除するメッセージのID
+   */
+  private void deleteChatMessage(String messageId) {
+    new Thread(() -> {
+      try {
+        HttpClient client = HttpClient.newHttpClient();
+        String deleteUrl = Config.getServerUrl() + "/deleteChatMessage?message_id=" + URLEncoder.encode(messageId, "UTF-8");
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(deleteUrl))
+            .timeout(java.time.Duration.ofSeconds(3))
+            .DELETE()
+            .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() == 200) {
           loadChatLog();
         }

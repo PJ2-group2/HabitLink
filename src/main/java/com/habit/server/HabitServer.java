@@ -126,6 +126,8 @@ public class HabitServer {
     server.createContext(
         "/getChatLog",
         messageController.getGetChatLogHandler()); // チャット履歴取得
+    server.createContext("/deleteChatMessage",
+        messageController.getDeleteChatMessageHandler()); // チャット削除
     server.createContext(
         "/getJoinedTeamInfo",
         userController.getGetJoinedTeamInfoHandler()); // 参加チーム取得
