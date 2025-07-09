@@ -337,4 +337,72 @@ public class TeamRepository {
     }
     return null;
   }
+
+  /*
+   * 指定されたチームIDのチームを削除する。
+   * 関連するデータも全て削除される。
+   */
+  public void delete(String teamId) {
+    Connection conn = null;
+    try {
+        conn = DriverManager.getConnection(databaseUrl);
+        conn.setAutoCommit(false);
+
+        // 関連データの削除
+        // user_task_status
+        String delUserTaskStatusSql = "DELETE FROM user_task_statuses WHERE teamId = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(delUserTaskStatusSql)) {
+            pstmt.setString(1, teamId);
+            pstmt.executeUpdate();
+        }
+
+        // tasks
+        String delTasksSql = "DELETE FROM tasks WHERE teamID = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(delTasksSql)) {
+            pstmt.setString(1, teamId);
+            pstmt.executeUpdate();
+        }
+
+        // messages
+        String delMessagesSql = "DELETE FROM messages WHERE team_id = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(delMessagesSql)) {
+            pstmt.setString(1, teamId);
+            pstmt.executeUpdate();
+        }
+
+        // team_members
+        String delMembersSql = "DELETE FROM team_members WHERE teamID = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(delMembersSql)) {
+            pstmt.setString(1, teamId);
+            pstmt.executeUpdate();
+        }
+
+        // teams
+        String delTeamSql = "DELETE FROM teams WHERE id = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(delTeamSql)) {
+            pstmt.setString(1, teamId);
+            pstmt.executeUpdate();
+        }
+
+        conn.commit();
+    } catch (SQLException e) {
+        e.printStackTrace();
+        if (conn != null) {
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+        }
+    } finally {
+        if (conn != null) {
+            try {
+                conn.setAutoCommit(true);
+                conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+  }
 }
