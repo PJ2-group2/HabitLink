@@ -381,7 +381,7 @@ public class UserTaskStatusController {
                     com.habit.server.repository.TaskRepository taskRepo = new com.habit.server.repository.TaskRepository();
                     
                     // 既存のステータスがなければエラーを返す
-                    java.util.Optional<com.habit.domain.UserTaskStatus> optStatus = repo.findByUserIdAndTaskId(userId[0], taskId[0]);
+                    java.util.Optional<com.habit.domain.UserTaskStatus> optStatus = repo.findByUserIdAndTaskIdAndDate(userId[0], taskId[0], date);
                     if (optStatus.isEmpty()) {
                         response = "エラー: 該当のタスクステータスが見つかりません。";
                         exchange.getResponseHeaders().set("Content-Type", "text/plain; charset=UTF-8");
