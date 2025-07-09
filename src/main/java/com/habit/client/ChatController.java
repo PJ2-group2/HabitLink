@@ -94,14 +94,37 @@ public class ChatController {
       teamNameLabel.setText(teamName);
     }
 
-    // ListViewのセルファクトリを設定
+    // ListViewのセルファリを設定
     chatList.setCellFactory(lv -> new ListCell<Message>() {
+      private final ContextMenu contextMenu = new ContextMenu();
+      private final MenuItem deleteItem = new MenuItem("削除");
+
+      {
+        deleteItem.setOnAction(event -> {
+          Message selectedMessage = getItem();
+          if (selectedMessage != null) {
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("確認");
+            alert.setHeaderText("メッセージの削除");
+            alert.setContentText("本当にこのメッセージを削除しますか？");
+
+            Optional<ButtonType> result = alert.showAndWait();
+            if (result.isPresent() && result.get() == ButtonType.OK) {
+              deleteChatMessage(selectedMessage.getMessageId());
+            }
+          }
+        });
+        contextMenu.getItems().add(deleteItem);
+      }
+
       @Override
       protected void updateItem(Message message, boolean empty) {
         super.updateItem(message, empty);
         if (empty || message == null) {
           setText(null);
+          setContextMenu(null);
         } else {
+          // メッセージのテキストを設定
           final String formatPattern = "yyyy-MM-dd HH:mm:ss";
           StringBuilder sb = new StringBuilder();
           sb.append("[" +
@@ -111,33 +134,16 @@ public class ChatController {
           sb.append("[" + message.getSender().getUsername() + "]");
           sb.append(": " + message.getContent());
           setText(sb.toString());
+
+          // 自分のメッセージの場合のみContextMenuを設定
+          if (message.getSender().getUserId().equals(userId)) {
+            setContextMenu(contextMenu);
+          } else {
+            setContextMenu(null);
+          }
         }
       }
     });
-
-    // ContextMenuの作成
-    // 右クリックでメッセージを削除できるようにする
-    ContextMenu contextMenu = new ContextMenu();
-    MenuItem deleteItem = new MenuItem("削除");
-    deleteItem.setOnAction(event -> {
-      Message selectedMessage = chatList.getSelectionModel().getSelectedItem();
-      // 確認ダイアログを表示
-      if (selectedMessage != null) {
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle("確認");
-        alert.setHeaderText("メッセージの削除");
-        alert.setContentText("本当にこのメッセージを削除しますか？");
-
-        Optional<ButtonType> result = alert.showAndWait();
-        if (result.isPresent() && result.get() == ButtonType.OK) {
-          deleteChatMessage(selectedMessage.getMessageId());
-        }
-      }
-    });
-    contextMenu.getItems().add(deleteItem);
-
-    // ListViewにContextMenuを設定
-    chatList.setContextMenu(contextMenu);
 
     // チャット送信ボタンのアクション設定
     btnSend.setOnAction(unused -> {
