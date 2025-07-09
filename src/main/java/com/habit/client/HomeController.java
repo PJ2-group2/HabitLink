@@ -31,7 +31,7 @@ public class HomeController {
   /* キャラクター画像 */
   @FXML private ImageView characterView;
   /* チームリストビュー */
-  @FXML private ListView<String> teamListView;
+  @FXML private ListView<com.habit.domain.Team> teamListView;
   /* チーム作成ボタン */
   @FXML private Button btnToCreateTeam;
   /* チーム検索ボタン */
@@ -42,9 +42,7 @@ public class HomeController {
   /* チームキャラクター画像 */
   private ImageView teamCharView;
 
-  // チーム名→IDのマップ
-  private java.util.Map<String, String> teamNameToIdMap =
-      new java.util.HashMap<>();
+  
 
   // 遷移元からセットする
   private String userId;
@@ -52,90 +50,104 @@ public class HomeController {
   /**
    * コントローラー初期化処理。
    * チーム一覧の取得や、ボタンのアクション設定を行う。
+   * 削除機能実装時に簡易化した。
    */
   @FXML
   public void initialize() {
-    // 現在ログインユーザのjoinedTeamIdsにあるチームのみ表示
+    loadJoinedTeams();
+    setupCharacterAnimationAndCheer();
+    setupButtonActions();
+  }
+
+  /**
+   * 参加中のチーム情報をサーバから取得し、ListViewに表示する。
+   */
+  private void loadJoinedTeams() {
     try {
-      // HTTPリクエストを送信するためのクライアントオブジェクトを作成。
       HttpClient client = HttpClient.newHttpClient();
-      // URLを作成
-      HttpRequest.Builder reqBuilder =
-          HttpRequest.newBuilder()
-              .uri(URI.create(Config.getServerUrl() + "/getJoinedTeamInfo"))
-              .GET();
-      // セッションIDをヘッダに付与
+      HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
+          .uri(URI.create(Config.getServerUrl() + "/getJoinedTeamInfo"))
+          .GET();
+
       String sessionId = LoginController.getSessionId();
       if (sessionId != null && !sessionId.isEmpty()) {
         reqBuilder.header("SESSION_ID", sessionId);
       }
-      // リクエストを送信
+
       HttpRequest request = reqBuilder.build();
-      // レスポンスを受け取り、ボディを文字列として取得
-      HttpResponse<String> response =
-          client.send(request, HttpResponse.BodyHandlers.ofString());
+      HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
       String body = response.body();
-      // レスポンスのボディを解析
+
       teamListView.getItems().clear();
       if (body != null && !body.trim().isEmpty()) {
-        // サーバから "joinedTeamIds=... \n joinedTeamNames=..." の形式で返す
-        String[] lines = body.split("\\n");
-        String[] teamNames = null;
-        String[] teamIds = null;
-        for (String line : lines) {
-          if (line.startsWith("userId=")) {
-            String id = line.substring("userId=".length());
-            if (!id.isEmpty()) {
-              userId = id.trim();
-            }
-          }
-          if (line.startsWith("joinedTeamNames=")) {
-            String joined = line.substring("joinedTeamNames=".length());
-            if (!joined.isEmpty()) {
-              teamNames = joined.split(",");
-            }
-            // userIdをログ出力
-            if (userId != null) {
-              logger.info("HomeController: userId={}", userId);
-            }
-          }
-          if (line.startsWith("joinedTeamIds=")) {
-            String joined = line.substring("joinedTeamIds=".length());
-            if (!joined.isEmpty()) {
-              teamIds = joined.split(",");
-            }
-          }
+        org.json.JSONObject responseObject = new org.json.JSONObject(body);
+        this.userId = responseObject.optString("userId", null);
+
+        org.json.JSONArray teamsArray = responseObject.getJSONArray("teams");
+        List<com.habit.domain.Team> teams = new ArrayList<>();
+        for (int i = 0; i < teamsArray.length(); i++) {
+          org.json.JSONObject teamJson = teamsArray.getJSONObject(i);
+          com.habit.domain.Team team = new com.habit.domain.Team(
+              teamJson.getString("teamId"),
+              teamJson.getString("teamName"),
+              teamJson.getString("creatorId"),
+              com.habit.domain.TeamMode.FIXED_TASK_MODE // Default value
+          );
+          teams.add(team);
         }
-        if (teamNames != null && teamIds != null &&
-            teamNames.length == teamIds.length) {
-          for (int i = 0; i < teamNames.length; i++) {
-            String name = teamNames[i].trim();
-            String id = teamIds[i].trim();
-            if (!name.isEmpty() && !id.isEmpty()) {
-              teamListView.getItems().add(name);
-              teamNameToIdMap.put(name, id);
-            }
-          }
-        } else if (teamNames != null) {
-          for (String name : teamNames) {
-            if (!name.trim().isEmpty()) {
-              teamListView.getItems().add(name.trim());
-            }
-          }
-        } else if (teamIds != null) {
-          for (String id : teamIds) {
-            if (!id.trim().isEmpty()) {
-              teamListView.getItems().add(id.trim());
-              teamNameToIdMap.put(id.trim(), id.trim());
-            }
-          }
-        }
+        teamListView.getItems().setAll(teams);
       }
     } catch (Exception ex) {
       ex.printStackTrace();
-      teamListView.getItems().add("サーバ接続エラー");
+      // In case of an error, you might want to show an error message in the ListView
     }
 
+    // チームリストビューのセルファクトリを設定
+    // 右クリックで削除メニューを表示するための設定
+    teamListView.setCellFactory(lv -> new javafx.scene.control.ListCell<com.habit.domain.Team>() {
+      private final javafx.scene.control.ContextMenu contextMenu = new javafx.scene.control.ContextMenu();
+      private final javafx.scene.control.MenuItem deleteItem = new javafx.scene.control.MenuItem("削除");
+
+      {
+        deleteItem.setOnAction(event -> {
+          com.habit.domain.Team selectedTeam = getItem();
+          if (selectedTeam != null) {
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("確認");
+            alert.setHeaderText("チームの削除");
+            alert.setContentText("本当にこのチームを削除しますか？\n関連するすべてのデータ（タスク、メッセージなど）が削除されます。");
+
+            java.util.Optional<javafx.scene.control.ButtonType> result = alert.showAndWait();
+            if (result.isPresent() && result.get() == javafx.scene.control.ButtonType.OK) {
+              deleteTeam(selectedTeam.getTeamID());
+            }
+          }
+        });
+        contextMenu.getItems().add(deleteItem);
+      }
+
+      // セルの更新処理
+      @Override
+      protected void updateItem(com.habit.domain.Team team, boolean empty) {
+        super.updateItem(team, empty);
+        if (empty || team == null) {
+          setText(null);
+          setContextMenu(null);
+        } else {
+          setText(team.getteamName());
+          if (userId != null && userId.equals(team.getCreatorId())) {
+            setContextMenu(contextMenu);
+          }
+        }
+      }
+    });
+  }
+
+  /**
+   * キャラクターのアニメーションと応援メッセージを設定する。
+   * サーバからサボりポイントを取得し、レベルに応じたアニメーションとメッセージを表示する。
+   */
+  private void setupCharacterAnimationAndCheer() {
     int level = 0; // 初期値
     try {
       // HTTPリクエストを送信するためのクライアントオブジェクトを作成。
@@ -260,7 +272,7 @@ public class HomeController {
       }
     }
 
-    String[][] cheersByLevel = {
+    String[][] cheersByLevel = { // レベルごとの応援メッセージ
         // Lv0
         {"また何もやってないの？才能だね、ダメな方の。",
          "あんたがやる気出す日は地球が止まるね。",
@@ -306,38 +318,35 @@ public class HomeController {
     String selectedCheer =
         cheers[new java.util.Random().nextInt(cheers.length)];
     cheerMessageLabel.setText(selectedCheer);
+  }
 
+  /**
+   * 各ボタンのアクションを設定する。
+   * チームリストのクリックイベントや、チーム作成・検索画面への遷移を設定する。
+   */
+  private void setupButtonActions() {
     // チームリストビューのクリックイベント設定
     // チーム名を選択したらチームトップへ遷移
-    teamListView.setOnMouseClicked(unused -> {
-      String selected = teamListView.getSelectionModel().getSelectedItem();
-      if (selected != null && !selected.equals("サーバ接続エラー")) {
-        try {
-          // チーム名をパラメータとして渡す
-          javafx.stage.Stage stage =
-              (javafx.stage.Stage)teamListView.getScene().getWindow();
-          javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
-              getClass().getResource("/com/habit/client/gui/TeamTop.fxml"));
-          javafx.scene.Parent root = loader.load();
-          com.habit.client.TeamTopController controller =
-              loader.getController();
-          controller.setTeamName(selected);
-          // チーム名からIDを取得して渡す
-          String teamId = teamNameToIdMap.get(selected);
-          if (teamId != null) {
-            controller.setTeamID(teamId);
+    teamListView.setOnMouseClicked(event -> {
+      if (event.getButton() == javafx.scene.input.MouseButton.PRIMARY) {
+        com.habit.domain.Team selectedTeam = teamListView.getSelectionModel().getSelectedItem();
+        if (selectedTeam != null) {
+          try {
+            javafx.stage.Stage stage = (javafx.stage.Stage) teamListView.getScene().getWindow();
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
+                getClass().getResource("/com/habit/client/gui/TeamTop.fxml"));
+            javafx.scene.Parent root = loader.load();
+            com.habit.client.TeamTopController controller = loader.getController();
+            controller.setTeamName(selectedTeam.getteamName());
+            controller.setTeamID(selectedTeam.getTeamID());
+            if (userId != null) {
+              controller.setUserId(userId);
+            }
+            stage.setScene(new javafx.scene.Scene(root));
+            stage.setTitle("チームトップ");
+          } catch (Exception ex) {
+            ex.printStackTrace();
           }
-          // userIdも渡す
-          if (userId != null) {
-            controller.setUserId(userId);
-            logger.info(
-                "HomeController: TeamTopControllerにuserIdを渡しました: {}",
-                userId);
-          }
-          stage.setScene(new javafx.scene.Scene(root));
-          stage.setTitle("チームトップ");
-        } catch (Exception ex) {
-          ex.printStackTrace();
         }
       }
     });
@@ -381,5 +390,45 @@ public class HomeController {
         ex.printStackTrace();
       }
     });
+  }
+
+  /**
+   * 指定されたチームIDのチームを削除する。
+   * サーバにDELETEリクエストを送信し、成功したらチーム一覧を再読み込みする。
+   *
+   * @param teamId 削除するチームのID
+   */
+  private void deleteTeam(String teamId) {
+    new Thread(() -> {
+      try {
+        HttpClient client = HttpClient.newHttpClient();
+        String deleteUrl = Config.getServerUrl() + "/deleteTeam?team_id=" + java.net.URLEncoder.encode(teamId, "UTF-8");
+        HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
+            .uri(URI.create(deleteUrl))
+            .timeout(java.time.Duration.ofSeconds(3))
+            .DELETE();
+
+        String sessionId = LoginController.getSessionId();
+        if (sessionId != null && !sessionId.isEmpty()) {
+          reqBuilder.header("SESSION_ID", sessionId);
+        }
+
+        HttpRequest request = reqBuilder.build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() == 200) {
+          Platform.runLater(this::loadJoinedTeams);
+        } else {
+          Platform.runLater(() -> {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("エラー");
+            alert.setHeaderText("チームの削除に失敗しました");
+            alert.setContentText(response.body());
+            alert.showAndWait();
+          });
+        }
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }).start();
   }
 }

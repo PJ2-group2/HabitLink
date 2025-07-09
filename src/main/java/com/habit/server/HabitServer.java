@@ -207,6 +207,7 @@ public class HabitServer {
         "/getTeamSabotageRanking",
         teamController
             .getGetTeamSabotageRankingHandler()); // チーム内サボりランキング
+    server.createContext("/deleteTeam", teamController.getDeleteTeamHandler()); // チーム削除
 
     // チーム共通タスク管理API
     server.createContext(
