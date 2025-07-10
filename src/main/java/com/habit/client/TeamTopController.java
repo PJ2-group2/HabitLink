@@ -623,6 +623,7 @@ public class TeamTopController {
                                         controller.setTeamID(teamID);
                                         controller.setTeamName(teamName);
                                         controller.setCreatorId(creatorId);
+                                        controller.setTeam(team);
                                         // ユーザーのタスク一覧を渡す
                                         controller.setUserTasks(getUserTasksForPersonalPage());
                                         javafx.stage.Stage stage = (javafx.stage.Stage) btnToPersonal.getScene().getWindow();
