@@ -33,6 +33,10 @@ public class MessageController {
     return this.new SendChatMessageHandler();
   }
 
+  public HttpHandler getDeleteChatMessageHandler() {
+    return this.new DeleteChatMessageHandler();
+  }
+
   private class GetChatLogHandler implements HttpHandler {
     @Override
     public void handle(HttpExchange exchange) throws IOException {
@@ -162,6 +166,55 @@ public class MessageController {
           content);
 
       respond(exchange, 200, "チャット送信成功");
+    }
+  }
+
+
+  /**
+   * チャットメッセージ削除用のハンドラー。
+   * DELETEメソッドでリクエストを受け、message_idパラメータで指定されたメッセージを削除する。
+   */
+  private class DeleteChatMessageHandler implements HttpHandler {
+    public void respond(HttpExchange exchange, int code, String response)
+        throws IOException {
+      exchange.sendResponseHeaders(code, response.getBytes().length);
+      OutputStream os = exchange.getResponseBody();
+      os.write(response.getBytes());
+      os.close();
+    }
+
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
+      if (!"DELETE".equals(exchange.getRequestMethod())) {
+        respond(exchange, 405, "DELETEメソッドのみ対応");
+        return;
+      }
+
+      String query = exchange.getRequestURI().getQuery();
+      String messageId = null;
+      if (query != null) {
+        String[] params = query.split("&");
+        for (String param : params) {
+          if (param.startsWith("message_id=")) {
+            messageId = java.net.URLDecoder.decode(param.substring(11), "UTF-8");
+            break;
+          }
+        }
+      }
+
+      if (messageId == null) {
+        respond(exchange, 400, "パラメータが不正です");
+        return;
+      }
+
+      try {
+        messageRepository.delete(messageId);
+        logger.info("[チャット] messageId={} のメッセージを削除しました", messageId);
+        respond(exchange, 200, "メッセージ削除成功");
+      } catch (Exception e) {
+        logger.error("Error deleting message: {}", e.getMessage(), e);
+        respond(exchange, 500, "サーバー内部エラー");
+      }
     }
   }
 }

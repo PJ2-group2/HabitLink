@@ -116,12 +116,15 @@ public class UserTaskStatusController {
                         }
 
                         java.util.List<com.habit.domain.UserTaskStatus> incompleteStatuses = new java.util.ArrayList<>();
+                        java.util.Set<String> addedTaskIds = new java.util.HashSet<>();
                         for (com.habit.domain.UserTaskStatus status : allUserTaskStatuses) {
                             com.habit.domain.Task correspondingTask = taskMap.get(status.getTaskId());
                             if (correspondingTask != null) {
                                 java.time.LocalDate dueDate = correspondingTask.getDueDate();
                                 if (!status.isDone() && dueDate != null && dueDate.isAfter(java.time.LocalDate.now().minusDays(1))) {
-                                    incompleteStatuses.add(status);
+                                    if (addedTaskIds.add(status.getTaskId())) {
+                                        incompleteStatuses.add(status);
+                                    }
                                 }
                             }
                         }
@@ -378,7 +381,7 @@ public class UserTaskStatusController {
                     com.habit.server.repository.TaskRepository taskRepo = new com.habit.server.repository.TaskRepository();
                     
                     // 既存のステータスがなければエラーを返す
-                    java.util.Optional<com.habit.domain.UserTaskStatus> optStatus = repo.findByUserIdAndTaskId(userId[0], taskId[0]);
+                    java.util.Optional<com.habit.domain.UserTaskStatus> optStatus = repo.findUpcomingIncompleteByUserIdAndTaskId(userId[0], taskId[0]);
                     if (optStatus.isEmpty()) {
                         response = "エラー: 該当のタスクステータスが見つかりません。";
                         exchange.getResponseHeaders().set("Content-Type", "text/plain; charset=UTF-8");

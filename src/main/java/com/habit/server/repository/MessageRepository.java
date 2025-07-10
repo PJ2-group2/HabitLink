@@ -87,4 +87,18 @@ public class MessageRepository {
     }
     return messages;
   }
+
+  /**
+   * 削除メソッド。
+   */
+  public void delete(String messageId) {
+    String sql = "DELETE FROM messages WHERE message_id = ?";
+    try (Connection conn = DriverManager.getConnection(databaseUrl);
+        PreparedStatement pstmt = conn.prepareStatement(sql)) {
+      pstmt.setString(1, messageId);
+      pstmt.executeUpdate();
+    } catch (SQLException e) {
+      logger.error("Error deleting message: {}", e.getMessage(), e);
+    }
+  }
 }

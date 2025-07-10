@@ -255,4 +255,31 @@ public class TaskRepository {
     }
     return list;
   }
+
+  /*
+   * タスクIDでタスクを取得
+   */
+  public Task findById(String taskId) {
+    try (Connection conn = DriverManager.getConnection(databaseUrl)) {
+      String sql = "SELECT * FROM tasks WHERE taskId = ?";
+      try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        pstmt.setString(1, taskId);
+        ResultSet rs = pstmt.executeQuery();
+        if (rs.next()) {
+          Task task = new Task(
+              rs.getString("taskId"), rs.getString("taskName"),
+              rs.getString("description"), 
+              rs.getString("teamID"),
+              rs.getString("dueDate") != null
+                  ? java.time.LocalDate.parse(rs.getString("dueDate"))
+                  : null,
+              rs.getString("cycleType"));
+          return task;
+        }
+      }
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
+    return null;
+  }
 }

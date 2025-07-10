@@ -185,8 +185,14 @@ public class TaskAutoResetService {
             logger.info("[DEBUG] 新しい期限日: " + newDueDate);
 
             // Task自体のdueDateを更新して保存
-            task.setDueDate(newDueDate);
-            taskRepository.save(task);
+            // ただし、現在のdueDateがnewDueDateよりも将来の場合は書き換えない
+            // つまり、newDueDateが現在のdueDateと同じかそれより後の日付の場合にのみ更新
+            if (task.getDueDate() == null || !newDueDate.isBefore(task.getDueDate())) {
+                task.setDueDate(newDueDate);
+                taskRepository.save(task);
+            } else {
+                logger.info("[DEBUG] タスクのdueDateは将来のため更新をスキップ: " + task.getTaskName() + " (現在のdueDate: " + task.getDueDate() + ", 計算されたdueDate: " + newDueDate + ")");
+            }
 
             // 昨日の日付でUserTaskStatusを検索
             List<UserTaskStatus> statusesToCheck = userTaskStatusRepository.findByTaskIdAndDate(task.getTaskId(), dateToCheck);

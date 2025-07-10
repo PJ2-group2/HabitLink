@@ -1,5 +1,6 @@
 package com.habit.client;
 
+import com.habit.domain.util.Config;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -78,7 +79,7 @@ public class SearchTeamController {
                 HttpClient client = HttpClient.newHttpClient();
                 // リクエストを構築
                 HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://localhost:8080/findTeamByPasscode?passcode=" + java.net.URLEncoder.encode(passcode, "UTF-8")))
+                    .uri(URI.create(Config.getServerUrl() + "/findTeamByPasscode?passcode=" + java.net.URLEncoder.encode(passcode, "UTF-8")))
                     .GET()
                     .build();
                 // レスポンスを取得
@@ -109,7 +110,7 @@ public class SearchTeamController {
                 // HTTPクライアントを作成
                 HttpClient client = HttpClient.newHttpClient();
                 // リクエストURLを組み立て
-                String url = "http://localhost:8080/joinTeam?teamName=" + java.net.URLEncoder.encode(foundTeamName, "UTF-8");
+                String url = Config.getServerUrl() + "/joinTeam?teamName=" + java.net.URLEncoder.encode(foundTeamName, "UTF-8");
                 String sessionId = com.habit.client.LoginController.getSessionId();
                 // リクエストビルダーを使用してリクエストを構築
                 HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
@@ -168,7 +169,7 @@ public class SearchTeamController {
     private String getTeamIdByPasscode(String passcode) {
         try {
             HttpClient client = HttpClient.newHttpClient();
-            String url = "http://localhost:8080/getTeamIdByPasscode?passcode=" + java.net.URLEncoder.encode(passcode, "UTF-8");
+            String url = Config.getServerUrl() + "/getTeamIdByPasscode?passcode=" + java.net.URLEncoder.encode(passcode, "UTF-8");
             HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .GET()

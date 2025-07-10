@@ -70,6 +70,10 @@ public class TeamController {
     return new GetTeamSabotageRankingHandler();
   }
 
+  public HttpHandler getDeleteTeamHandler() {
+    return new DeleteTeamHandler();
+  }
+
   // --- チーム作成API ---
   class CreateTeamHandler implements HttpHandler {
     @Override
@@ -491,6 +495,96 @@ public class TeamController {
       this.userId = userId;
       this.username = username;
       this.sabotagePoints = sabotagePoints;
+    }
+  }
+
+  // --- チーム削除API ---
+  class DeleteTeamHandler implements HttpHandler {
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
+      if (!"DELETE".equals(exchange.getRequestMethod())) {
+        String response = "DELETEメソッドのみ対応";
+        exchange.sendResponseHeaders(405, response.getBytes().length);
+        try (OutputStream os = exchange.getResponseBody()) {
+          os.write(response.getBytes());
+        }
+        return;
+      }
+
+      String query = exchange.getRequestURI().getQuery();
+      String teamId = null;
+      if (query != null) {
+        for (String param : query.split("&")) {
+          if (param.startsWith("team_id=")) {
+            teamId = java.net.URLDecoder.decode(param.substring(8), "UTF-8");
+            break;
+          }
+        }
+      }
+
+      if (teamId == null) {
+        String response = "パラメータが不正です";
+        exchange.sendResponseHeaders(400, response.getBytes().length);
+        try (OutputStream os = exchange.getResponseBody()) {
+          os.write(response.getBytes());
+        }
+        return;
+      }
+
+      String sessionId = exchange.getRequestHeaders().getFirst("SESSION_ID");
+      if (sessionId == null) {
+        String response = "認証されていません";
+        exchange.sendResponseHeaders(401, response.getBytes().length);
+        try (OutputStream os = exchange.getResponseBody()) {
+          os.write(response.getBytes());
+        }
+        return;
+      }
+
+      var user = authService.getUserBySession(sessionId);
+      if (user == null) {
+        String response = "無効なセッションです";
+        exchange.sendResponseHeaders(401, response.getBytes().length);
+        try (OutputStream os = exchange.getResponseBody()) {
+          os.write(response.getBytes());
+        }
+        return;
+      }
+
+      Team team = teamRepository.findById(teamId);
+      if (team == null) {
+        String response = "チームが見つかりません";
+        exchange.sendResponseHeaders(404, response.getBytes().length);
+        try (OutputStream os = exchange.getResponseBody()) {
+          os.write(response.getBytes());
+        }
+        return;
+      }
+
+      if (!team.getCreatorId().equals(user.getUserId())) {
+        String response = "チームの削除権限がありません";
+        exchange.sendResponseHeaders(403, response.getBytes().length);
+        try (OutputStream os = exchange.getResponseBody()) {
+          os.write(response.getBytes());
+        }
+        return;
+      }
+
+      try {
+        teamRepository.delete(teamId);
+        String response = "チームを削除しました";
+        exchange.sendResponseHeaders(200, response.getBytes().length);
+        try (OutputStream os = exchange.getResponseBody()) {
+          os.write(response.getBytes());
+        }
+      } catch (Exception e) {
+        logger.error("Error deleting team: {}", e.getMessage(), e);
+        String response = "サーバー内部エラー";
+        exchange.sendResponseHeaders(500, response.getBytes().length);
+        try (OutputStream os = exchange.getResponseBody()) {
+          os.write(response.getBytes());
+        }
+      }
     }
   }
 }
