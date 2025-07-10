@@ -132,14 +132,16 @@ public class SearchTeamController {
                     
                     // チームトップ画面へ遷移
                     Stage stage = (Stage) btnJoin.getScene().getWindow();
-                    FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/habit/client/gui/TeamTop.fxml"));
+                    // ホーム画面に遷移
+                    FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/habit/client/gui/Home.fxml"));
                     Parent root = loader.load();
-                    TeamTopController controller = loader.getController();
-                    controller.setTeamName(foundTeamName);
-                    controller.setUserId(userId);
-                    controller.setTeamID(actualTeamId); // 正しいチームIDを設定
+
+                    // HomeControllerにデータを渡す必要があればここで渡します
+                    // HomeController homeController = loader.getController();
+                    // homeController.setUserId(userId);
+                    
                     stage.setScene(new Scene(root));
-                    stage.setTitle("チームトップ");
+                    stage.setTitle("ホーム");
                 } else {
                     resultLabel.setText("参加失敗: " + body);
                 }

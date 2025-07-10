@@ -10,8 +10,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import java.time.*;
 import java.util.*;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,6 +45,8 @@ public class PersonalPageController {
     private String userId;
     private String teamID;
     private String teamName = "チーム名未取得";
+    private String creatorId;
+    private com.habit.domain.Team team;
 
     public void setUserId(String userId) {
         this.userId = userId;
@@ -55,6 +56,13 @@ public class PersonalPageController {
     }
     public void setTeamName(String teamName) {
         this.teamName = teamName;
+    }
+    public void setCreatorId(String creatorId) {
+        logger.info("creatorId set: " + creatorId);
+        this.creatorId = creatorId;
+    }
+    public void setTeam(com.habit.domain.Team team) {
+        this.team = team;
     }
 
     /**
@@ -73,6 +81,8 @@ public class PersonalPageController {
                 controller.setUserId(userId);
                 controller.setTeamID(teamID);
                 controller.setTeamName(teamName);
+                controller.setCreatorId(creatorId);
+                controller.setTeam(team);
                 Stage stage = (Stage) btnBackToTeam.getScene().getWindow();
                 stage.setScene(new Scene(root));
                 stage.setTitle("チームトップページ");

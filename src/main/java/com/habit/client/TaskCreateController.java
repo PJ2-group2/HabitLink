@@ -40,17 +40,24 @@ public class TaskCreateController {
     private String userId;
     private String teamID;
     private String teamName = "チーム名未取得";
+    private String creatorId;
+    private com.habit.domain.Team team;
 
     public void setUserId(String userId) {
         this.userId = userId;
     }
-
     public void setTeamID(String teamID) {
         this.teamID = teamID;
     }
-
     public void setTeamName(String teamName) {
         this.teamName = teamName;
+    }
+    public void setCreatorId(String creatorId) {
+        logger.info("creatorId set: " + creatorId);
+        this.creatorId = creatorId;
+    }
+    public void setTeam(com.habit.domain.Team team) {
+        this.team = team;
     }
 
     /**
@@ -160,6 +167,8 @@ public class TaskCreateController {
             controller.setUserId(userId);
             controller.setTeamID(teamID);
             controller.setTeamName(teamName);
+            controller.setCreatorId(creatorId);
+            controller.setTeam(team);
             stage.setScene(new javafx.scene.Scene(root));
             stage.setTitle("チームトップ");
             stage.show();
@@ -180,6 +189,8 @@ public class TaskCreateController {
             controller.setUserId(userId);
             controller.setTeamID(teamID);
             controller.setTeamName(teamName);
+            controller.setCreatorId(creatorId);
+            controller.setTeam(team);
             stage.setScene(new javafx.scene.Scene(root));
             stage.setTitle("チームトップ");
             stage.show();

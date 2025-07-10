@@ -64,6 +64,19 @@ public class TeamTopController {
   private String userId;
   private String teamID;
   private String teamName = "チーム名未取得";
+  private String creatorId; // チーム作成者のID
+  private com.habit.domain.Team team; // チーム情報を保持するフィールド
+
+  // teamのセッター
+  public void setTeam(com.habit.domain.Team team) {
+    this.team = team;
+  }
+
+  // creatorIdのセッター
+  public void setCreatorId(String creatorId) {
+    logger.info("creatorId set: " + creatorId);
+    this.creatorId = creatorId;
+  }
   // ユーザIDのセッター
   public void setUserId(String userId) {
     logger.info("userId set: " + userId);
@@ -298,6 +311,8 @@ public class TeamTopController {
         controller.setUserId(userId);
         controller.setTeamID(teamID);
         controller.setTeamName(teamName);
+        controller.setCreatorId(creatorId);
+        controller.setTeam(team);
         // ★修正：空のリストを渡してAPIから最新データを取得させる
         controller.setUserTasks(new java.util.ArrayList<>());
         javafx.stage.Stage stage =
@@ -321,6 +336,8 @@ public class TeamTopController {
         controller.setUserId(userId);
         controller.setTeamID(teamID);
         controller.setTeamName(teamName);
+        controller.setCreatorId(creatorId);
+        controller.setTeam(team);
         javafx.stage.Stage stage =
             (javafx.stage.Stage)btnToChat.getScene().getWindow();
         stage.setScene(new javafx.scene.Scene(root));
@@ -332,22 +349,57 @@ public class TeamTopController {
 
     // タスク作成ボタンのアクション設定
     btnCreateTask.setOnAction(unused -> {
-      try {
-        javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
-            getClass().getResource("/com/habit/client/gui/TaskCreate.fxml"));
-        javafx.scene.Parent root = loader.load();
-        // TaskCreateControllerを取得
-        TaskCreateController controller = loader.getController();
-        // 各データを渡す
-        controller.setUserId(userId);
-        controller.setTeamID(teamID);
-        controller.setTeamName(teamName);
-        javafx.stage.Stage stage =
-            (javafx.stage.Stage)btnCreateTask.getScene().getWindow();
-        stage.setScene(new javafx.scene.Scene(root));
-        stage.setTitle("タスク作成");
-      } catch (Exception ex) {
-        ex.printStackTrace();
+      if (team == null) {
+        // teamオブジェクトがnullの場合はエラーメッセージを表示して処理を中断
+        Platform.runLater(() -> {
+          Alert alert = new Alert(Alert.AlertType.ERROR);
+          alert.setTitle("エラー");
+          alert.setHeaderText(null);
+          alert.setContentText("チーム情報が取得できませんでした。");
+          alert.showAndWait();
+        });
+        return;
+      }
+
+      boolean canCreateTask = false;
+      String editPermission = team.getEditPermission();
+
+      if ("自由".equals(editPermission)) {
+        canCreateTask = true;
+      } else if ("自分だけ".equals(editPermission)) {
+        if (userId != null && creatorId != null && userId.equals(creatorId)) {
+          canCreateTask = true;
+        }
+      }
+
+      if (canCreateTask) {
+        try {
+          javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
+              getClass().getResource("/com/habit/client/gui/TaskCreate.fxml"));
+          javafx.scene.Parent root = loader.load();
+          // TaskCreateControllerを取得
+          TaskCreateController controller = loader.getController();
+          // 各データを渡す
+          controller.setUserId(userId);
+          controller.setTeamID(teamID);
+          controller.setTeamName(teamName);
+          controller.setCreatorId(creatorId);
+          controller.setTeam(team);
+          javafx.stage.Stage stage =
+              (javafx.stage.Stage)btnCreateTask.getScene().getWindow();
+          stage.setScene(new javafx.scene.Scene(root));
+          stage.setTitle("タスク作成");
+        } catch (Exception ex) {
+          ex.printStackTrace();
+        }
+      } else {
+        Platform.runLater(() -> {
+          Alert alert = new Alert(Alert.AlertType.WARNING);
+          alert.setTitle("権限エラー");
+          alert.setHeaderText(null);
+          alert.setContentText("このチームではタスクを作成する権限がありません。");
+          alert.showAndWait();
+        });
       }
     });
 
@@ -570,6 +622,7 @@ public class TeamTopController {
                                         controller.setUserId(userId);
                                         controller.setTeamID(teamID);
                                         controller.setTeamName(teamName);
+                                        controller.setCreatorId(creatorId);
                                         // ユーザーのタスク一覧を渡す
                                         controller.setUserTasks(getUserTasksForPersonalPage());
                                         javafx.stage.Stage stage = (javafx.stage.Stage) btnToPersonal.getScene().getWindow();

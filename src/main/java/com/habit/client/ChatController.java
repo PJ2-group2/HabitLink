@@ -12,8 +12,12 @@ import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import org.json.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ChatController {
+  private static final Logger logger =
+      LoggerFactory.getLogger(ChatController.class);
   /* チーム名ラベル */
   @FXML private Label teamNameLabel;
   /* チャットリスト */
@@ -34,6 +38,14 @@ public class ChatController {
   private String userId;
   private String teamID;
   private String teamName = "チーム名未取得";
+  private String creatorId;
+  private com.habit.domain.Team team;
+
+  // creatorIdのセッター
+  public void setCreatorId(String creatorId) {
+    logger.info("creatorId set: " + creatorId);
+    this.creatorId = creatorId;
+  }
 
   public void setUserId(String userId) { this.userId = userId; }
 
@@ -42,12 +54,14 @@ public class ChatController {
     fetchAndSetTeamName(teamID);
     loadChatLog(); // teamIDがセットされた後に履歴を取得
   }
-
   public void setTeamName(String teamName) {
     this.teamName = teamName;
     if (teamNameLabel != null) {
       teamNameLabel.setText(teamName);
     }
+  }
+  public void setTeam(com.habit.domain.Team team) {
+    this.team = team;
   }
 
   /**
@@ -164,6 +178,8 @@ public class ChatController {
         controller.setUserId(userId);
         controller.setTeamID(teamID);
         controller.setTeamName(teamName);
+        controller.setCreatorId(creatorId);
+        controller.setTeam(team);
         javafx.stage.Stage stage =
             (javafx.stage.Stage)btnBackToTeamTop.getScene().getWindow();
         stage.setScene(new javafx.scene.Scene(root));

@@ -91,7 +91,7 @@ public class HomeController {
               teamJson.getString("teamId"),
               teamJson.getString("teamName"),
               teamJson.getString("creatorId"),
-              com.habit.domain.TeamMode.FIXED_TASK_MODE // Default value
+              teamJson.optString("editPermission", "自分だけ") // "自分だけ"をデフォルト値とする
           );
           teams.add(team);
         }
@@ -337,8 +337,10 @@ public class HomeController {
                 getClass().getResource("/com/habit/client/gui/TeamTop.fxml"));
             javafx.scene.Parent root = loader.load();
             com.habit.client.TeamTopController controller = loader.getController();
+            controller.setTeam(selectedTeam); // ★ Teamオブジェクトを渡す
             controller.setTeamName(selectedTeam.getteamName());
             controller.setTeamID(selectedTeam.getTeamID());
+            controller.setCreatorId(selectedTeam.getCreatorId()); // creatorIdを渡す
             if (userId != null) {
               controller.setUserId(userId);
             }

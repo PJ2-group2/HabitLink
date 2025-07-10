@@ -67,7 +67,7 @@ public class CreateTeamController {
         // 初期値設定
         maxMembersSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 30, 5));
         editPermissionChoice.setItems(FXCollections.observableArrayList("自分だけ", "自由"));
-        editPermissionChoice.getSelectionModel().selectFirst();
+        editPermissionChoice.setValue("自由");
         inviteList.setItems(invitedMembers);
 
         // メンバー追加ボタンのアクション設定
@@ -153,14 +153,10 @@ public class CreateTeamController {
                     }
                     
                     javafx.stage.Stage stage = (javafx.stage.Stage) btnCreateTeam.getScene().getWindow();
-                    javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/TeamTop.fxml"));
+                    javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/Home.fxml"));
                     javafx.scene.Parent root = loader.load();
-                    TeamTopController controller = loader.getController();
-                    controller.setUserId(userId);
-                    controller.setTeamName(teamName);
-                    controller.setTeamID(createdTeamId); // チームIDは最後にセット
                     stage.setScene(new javafx.scene.Scene(root));
-                    stage.setTitle("チームトップ");
+                    stage.setTitle("ホーム");
 
                     // チーム作成後すぐタスク作成画面に遷移する場合はこちら
                     /*
