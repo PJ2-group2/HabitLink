@@ -77,6 +77,7 @@ public class TeamTopController {
     loadTeamTasksAndUserTasks();
     loadChatLog();
     loadSabotageRanking();
+    loadTaskStatusTable();
   }
 
   /**
@@ -357,9 +358,6 @@ public class TeamTopController {
     }
     btnDebugReset.setVisible(is_debug);
     btnDebugReset.setManaged(is_debug);
-
-    // タスク進捗表の表示
-    loadTaskStatusTable();
 
     // 未消化タスクを横並びにする
     todayTaskList.setOrientation(Orientation.HORIZONTAL);
