@@ -783,9 +783,10 @@ public class TeamTopController {
           taskNameMap.put(taskId, taskName);
         }
 
-        // 進捗一覧取得（全メンバー×タスク×過去7日）
-        String date = java.time.LocalDate.now().toString();
-        int days = 7;
+        // 進捗一覧取得（全メンバー×タスク×過去7日と将来7日）
+        // 今日から7日後をdateに設定し、daysを15日間にすることで、過去7日＋今日＋将来7日の計15日間のデータを取得する
+        String date = java.time.LocalDate.now().plusDays(7).toString();
+        int days = 15;
         String statusUrl = Config.getServerUrl() +
                            "/getTeamTaskStatusList?teamID=" +
                            URLEncoder.encode(teamID, "UTF-8") +
