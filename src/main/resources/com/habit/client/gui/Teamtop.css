@@ -15,6 +15,60 @@
 	-fx-border-color: #000080;
 }
 
+.taskTable{
+    /*
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    */
+    -fx-background-color: transparent;
+    -fx-border-color: #ffffff;
+}
+
+.taskTable:focused{
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+/*　ヘッダー部分（カラム設定済み）*/
+.taskTable .column-header-background{
+    -fx-background-color: transparent;
+}
+
+/*　ヘッダー部分（カラム未設定）*/
+.taskTable .column-header-background .filler{
+    -fx-background-color: transparent;
+}
+/*　ヘッダー部分（各要素）*/
+.taskTable .column-header-background .label{
+    -fx-background-color: transparent;
+}
+/*　ヘッダー部分（全体）*/
+.taskTable .column-header{
+    -fx-background-color: #87cefb;
+    -fx-border-color: #ffffff;
+}
+
+.taskTable .column-header .label{
+    -fx-text-fill: #ffffff;
+}
+
+.taskTable .table-cell{
+    -fx-background-color: #f8f2f2;
+    -fx-border-color: #ffffff;
+}
+
+.taskTable .table-row-cell{
+    -fx-background-color: transparent;
+}
+
+.taskTable .table-row-cell:odd{
+    -fx-background-color: transparent;
+}
+
+.taskTable .table-row-cell:selected{
+    -fx-background-color: transparent;
+}
+
 .todayTaskList{
     -fx-border-radius: 10;
     -fx-background-radius: 10;
@@ -33,7 +87,7 @@
 }
 
 .todayTaskList .list-cell:filled{
-    -fx-background-color: #ff00ff;
+    -fx-background-color: #60de9f;
     -fx-border-color: transparent;
 }
 
@@ -47,7 +101,7 @@
 .chatList .list-cell{
     -fx-background-radius: 10;
     -fx-border-radius: 10;
-    -fx-background-color: #ffffff;
+    -fx-background-color: transparent;
     -fx-border-color: transparent;
     -fx-font-size: 14;
 }

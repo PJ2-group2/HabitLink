@@ -5,7 +5,7 @@
 <?import javafx.scene.image.ImageView?>
 
 <BorderPane xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.habit.client.TeamTopController" prefWidth="900" prefHeight="600" stylesheets="@TeamTop.css">
+      fx:controller="com.habit.client.TeamTopController" prefWidth="900" prefHeight="550" stylesheets="@TeamTop.css">
     <top>
         <HBox spacing="20" alignment="CENTER">
             <Button fx:id="btnBackHome" text="ホームに戻る" styleClass="custom-button"/>
@@ -33,7 +33,7 @@
             
             <!-- 右側: タスク表とその他の要素 -->
             <VBox spacing="10" prefWidth="580">
-                <TableView fx:id="taskTable" prefHeight="350"/>
+                <TableView fx:id="taskTable" styleClass="taskTable" prefHeight="350"/>
                 <HBox spacing="20">
                     <VBox>
                         <HBox>
