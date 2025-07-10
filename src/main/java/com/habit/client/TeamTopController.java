@@ -706,48 +706,6 @@ public class TeamTopController {
         HttpResponse<String> response =
             client.send(request, HttpResponse.BodyHandlers.ofString());
 
-
-                Platform.runLater(() -> {
-                    /* 
-                    Callback<ListView<String>,ListCell<String>> cellFactory = p ->
-                    {
-                        ListCell<String> cell = new ListCell<String>()
-                        {
-                            @Override
-                            public void updateItem(String item,boolean empty)
-                            {
-                                super.updateItem(item,empty);
-                                if(item == null){
-                                    setText("");
-                                    setCursor(Cursor.DEFAULT);
-                                    setOnMouseClicked(null);
-                                    return;
-                                }
-                                
-                                setCursor(Cursor.CLOSED_HAND);
-                                setOnMouseClicked(event ->{
-                                    try {
-                                        
-                                    } catch (Exception ex) {
-                                        ex.printStackTrace();
-                                    }
-                                    });
-                                setText(item);
-                            }
-                        };
-                        return cell;
-                    }; 
-                    chatList.setCellFactory(cellFactory);
-                    */
-                    chatList.getItems().setAll(chatItems);
-                });
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
-    }
-
-        /*旧コード
         // レスポンスのボディをJSONとして解析し、メッセージリストを作成
         List<com.habit.domain.Message> messages = new ArrayList<>();
         JSONArray arr = new JSONArray(response.body());
@@ -755,8 +713,6 @@ public class TeamTopController {
           JSONObject obj = arr.getJSONObject(i);
           messages.add(com.habit.domain.Message.fromJson(obj));
         }
-        */
-
 
         // タイムスタンプでソート
         messages.sort(java.util.Comparator.comparing(
