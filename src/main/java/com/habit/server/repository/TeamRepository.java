@@ -313,14 +313,11 @@ public class TeamRepository {
         pstmt.setString(1, teamId);
         ResultSet rs = pstmt.executeQuery();
         if (rs.next()) {
-          // TeamModeは簡略化（実際の実装に合わせて調整）
-          com.habit.domain.TeamMode mode = com.habit.domain.TeamMode.FIXED_TASK_MODE; // デフォルト値
-          
           Team team = new Team(
             rs.getString("id"),
             rs.getString("teamName"),
             rs.getString("creatorId"),
-            mode
+            rs.getString("editPermission")
           );
           
           // メンバー一覧を取得して設定

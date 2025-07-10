@@ -82,6 +82,7 @@ public class UserController {
               teamJson.put("teamId", team.getTeamID());
               teamJson.put("teamName", team.getteamName());
               teamJson.put("creatorId", team.getCreatorId());
+              teamJson.put("editPermission", team.getEditPermission()); // ★ 不足していた行を追加
               responseArray.put(teamJson);
             }
           }

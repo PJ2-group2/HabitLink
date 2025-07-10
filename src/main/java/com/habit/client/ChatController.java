@@ -38,7 +38,8 @@ public class ChatController {
   private String userId;
   private String teamID;
   private String teamName = "チーム名未取得";
-  private String creatorId; // チーム作成者のID
+  private String creatorId;
+  private com.habit.domain.Team team;
 
   // creatorIdのセッター
   public void setCreatorId(String creatorId) {
@@ -53,12 +54,14 @@ public class ChatController {
     fetchAndSetTeamName(teamID);
     loadChatLog(); // teamIDがセットされた後に履歴を取得
   }
-
   public void setTeamName(String teamName) {
     this.teamName = teamName;
     if (teamNameLabel != null) {
       teamNameLabel.setText(teamName);
     }
+  }
+  public void setTeam(com.habit.domain.Team team) {
+    this.team = team;
   }
 
   /**
@@ -176,6 +179,7 @@ public class ChatController {
         controller.setTeamID(teamID);
         controller.setTeamName(teamName);
         controller.setCreatorId(creatorId);
+        controller.setTeam(team);
         javafx.stage.Stage stage =
             (javafx.stage.Stage)btnBackToTeamTop.getScene().getWindow();
         stage.setScene(new javafx.scene.Scene(root));

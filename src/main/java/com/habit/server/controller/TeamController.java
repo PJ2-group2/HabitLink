@@ -1,7 +1,6 @@
 package com.habit.server.controller;
 
 import com.habit.domain.Team;
-import com.habit.domain.TeamMode;
 import com.habit.server.repository.TaskRepository;
 import com.habit.server.repository.TeamRepository;
 import com.habit.server.repository.UserRepository;
@@ -157,8 +156,7 @@ public class TeamController {
         }
         if (creatorUserId == null)
           creatorUserId = "creator"; // フォールバック
-        Team team =
-            new Team(teamID, teamName, creatorUserId, TeamMode.FIXED_TASK_MODE);
+        Team team = new Team(teamID, teamName, creatorUserId, editPerm);
         team.setteamName(teamName);
         TeamRepository repo = new TeamRepository();
         repo.save(team, passcode, maxMembers, editPerm,
