@@ -542,28 +542,54 @@ public class TeamTopController {
                   setOnMouseClicked(null);
                   return;
                 }
-                setCursor(Cursor.CLOSED_HAND);
-                setOnMouseClicked(event -> {
-                  try {
-                    javafx.fxml.FXMLLoader loader =
-                        new javafx.fxml.FXMLLoader(getClass().getResource(
-                            "/com/habit/client/gui/PersonalPage.fxml"));
-                    javafx.scene.Parent root = loader.load();
-                    PersonalPageController controller = loader.getController();
-                    // 各データを渡す
-                    controller.setUserId(userId);
-                    controller.setTeamID(teamID);
-                    controller.setTeamName(teamName);
-                    // ユーザーのタスク一覧を渡す
-                    controller.setUserTasks(getUserTasksForPersonalPage());
-                    javafx.stage.Stage stage =
-                        (javafx.stage.Stage)btnToPersonal.getScene()
-                            .getWindow();
-                    stage.setScene(new javafx.scene.Scene(root));
-                    stage.setTitle("個人ページ");
-                  } catch (Exception ex) {
-                    ex.printStackTrace();
-                  }
+
+                logger.info("[TeamTopController] Total tasks to display: " + taskNames.size());
+                Platform.runLater(() -> {
+                    Callback<ListView<String>,ListCell<String>> cellFactory = p ->
+                    {
+                        ListCell<String> cell = new ListCell<String>()
+                        {
+                            @Override
+                            public void updateItem(String item,boolean empty)
+                            {
+                                super.updateItem(item,empty);
+
+                                if(item == null){
+                                    setText("");
+                                    setCursor(Cursor.DEFAULT);
+                                    setOnMouseClicked(null);
+                                    return;
+                                }
+                                setCursor(Cursor.CLOSED_HAND);
+                                setOnMouseClicked(event ->{
+                                    try {
+                                        javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/PersonalPage.fxml"));
+                                        javafx.scene.Parent root = loader.load();
+                                        PersonalPageController controller = loader.getController();
+                                        // 各データを渡す
+                                        controller.setUserId(userId);
+                                        controller.setTeamID(teamID);
+                                        controller.setTeamName(teamName);
+                                        // ユーザーのタスク一覧を渡す
+                                        controller.setUserTasks(getUserTasksForPersonalPage());
+                                        javafx.stage.Stage stage = (javafx.stage.Stage) btnToPersonal.getScene().getWindow();
+                                        stage.setScene(new javafx.scene.Scene(root));
+                                        stage.setTitle("個人ページ");
+                                    } catch (Exception ex) {
+                                        ex.printStackTrace();
+                                    }
+                                    });
+                                setText(item);
+                            }
+                        };
+                        int cellSize=80;
+                        cell.setPrefWidth(cellSize+20);
+                        cell.setPrefHeight(cellSize);
+                        return cell;
+                    }; 
+                    todayTaskList.setCellFactory(cellFactory);
+                    todayTaskList.getItems().setAll(taskNames);
+
                 });
                 setText(item);
                 String white = "#FF00FF";

@@ -5,14 +5,12 @@
 <?import javafx.scene.image.ImageView?>
 
 <BorderPane xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.habit.client.TeamTopController" prefWidth="900" prefHeight="600">
+      fx:controller="com.habit.client.TeamTopController" prefWidth="900" prefHeight="550" stylesheets="@TeamTop.css">
     <top>
         <HBox spacing="20" alignment="CENTER">
-            <Button fx:id="btnBackHome" text="ホームに戻る"/>
-            <Button fx:id="btnCreateTask" text="タスク作成"/>
+            <Button fx:id="btnBackHome" text="ホームに戻る" styleClass="custom-button"/>
+            <Button fx:id="btnCreateTask" text="タスク作成" styleClass="custom-button"/>
             <Label fx:id="teamNameLabel" text="チーム名" style="-fx-font-size: 22px; -fx-font-weight: bold;"/>
-            <Button fx:id="btnToPersonal" text="タスク消化ページへ"/>
-            <Button fx:id="btnToChat" text="チャットページへ"/>
             <Button fx:id="btnDebugReset" text="🔄 デバッグリセット" style="-fx-background-color: #ff6b6b; -fx-text-fill: white; -fx-font-weight: bold;"/>
         </HBox>
     </top>
@@ -35,15 +33,23 @@
             
             <!-- 右側: タスク表とその他の要素 -->
             <VBox spacing="10" prefWidth="580">
-                <TableView fx:id="taskTable" prefHeight="350"/>
+                <TableView fx:id="taskTable" styleClass="taskTable" prefHeight="350"/>
                 <HBox spacing="20">
                     <VBox>
-                        <Label text="本日の未消化タスク一覧"/>
-                        <ListView fx:id="todayTaskList" prefHeight="120" prefWidth="280"/>
+                        <HBox>
+                        <!-- 個人ページ移動ボタンの位置変更 -->
+                        <Button text="(！)" fx:id="btnToPersonal" styleClass="btnToChat" prefHeight="10"/>
+                        <Label text="本日の未消化タスク一覧" style="-fx-font-size: 12; -fx-padding: 3 0 0 0;"/>
+                        </HBox>
+                        <ListView fx:id="todayTaskList" prefHeight="120" prefWidth="280" styleClass="todayTaskList"/>
                     </VBox>
                     <VBox>
-                        <Label text="チームチャット"/>
-                        <ListView fx:id="chatList" prefHeight="90" prefWidth="280"/>
+                        <HBox>
+                        <!-- チャット移行ボタンの位置変更　-->
+                        <Button text="💭" fx:id="btnToChat" styleClass="btnToChat" prefHeight="10"/>
+                        <Label text="チームチャット" style="-fx-font-size: 12; -fx-padding:3 0 0 0;"/>
+                        </HBox>
+                        <ListView fx:id="chatList" prefHeight="120" prefWidth="280" styleClass="chatList"/>
                     </VBox>
                 </HBox>
             </VBox>
