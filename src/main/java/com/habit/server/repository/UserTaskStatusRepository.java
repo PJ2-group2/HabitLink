@@ -319,6 +319,25 @@ public class UserTaskStatusRepository {
         return status;
     }
 
+    // ユーザID・タスクIDで、本日以降の未完了のUserTaskStatusを検索し、最も日付が近いものを返す
+    public Optional<UserTaskStatus> findUpcomingIncompleteByUserIdAndTaskId(String userId, String taskId) {
+        try (Connection conn = DriverManager.getConnection(dbUrl)) {
+            String sql = "SELECT * FROM user_task_statuses WHERE userId = ? AND taskId = ? AND date >= ? AND isDone = 0 ORDER BY date ASC LIMIT 1";
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setString(1, userId);
+                pstmt.setString(2, taskId);
+                pstmt.setString(3, LocalDate.now().toString());
+                ResultSet rs = pstmt.executeQuery();
+                if (rs.next()) {
+                    return Optional.of(mapRowToStatus(rs));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return Optional.empty();
+    }
+
     // teamIdがnullでないユーザーのタスク状況を取得（チーム共通タスクのみ）
     public List<UserTaskStatus> findByUserIdAndDateAndTeamIdNotNull(String userId, LocalDate date) {
         List<UserTaskStatus> result = new ArrayList<>();

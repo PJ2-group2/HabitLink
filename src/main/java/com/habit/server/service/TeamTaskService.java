@@ -65,7 +65,7 @@ public class TeamTaskService {
                     memberId,
                     task.getTaskId(),
                     task.getTeamId(),
-                    today,
+                    task.getDueDate(), // タスクのdueDateをそのまま使用
                     false
                 );
                 userTaskStatusRepository.save(newStatus);
@@ -96,11 +96,11 @@ public class TeamTaskService {
                     newMemberId,
                     task.getTaskId(),
                     teamId,
-                        today,
-                        false
-                    );
-                    userTaskStatusRepository.save(newStatus);
-                }
+                    task.getDueDate(), // タスクのdueDateをそのまま使用
+                    false
+                );
+                userTaskStatusRepository.save(newStatus);
+            }
             
         }
     }
