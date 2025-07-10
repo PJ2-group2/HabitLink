@@ -47,7 +47,7 @@
                         <HBox>
                         <!-- チャット移行ボタンの位置変更　-->
                         <Button text="💭" fx:id="btnToChat" styleClass="btnToChat" prefHeight="10"/>
-                        <Label text="チームチャット" style="-fx-font-size: 12; -fx-padding:3 0 0 0;"/>
+                        <Button fx:id="btnToChatMain" text="💬 チャット" style="-fx-background-color:rgb(89, 163, 253); -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 16px; -fx-padding: 3 7;"/>
                         </HBox>
                         <ListView fx:id="chatList" prefHeight="120" prefWidth="280" styleClass="chatList"/>
                     </VBox>
