@@ -61,15 +61,11 @@ public class TeamTaskService {
                 memberId, task.getTaskId(), today).isPresent();
 
             if (!existsByTaskId) {
-                LocalDate targetDate = today;
-                if ("weekly".equals(task.getCycleType())) {
-                    targetDate = today.plusWeeks(1);
-                }
                 UserTaskStatus newStatus = new UserTaskStatus(
                     memberId,
                     task.getTaskId(),
                     task.getTeamId(),
-                    targetDate,
+                    task.getDueDate(), // タスクのdueDateをそのまま使用
                     false
                 );
                 userTaskStatusRepository.save(newStatus);
@@ -96,15 +92,11 @@ public class TeamTaskService {
                 newMemberId, task.getTaskId(), today).isPresent();
 
             if (!existsByTaskId) {
-                LocalDate targetDate = today;
-                if ("weekly".equals(task.getCycleType())) {
-                    targetDate = today.plusWeeks(1);
-                }
                 UserTaskStatus newStatus = new UserTaskStatus(
                     newMemberId,
                     task.getTaskId(),
                     teamId,
-                    targetDate,
+                    task.getDueDate(), // タスクのdueDateをそのまま使用
                     false
                 );
                 userTaskStatusRepository.save(newStatus);
