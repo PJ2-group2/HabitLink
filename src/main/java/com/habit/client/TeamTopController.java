@@ -39,6 +39,8 @@ public class TeamTopController {
   @FXML private Button btnToPersonal;
   /* チャットページへ遷移するボタン */
   @FXML private Button btnToChat;
+  /* メインチャットページへ遷移するボタン（新しい大きなボタン） */
+  @FXML private Button btnToChatMain;
   /* デバッグリセットボタン */
   @FXML private Button btnDebugReset;
   /* チームタスク一覧テーブル（型を汎用化） */
@@ -340,6 +342,29 @@ public class TeamTopController {
         controller.setTeam(team);
         javafx.stage.Stage stage =
             (javafx.stage.Stage)btnToChat.getScene().getWindow();
+        stage.setScene(new javafx.scene.Scene(root));
+        stage.setTitle("チームチャット");
+      } catch (Exception ex) {
+        ex.printStackTrace();
+      }
+    });
+
+    // メインチャットページへ遷移するボタンのアクション設定（新しい大きなボタン）
+    btnToChatMain.setOnAction(unused -> {
+      try {
+        javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
+            getClass().getResource("/com/habit/client/gui/Chat.fxml"));
+        javafx.scene.Parent root = loader.load();
+        // ChatControllerを取得
+        ChatController controller = loader.getController();
+        // 各データを渡す(この処理を全ての画面遷移で行ってください。)
+        controller.setUserId(userId);
+        controller.setTeamID(teamID);
+        controller.setTeamName(teamName);
+        controller.setCreatorId(creatorId);
+        controller.setTeam(team);
+        javafx.stage.Stage stage =
+            (javafx.stage.Stage)btnToChatMain.getScene().getWindow();
         stage.setScene(new javafx.scene.Scene(root));
         stage.setTitle("チームチャット");
       } catch (Exception ex) {
