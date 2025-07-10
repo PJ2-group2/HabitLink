@@ -339,6 +339,7 @@ public class HomeController {
             com.habit.client.TeamTopController controller = loader.getController();
             controller.setTeamName(selectedTeam.getteamName());
             controller.setTeamID(selectedTeam.getTeamID());
+            controller.setCreatorId(selectedTeam.getCreatorId()); // creatorIdを渡す
             if (userId != null) {
               controller.setUserId(userId);
             }

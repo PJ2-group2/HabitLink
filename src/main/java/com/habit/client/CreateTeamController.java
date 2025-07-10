@@ -159,6 +159,7 @@ public class CreateTeamController {
                     controller.setUserId(userId);
                     controller.setTeamName(teamName);
                     controller.setTeamID(createdTeamId); // チームIDは最後にセット
+                    controller.setCreatorId(userId); // チーム作成者のIDをセット
                     stage.setScene(new javafx.scene.Scene(root));
                     stage.setTitle("チームトップ");
 
