@@ -1,18 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
 
-<VBox xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.habit.client.SearchTeamController" spacing="15" alignment="CENTER" prefWidth="400" prefHeight="250">
-    <Label text="チーム検索（合言葉）" style="-fx-font-size: 18px;"/>
-    <HBox spacing="10" alignment="CENTER">
-        <TextField fx:id="passcodeField" promptText="合言葉を入力"/>
-        <Button fx:id="btnSearch" text="検索"/>
+<VBox alignment="CENTER" prefHeight="250" prefWidth="400" spacing="15" stylesheets="@SearchTeam.css" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.habit.client.SearchTeamController">
+    <Label style="-fx-font-size: 18px;" text="チーム検索（合言葉）" />
+    <HBox alignment="CENTER" spacing="10">
+        <TextField fx:id="passcodeField" promptText="合言葉を入力" />
+        <Button fx:id="btnSearch" text="検索" />
     </HBox>
-    <Label fx:id="resultLabel" text="" style="-fx-text-fill: green;"/>
-    <HBox spacing="10" alignment="CENTER">
-        <Button fx:id="btnJoin" text="参加" disable="true"/>
-        <Button fx:id="btnBackHome" text="ホームに戻る"/>
+    <Label fx:id="resultLabel" style="-fx-text-fill: green;" text="" />
+    <HBox alignment="CENTER" spacing="10">
+        <Button fx:id="btnJoin" disable="true" text="参加" />
+        <Button fx:id="btnBackHome" text="ホームに戻る" />
     </HBox>
 </VBox>
