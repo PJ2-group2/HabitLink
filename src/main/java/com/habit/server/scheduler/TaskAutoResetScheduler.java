@@ -94,6 +94,14 @@ public class TaskAutoResetScheduler {
         logger.info("スレッド: " + Thread.currentThread().getName());
         
         try {
+            // 1秒の遅延を挿入
+            try {
+                Thread.sleep(1000); // 1000ミリ秒 = 1秒
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt(); // 割り込みを再設定
+                logger.warn("タスク自動再設定の遅延中に割り込みが発生しました。", ie);
+            }
+
             // メイン処理を実行
             taskAutoResetService.runScheduledCheck();
             

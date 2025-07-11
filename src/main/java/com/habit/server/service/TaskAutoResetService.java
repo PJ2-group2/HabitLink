@@ -214,10 +214,9 @@ public class TaskAutoResetService {
                         int changeAmount;
 
                         if(oldStatus.isDone()) {
-                            // 完了していたらポイントを減らす（0未満にはしない）
-                            newPoints = Math.max(0, currentPoints - 1);
-                            changeAmount = newPoints - currentPoints;
-                            logger.info("[INFO] タスク完了により " + user.getUsername() + " のサボりポイントを減少");
+                            // ポイント処理は何もしない
+                            newPoints = currentPoints;
+                            changeAmount = 0;
                         } else {
                             // 未完了ならポイントを増やす（9を超えない）
                             newPoints = Math.min(9, currentPoints + 1);
