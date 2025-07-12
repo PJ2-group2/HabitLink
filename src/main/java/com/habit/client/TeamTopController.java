@@ -772,9 +772,10 @@ public class TeamTopController {
         // HTTPリクエストを送信するためのクライアントオブジェクトを作成
         HttpClient client = HttpClient.newHttpClient();
         // チャットログのURLを作成
+        // limitを大きめにして全件取得し、Java側で最新3件を抽出
         String url = chatLogUrl +
                      "?teamID=" + URLEncoder.encode(teamID, "UTF-8") +
-                     "&limit=3";
+                     "&limit=50";
         // リクエストを送信
         HttpRequest request = HttpRequest.newBuilder()
                                   .uri(URI.create(url))
@@ -793,13 +794,20 @@ public class TeamTopController {
           messages.add(com.habit.domain.Message.fromJson(obj));
         }
 
-        // タイムスタンプでソート
+
+        // タイムスタンプで降順（新しい順）にソート
         messages.sort(java.util.Comparator.comparing(
-            com.habit.domain.Message::getTimestamp));
+            com.habit.domain.Message::getTimestamp).reversed());
+
+        // 最新3件のみ抽出（新しい順）
+        List<com.habit.domain.Message> latestMessages = messages.size() >= 3 ? messages.subList(0, 3) : new ArrayList<>(messages);
+
+        // 表示時は古い順（下に新しいものが来る）に逆順にする
+        Collections.reverse(latestMessages);
 
         // ユーザー名とメッセージ内容のみの表示形式に整形
         List<String> chatItems = new ArrayList<>();
-        for (var msg : messages) {
+        for (var msg : latestMessages) {
           StringBuilder sb = new StringBuilder();
           sb.append('[' + msg.getSender().getUsername() + ']');
           sb.append(": " + msg.getContent());
