@@ -156,6 +156,17 @@ public class TeamController {
         }
         if (creatorUserId == null)
           creatorUserId = "creator"; // フォールバック
+
+        // チーム名の重複チェック
+        if (teamRepository.findTeamIdByName(teamName) != null) {
+          response = "{\"message\":\"そのチーム名は既に使用されています\"}";
+          exchange.sendResponseHeaders(409, response.getBytes().length);
+          OutputStream os = exchange.getResponseBody();
+          os.write(response.getBytes());
+          os.close();
+          return;
+        }
+
         Team team = new Team(teamID, teamName, creatorUserId, editPerm);
         team.setteamName(teamName);
         TeamRepository repo = new TeamRepository();
