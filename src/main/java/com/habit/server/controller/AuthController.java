@@ -133,7 +133,7 @@ public class AuthController {
           }
           response = "登録成功\nSESSION_ID:" + sessionId;
         } else {
-          response = "登録失敗";
+          response = "そのユーザー名は既に使用されています";
         }
       } else {
         response = "パラメータが不正です";

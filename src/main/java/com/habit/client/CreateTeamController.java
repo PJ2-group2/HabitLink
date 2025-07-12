@@ -168,7 +168,11 @@ public class CreateTeamController {
                     stage.setTitle("タスク作成");
                     */
                 } else {
-                    new Alert(Alert.AlertType.ERROR, body).showAndWait();
+                    if (body.contains("そのチーム名は既に使用されています")) {
+                        new Alert(Alert.AlertType.ERROR, "そのチーム名は既に使用されています").showAndWait();
+                    } else {
+                        new Alert(Alert.AlertType.ERROR, body).showAndWait();
+                    }
                 }
             } catch (Exception ex) {
                 ex.printStackTrace();
