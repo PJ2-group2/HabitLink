@@ -5,7 +5,7 @@
 <?import javafx.scene.image.ImageView?>
 
 <BorderPane xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.habit.client.TeamTopController" prefWidth="900" prefHeight="550" stylesheets="@TeamTop.css">
+      fx:controller="com.habit.client.TeamTopController" prefWidth="1200" prefHeight="550" stylesheets="@TeamTop.css">
     <top>
         <HBox spacing="20" alignment="CENTER">
             <Button fx:id="btnBackHome" text="ホームに戻る" styleClass="custom-button"/>
@@ -32,7 +32,7 @@
             </VBox>
             
             <!-- 右側: タスク表とその他の要素 -->
-            <VBox spacing="10" prefWidth="580">
+            <VBox spacing="10" prefWidth="880">
                 <TableView fx:id="taskTable" styleClass="taskTable" prefHeight="350"/>
                 <HBox spacing="20">
                     <VBox>
@@ -41,7 +41,7 @@
                         <Button text="(！)" fx:id="btnToPersonal" styleClass="btnToChat" prefHeight="10"/>
                         <Label text="本日の未消化タスク一覧" style="-fx-font-size: 12; -fx-padding: 3 0 0 0;"/>
                         </HBox>
-                        <ListView fx:id="todayTaskList" prefHeight="120" prefWidth="280" styleClass="todayTaskList"/>
+                        <ListView fx:id="todayTaskList" prefHeight="120" prefWidth="400" styleClass="todayTaskList"/>
                     </VBox>
                     <VBox>
                         <HBox>
@@ -49,7 +49,7 @@
                         <Button text="💭" fx:id="btnToChat" styleClass="btnToChat" prefHeight="10"/>
                         <Button fx:id="btnToChatMain" text="💬 チャット" style="-fx-background-color:rgb(89, 163, 253); -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 16px; -fx-padding: 3 7;"/>
                         </HBox>
-                        <ListView fx:id="chatList" prefHeight="120" prefWidth="280" styleClass="chatList"/>
+                        <ListView fx:id="chatList" prefHeight="120" prefWidth="500" styleClass="chatList"/>
                     </VBox>
                 </HBox>
             </VBox>

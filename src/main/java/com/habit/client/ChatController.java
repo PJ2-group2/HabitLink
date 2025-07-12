@@ -138,15 +138,15 @@ public class ChatController {
           setText(null);
           setContextMenu(null);
         } else {
-          // メッセージのテキストを設定
+          // メッセージのテキストを username:contents[timestamp] 形式で設定
           final String formatPattern = "yyyy-MM-dd HH:mm:ss";
           StringBuilder sb = new StringBuilder();
-          sb.append("[" +
-              message.getTimestamp().format(
-                  DateTimeFormatter.ofPattern(formatPattern)) +
-              "]");
-          sb.append("[" + message.getSender().getUsername() + "]");
-          sb.append(": " + message.getContent());
+          sb.append(message.getSender().getUsername());
+          sb.append(": ");
+          sb.append(message.getContent());
+          sb.append("[");
+          sb.append(message.getTimestamp().format(DateTimeFormatter.ofPattern(formatPattern)));
+          sb.append("]");
           setText(sb.toString());
 
           // 自分のメッセージの場合のみContextMenuを設定
