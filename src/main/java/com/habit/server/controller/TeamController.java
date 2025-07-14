@@ -157,6 +157,16 @@ public class TeamController {
         if (creatorUserId == null)
           creatorUserId = "creator"; // フォールバック
 
+        // あいことばの空チェック
+        if (passcode.trim().isEmpty()) {
+            response = "{\"message\":\"あいことばは必須です\"}";
+            exchange.sendResponseHeaders(400, response.getBytes().length);
+            OutputStream os = exchange.getResponseBody();
+            os.write(response.getBytes());
+            os.close();
+            return;
+        }
+
         // チーム名の重複チェック
         if (teamRepository.findTeamIdByName(teamName) != null) {
           response = "{\"message\":\"そのチーム名は既に使用されています\"}";
@@ -236,23 +246,34 @@ public class TeamController {
         } else {
           String memberId = user.getUserId();
           TeamRepository repo = new TeamRepository();
-          boolean ok = repo.addMemberByTeamName(teamName, memberId);
-          if (ok) {
-            String teamID = repo.findTeamIdByName(teamName);
-            if (teamID != null) {
-              user.addJoinedTeamId(teamID);
-              userRepository.save(user);
-              
-              // 新メンバーに既存のチーム共通タスクを自動紐づけ
-              try {
-                teamTaskService.createUserTaskStatusForNewMember(teamID, memberId);
-                logger.info("新メンバー {} にチーム {} の既存タスクを紐づけました", memberId, teamID);
-              } catch (Exception e) {
-                logger.error("チーム共通タスクの自動紐づけに失敗: {}", e.getMessage(), e);
+          int resultCode = repo.addMemberByTeamName(teamName, memberId);
+          switch (resultCode) {
+            case 1:
+              String teamID = repo.findTeamIdByName(teamName);
+              if (teamID != null) {
+                user.addJoinedTeamId(teamID);
+                userRepository.save(user);
+                
+                // 新メンバーに既存のチーム共通タスクを自動紐づけ
+                try {
+                  teamTaskService.createUserTaskStatusForNewMember(teamID, memberId);
+                  logger.info("新メンバー {} にチーム {} の既存タスクを紐づけました", memberId, teamID);
+                } catch (Exception e) {
+                  logger.error("チーム共通タスクの自動紐づけに失敗: {}", e.getMessage(), e);
+                }
               }
-            }
+              response = "参加成功";
+              break;
+            case 2:
+              response = "既にメンバーです";
+              break;
+            case 0:
+              response = "チームが満員です";
+              break;
+            default:
+              response = "参加失敗";
+              break;
           }
-          response = ok ? "参加成功" : "参加失敗";
         }
       }
       exchange.sendResponseHeaders(200, response.getBytes().length);

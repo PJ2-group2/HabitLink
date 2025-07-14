@@ -105,6 +105,11 @@ public class CreateTeamController {
                 return;
             }
 
+            if (passcode.isEmpty()) {
+                new Alert(Alert.AlertType.ERROR, "あいことばを入力してください").showAndWait();
+                return;
+            }
+
             // サーバ連携: key=value&...形式でPOST
             try {
                 StringBuilder sb = new StringBuilder();
