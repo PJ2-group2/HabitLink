@@ -23,7 +23,7 @@ public class User {
     this.userId = userId;
     this.username = username;
     this.hashedPassword = hashedPassword;
-    this.sabotagePoints = 4; // 初期サボりポイントは4
+    this.sabotagePoints = 25; // 初期サボりポイントは25
     this.joinedTeamIds = new java.util.ArrayList<>();
   }
 
@@ -32,7 +32,14 @@ public class User {
     return Objects.equals(this.hashedPassword, password);
   }
 
-  public void addSabotagePoints(int points) { this.sabotagePoints += points; }
+  public void addSabotagePoints(int points) {
+    this.sabotagePoints += points;
+    if (this.sabotagePoints > 50) {
+        this.sabotagePoints = 50;
+    } else if (this.sabotagePoints < 0) {
+        this.sabotagePoints = 0;
+    }
+  }
 
   public int getSabotagePoints() {
         return sabotagePoints;

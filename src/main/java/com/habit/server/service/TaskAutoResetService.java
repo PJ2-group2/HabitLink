@@ -209,18 +209,11 @@ public class TaskAutoResetService {
                     // isDoneを判定
                     com.habit.domain.User user = userRepository.findById(oldStatus.getUserId());
                     if (user != null) {
-                        int currentPoints = user.getSabotagePoints();
-                        int newPoints;
-                        int changeAmount;
-
                         if(oldStatus.isDone()) {
                             // ポイント処理は何もしない
-                            newPoints = currentPoints;
-                            changeAmount = 0;
                         } else {
-                            // 未完了ならポイントを増やす（9を超えない）
-                            newPoints = Math.min(9, currentPoints + 1);
-                            changeAmount = newPoints - currentPoints;
+                            // 未完了ならポイントを増やす
+                            user.addSabotagePoints(5);
                             logger.info("[INFO] タスク未完了により " + user.getUsername() + " のサボりポイントを増加 → サボり報告メッセージを送信");
 
                             // サボり報告メッセージを送信
@@ -249,9 +242,8 @@ public class TaskAutoResetService {
                         }
                         
                         try {
-                            user.setSabotagePoints(newPoints);
                             userRepository.save(user);
-                            logger.info("[SUCCESS] " + user.getUsername() + " のサボりポイントを " + currentPoints + " Ptから " + newPoints + " Ptに変更 (変動量: " + (changeAmount > 0 ? "+" : "") + changeAmount + ")");
+                            logger.info("[SUCCESS] " + user.getUsername() + " のサボりポイントを更新: " + user.getSabotagePoints() + " Pt");
                         } catch (Exception userSaveException) {
                             logger.error("[ERROR] ユーザーのサボりポイント保存に失敗: " + user.getUsername() + ", エラー=" + userSaveException.getMessage());
                             userSaveException.printStackTrace();
