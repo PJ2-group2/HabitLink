@@ -173,13 +173,13 @@ public class HomeController {
           int sabotagePoints = Integer.parseInt(body.trim());
 
           // サボりポイントに応じてレベルを計算 (0-9の範囲)
-          level = Math.max(0, 9 - sabotagePoints);
+          level = (50 - sabotagePoints) / 5;
 
           // サボりポイントが閾値を超えたら嫌がらせポップアップを表示
-          final int SABOTAGE_THRESHOLD = 5; // 5ポイント以上でポップアップ表示
+          final int SABOTAGE_THRESHOLD = 35; // 35ポイント以上でポップアップ表示
           if (sabotagePoints >= SABOTAGE_THRESHOLD) {
-            // レベルに応じてポップアップ数を増やす (5で1つ、6で2つ...)
-            int popupCount = 1 + (sabotagePoints - SABOTAGE_THRESHOLD);
+            // レベルに応じてポップアップ数を増やす (35で1つ、40で2つ...)
+            int popupCount = 1 + (sabotagePoints - SABOTAGE_THRESHOLD) / 5;
 
             Platform.runLater(() -> {
               java.util.Random random = new java.util.Random();

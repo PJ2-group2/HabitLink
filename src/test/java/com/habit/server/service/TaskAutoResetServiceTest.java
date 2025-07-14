@@ -180,9 +180,9 @@ class TaskAutoResetServiceTest {
         final LocalDate today = LocalDate.now(fixedClock);
         final LocalDate yesterday = today.minusDays(1);
 
-        // ユーザーを初期サボりポイント0で作成
+        // ユーザーを初期サボりポイント25で作成
         com.habit.domain.User user = new com.habit.domain.User(userId, "testuser5", "hashedpass");
-        user.setSabotagePoints(0);
+        user.setSabotagePoints(25);
         userRepository.save(user);
 
         // 毎日繰り返しのタスクを作成
@@ -197,10 +197,10 @@ class TaskAutoResetServiceTest {
         taskAutoResetService.checkAndResetTasks(teamId, today);
 
         // --- Then (検証) ---
-        // サボりポイントが1増加していることを確認
+        // サボりポイントが5増加していることを確認
         com.habit.domain.User updatedUser = userRepository.findById(userId);
         assertNotNull(updatedUser);
-        assertEquals(1, updatedUser.getSabotagePoints(), "未完了タスクでサボりポイントが1増加するはず");
+        assertEquals(30, updatedUser.getSabotagePoints(), "未完了タスクでサボりポイントが5増加するはず");
 
         // システムメッセージが送信されていることを確認
         List<MessageRepository.MessageEntry> messages = messageRepository.findMessagesByteamID(teamId, 10); // findByTeamId -> findMessagesByteamID, limit追加

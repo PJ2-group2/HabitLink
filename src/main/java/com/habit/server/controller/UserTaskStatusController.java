@@ -400,11 +400,9 @@ public class UserTaskStatusController {
                         com.habit.server.repository.UserRepository userRepo = new com.habit.server.repository.UserRepository();
                         com.habit.domain.User user = userRepo.findById(userId[0]);
                         if (user != null) {
-                            int currentPoints = user.getSabotagePoints();
-                            int newPoints = Math.max(0, currentPoints - 1); // 0未満にはしない
-                            user.setSabotagePoints(newPoints);
+                            user.addSabotagePoints(-1);
                             userRepo.save(user);
-                            logger.info("タスク完了によりサボりポイント更新: {} {}pt → {}pt", user.getUsername(), currentPoints, newPoints);
+                            logger.info("タスク完了によりサボりポイント更新: {} {}pt", user.getUsername(), user.getSabotagePoints());
                         }
                     } catch (Exception e) {
                         logger.error("サボりポイント更新エラー: {}", e.getMessage(), e);
