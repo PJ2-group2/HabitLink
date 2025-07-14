@@ -158,20 +158,34 @@ public class TeamRepository {
   }
 
   // チーム名でメンバー追加
-  public boolean addMemberByTeamName(String teamName, String memberId) {
+  public int addMemberByTeamName(String teamName, String memberId) {
     try (Connection conn = DriverManager.getConnection(databaseUrl)) {
       // まずteamID取得
-      String sql = "SELECT id FROM teams WHERE teamName = ?";
+      String sql = "SELECT id, maxMembers FROM teams WHERE teamName = ?";
       String teamID = null;
+      int maxMembers = 0;
       try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
         pstmt.setString(1, teamName);
         ResultSet rs = pstmt.executeQuery();
         if (rs.next()) {
           teamID = rs.getString("id");
+          maxMembers = rs.getInt("maxMembers");
         }
       }
       if (teamID == null)
-        return false;
+        return -1; // チームが存在しない
+
+      // 現在のメンバー数を取得
+      String countSql = "SELECT COUNT(memberId) FROM team_members WHERE teamID = ?";
+      int currentMembers = 0;
+      try (PreparedStatement pstmt = conn.prepareStatement(countSql)) {
+          pstmt.setString(1, teamID);
+          ResultSet rs = pstmt.executeQuery();
+          if (rs.next()) {
+              currentMembers = rs.getInt(1);
+          }
+      }
+
       // 既にメンバーかチェック
       String checkSql =
           "SELECT 1 FROM team_members WHERE teamID = ? AND memberId = ?";
@@ -180,8 +194,14 @@ public class TeamRepository {
         pstmt.setString(2, memberId);
         ResultSet rs = pstmt.executeQuery();
         if (rs.next())
-          return true; // 既にメンバー
+          return 2; // 既にメンバー
       }
+
+      // 上限人数チェック
+      if (currentMembers >= maxMembers) {
+          return 0; // 上限到達
+      }
+
       // 追加
       String insSql =
           "INSERT INTO team_members (teamID, memberId) VALUES (?, ?)";
@@ -190,11 +210,11 @@ public class TeamRepository {
         pstmt.setString(2, memberId);
         pstmt.executeUpdate();
       }
-      return true;
+      return 1; // 参加成功
     } catch (SQLException e) {
       e.printStackTrace();
     }
-    return false;
+    return -1; // エラー
   }
 
   // 新しいsave: 追加情報も保存
