@@ -58,11 +58,22 @@ public class Message {
   public JSONObject toJson() {
     JSONObject json = new JSONObject();
     json.put("messageId", messageId);
-    json.put("sender", sender.toJson());
+    // senderがnullの場合の安全処理
+    if (sender != null) {
+      json.put("sender", sender.toJson());
+    } else {
+      // システムメッセージ用の代替sender情報
+      JSONObject systemSender = new JSONObject();
+      systemSender.put("userId", "system");
+      systemSender.put("username", "System");
+      systemSender.put("password", "");
+      json.put("sender", systemSender);
+    }
     json.put("teamID", teamID);
     json.put("content", content);
     json.put("timestamp", timestamp.toString());
-    json.put("type", type.name());
+    // typeがnullの場合の安全処理
+    json.put("type", type != null ? type.name() : "NORMAL");
     return json;
   }
 

@@ -1,5 +1,6 @@
 package com.habit.client;
 
+import com.habit.domain.util.Config;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -10,8 +11,11 @@ import javafx.stage.Stage;
 import javafx.scene.Parent;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SearchTeamController {
+    private static final Logger logger = LoggerFactory.getLogger(SearchTeamController.class);
     /** 合言葉入力フィールド */
     @FXML 
     private TextField passcodeField;
@@ -37,11 +41,11 @@ public class SearchTeamController {
 
     public void setUserId(String userId) {
         this.userId = userId;
-        System.out.println("userId set: " + userId);
+        logger.info("userId set: {}", userId);
     }
 
     public void setTeamID(String teamID) {
-        System.out.println("teamID set: " + teamID);
+        logger.info("teamID set: {}", teamID);
         this.teamID = teamID;
     }
 
@@ -75,7 +79,7 @@ public class SearchTeamController {
                 HttpClient client = HttpClient.newHttpClient();
                 // リクエストを構築
                 HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("http://localhost:8080/findTeamByPasscode?passcode=" + java.net.URLEncoder.encode(passcode, "UTF-8")))
+                    .uri(URI.create(Config.getServerUrl() + "/findTeamByPasscode?passcode=" + java.net.URLEncoder.encode(passcode, "UTF-8")))
                     .GET()
                     .build();
                 // レスポンスを取得
@@ -106,7 +110,7 @@ public class SearchTeamController {
                 // HTTPクライアントを作成
                 HttpClient client = HttpClient.newHttpClient();
                 // リクエストURLを組み立て
-                String url = "http://localhost:8080/joinTeam?teamName=" + java.net.URLEncoder.encode(foundTeamName, "UTF-8");
+                String url = Config.getServerUrl() + "/joinTeam?teamName=" + java.net.URLEncoder.encode(foundTeamName, "UTF-8");
                 String sessionId = com.habit.client.LoginController.getSessionId();
                 // リクエストビルダーを使用してリクエストを構築
                 HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
@@ -128,14 +132,16 @@ public class SearchTeamController {
                     
                     // チームトップ画面へ遷移
                     Stage stage = (Stage) btnJoin.getScene().getWindow();
-                    FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/habit/client/gui/TeamTop.fxml"));
+                    // ホーム画面に遷移
+                    FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/habit/client/gui/Home.fxml"));
                     Parent root = loader.load();
-                    TeamTopController controller = loader.getController();
-                    controller.setTeamName(foundTeamName);
-                    controller.setUserId(userId);
-                    controller.setTeamID(actualTeamId); // 正しいチームIDを設定
+
+                    // HomeControllerにデータを渡す必要があればここで渡します
+                    // HomeController homeController = loader.getController();
+                    // homeController.setUserId(userId);
+                    
                     stage.setScene(new Scene(root));
-                    stage.setTitle("チームトップ");
+                    stage.setTitle("ホーム");
                 } else {
                     resultLabel.setText("参加失敗: " + body);
                 }
@@ -165,7 +171,7 @@ public class SearchTeamController {
     private String getTeamIdByPasscode(String passcode) {
         try {
             HttpClient client = HttpClient.newHttpClient();
-            String url = "http://localhost:8080/getTeamIdByPasscode?passcode=" + java.net.URLEncoder.encode(passcode, "UTF-8");
+            String url = Config.getServerUrl() + "/getTeamIdByPasscode?passcode=" + java.net.URLEncoder.encode(passcode, "UTF-8");
             HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .GET()
@@ -176,7 +182,7 @@ public class SearchTeamController {
                 return teamId.trim();
             }
         } catch (Exception ex) {
-            System.err.println("チームID取得エラー: " + ex.getMessage());
+            logger.error("チームID取得エラー: {}", ex.getMessage(), ex);
         }
         // 取得できない場合はパスコードをフォールバックとして使用
         return passcode;

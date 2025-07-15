@@ -1,0 +1,35 @@
+.root{
+	-fx-background-color: #e0ffff;
+}
+
+
+.button{
+	-fx-background-color:  #90caf9;
+	-fx-background-radius: 20pt;
+	-fx-border-width: 1pt;
+	-fx-border-color: #90caf9;
+	-fx-border-radius: 20pt;
+}
+
+.button:hover, .button:focused{
+	-fx-background-color: #b3d8fa;
+	-fx-border-color: #000080;
+}
+
+.listView{
+	-fx-focus-traversable: false;
+	-fx-background-radius: 20pt;
+	-fx-background-insets: 0; 
+	-fx-padding: 8;
+}
+
+.listView .list-cell{
+	-fx-background-color: #f0ffff;
+	-fx-background-radius: 20pt;
+	-fx-background-insets: 1;
+	-fx-padding: 8;
+}
+
+.listView .list-cell:filled{
+	-fx-background-color: #b3d8fa;
+}

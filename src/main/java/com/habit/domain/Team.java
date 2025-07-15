@@ -10,15 +10,15 @@ public class Team {
     private String teamID;
     private String teamName;
     private String creatorId;
-    private TeamMode mode;
+    private String editPermission; // modeから変更
     private List<String> memberIds;
     private List<Task> teamTasks;
 
-    public Team(String teamID, String teamName, String creatorId, TeamMode mode) {
+    public Team(String teamID, String teamName, String creatorId, String editPermission) {
         this.teamID = teamID;
         this.teamName = teamName;
         this.creatorId = creatorId;
-        this.mode = mode;
+        this.editPermission = editPermission; // modeから変更
         this.memberIds = new ArrayList<>();
         this.teamTasks = new ArrayList<>();
     }
@@ -38,13 +38,12 @@ public class Team {
     }
 
     public void addTeamTask(Task task) {
-        if (mode == TeamMode.FIXED_TASK_MODE) {
-            teamTasks.add(task);
-        }
+        // タスク追加ロジックは一旦シンプルにします（必要に応じて復活させます）
+        teamTasks.add(task);
     }
 
-    public TeamMode getMode() {
-        return mode;
+    public String getEditPermission() { // getModeから変更
+        return editPermission;
     }
 
     public String getTeamID() {

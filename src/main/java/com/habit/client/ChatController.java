@@ -1,5 +1,6 @@
 package com.habit.client;
 
+import com.habit.domain.util.Config;
 import com.habit.domain.Message;
 import java.net.*;
 import java.net.http.HttpClient;
@@ -11,12 +12,16 @@ import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import org.json.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ChatController {
+  private static final Logger logger =
+      LoggerFactory.getLogger(ChatController.class);
   /* チーム名ラベル */
   @FXML private Label teamNameLabel;
   /* チャットリスト */
-  @FXML private ListView<String> chatList;
+  @FXML private ListView<Message> chatList;
   /* チャット入力フィールド */
   @FXML private TextField chatInput;
   /* チャット送信ボタン */
@@ -24,13 +29,23 @@ public class ChatController {
   /* チームトップに戻るボタン */
   @FXML private Button btnBackToTeamTop;
 
-  private final String serverUrl = "http://localhost:8080/sendChatMessage";
-  private final String chatLogUrl = "http://localhost:8080/getChatLog";
+  private final String serverUrl = Config.getServerUrl() +
+     "/sendChatMessage";
+  private final String chatLogUrl = Config.getServerUrl() +
+     "/getChatLog";
 
   // 遷移時に渡すデータとセッター
   private String userId;
   private String teamID;
   private String teamName = "チーム名未取得";
+  private String creatorId;
+  private com.habit.domain.Team team;
+
+  // creatorIdのセッター
+  public void setCreatorId(String creatorId) {
+    logger.info("creatorId set: " + creatorId);
+    this.creatorId = creatorId;
+  }
 
   public void setUserId(String userId) { this.userId = userId; }
 
@@ -39,12 +54,14 @@ public class ChatController {
     fetchAndSetTeamName(teamID);
     loadChatLog(); // teamIDがセットされた後に履歴を取得
   }
-
   public void setTeamName(String teamName) {
     this.teamName = teamName;
     if (teamNameLabel != null) {
       teamNameLabel.setText(teamName);
     }
+  }
+  public void setTeam(com.habit.domain.Team team) {
+    this.team = team;
   }
 
   /**
@@ -55,7 +72,7 @@ public class ChatController {
     new Thread(() -> {
       try {
         HttpClient client = HttpClient.newHttpClient();
-        String urlStr = "http://localhost:8080/getTeamName?teamID=" +
+        String urlStr = Config.getServerUrl() + "/getTeamName?teamID=" +
                         URLEncoder.encode(teamID, "UTF-8");
         HttpRequest request = HttpRequest.newBuilder()
                                   .uri(URI.create(urlStr))
@@ -91,6 +108,57 @@ public class ChatController {
       teamNameLabel.setText(teamName);
     }
 
+    // ListViewのセルファリを設定
+    chatList.setCellFactory(lv -> new ListCell<Message>() {
+      private final ContextMenu contextMenu = new ContextMenu();
+      private final MenuItem deleteItem = new MenuItem("削除");
+
+      {
+        deleteItem.setOnAction(event -> {
+          Message selectedMessage = getItem();
+          if (selectedMessage != null) {
+            Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+            alert.setTitle("確認");
+            alert.setHeaderText("メッセージの削除");
+            alert.setContentText("本当にこのメッセージを削除しますか？");
+
+            Optional<ButtonType> result = alert.showAndWait();
+            if (result.isPresent() && result.get() == ButtonType.OK) {
+              deleteChatMessage(selectedMessage.getMessageId());
+            }
+          }
+        });
+        contextMenu.getItems().add(deleteItem);
+      }
+
+      @Override
+      protected void updateItem(Message message, boolean empty) {
+        super.updateItem(message, empty);
+        if (empty || message == null) {
+          setText(null);
+          setContextMenu(null);
+        } else {
+          // メッセージのテキストを username:contents[timestamp] 形式で設定
+          final String formatPattern = "yyyy-MM-dd HH:mm:ss";
+          StringBuilder sb = new StringBuilder();
+          sb.append(message.getSender().getUsername());
+          sb.append(": ");
+          sb.append(message.getContent());
+          sb.append("[");
+          sb.append(message.getTimestamp().format(DateTimeFormatter.ofPattern(formatPattern)));
+          sb.append("]");
+          setText(sb.toString());
+
+          // 自分のメッセージの場合のみContextMenuを設定
+          if (message.getSender().getUserId().equals(userId)) {
+            setContextMenu(contextMenu);
+          } else {
+            setContextMenu(null);
+          }
+        }
+      }
+    });
+
     // チャット送信ボタンのアクション設定
     btnSend.setOnAction(unused -> {
       String msg = chatInput.getText();
@@ -110,6 +178,8 @@ public class ChatController {
         controller.setUserId(userId);
         controller.setTeamID(teamID);
         controller.setTeamName(teamName);
+        controller.setCreatorId(creatorId);
+        controller.setTeam(team);
         javafx.stage.Stage stage =
             (javafx.stage.Stage)btnBackToTeamTop.getScene().getWindow();
         stage.setScene(new javafx.scene.Scene(root));
@@ -149,23 +219,7 @@ public class ChatController {
         // sort according to time stamp
         messages.sort(Comparator.comparing(Message::getTimestamp));
 
-        // sort and format messages
-        List<String> chatItems = new ArrayList<>();
-        // format is [timestamp][usrname]: [content]
-        for (var msg : messages) {
-          final String formatPattern = "yyyy-MM-dd HH:mm:ss";
-
-          StringBuilder sb = new StringBuilder();
-          sb.append('[' +
-                    msg.getTimestamp().format(
-                        DateTimeFormatter.ofPattern(formatPattern)) +
-                    ']');
-          sb.append('[' + msg.getSender().getUsername() + ']');
-          sb.append(": " + msg.getContent());
-          chatItems.add(sb.toString());
-        }
-
-        Platform.runLater(() -> { chatList.getItems().setAll(chatItems); });
+        Platform.runLater(() -> { chatList.getItems().setAll(messages); });
       } catch (Exception e) {
         e.printStackTrace();
       }
@@ -195,6 +249,32 @@ public class ChatController {
                 .build();
         HttpResponse<String> response =
             client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() == 200) {
+          loadChatLog();
+        }
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }).start();
+  }
+
+  /**
+   * チャットメッセージをサーバーから削除するメソッド。 
+   * 新しいスレッドで実行される。
+   *
+   * @param messageId 削除するメッセージのID
+   */
+  private void deleteChatMessage(String messageId) {
+    new Thread(() -> {
+      try {
+        HttpClient client = HttpClient.newHttpClient();
+        String deleteUrl = Config.getServerUrl() + "/deleteChatMessage?message_id=" + URLEncoder.encode(messageId, "UTF-8");
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(deleteUrl))
+            .timeout(java.time.Duration.ofSeconds(3))
+            .DELETE()
+            .build();
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() == 200) {
           loadChatLog();
         }

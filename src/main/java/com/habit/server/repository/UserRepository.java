@@ -98,8 +98,7 @@ public class UserRepository {
   private User mapRowToUser(ResultSet rs) throws SQLException {
     User user = new User(rs.getString("userId"), rs.getString("username"),
                          rs.getString("hashedPassword"));
-    user.addSabotagePoints(rs.getInt("sabotagePoints") -
-                           user.getSabotagePoints());
+    user.setSabotagePoints(rs.getInt("sabotagePoints"));
     // joinedTeamIdsを復元
     String joined = rs.getString("joinedTeamIds");
     if (joined != null && !joined.isEmpty()) {

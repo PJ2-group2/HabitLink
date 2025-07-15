@@ -1,5 +1,6 @@
 package com.habit.client;
 
+import com.habit.domain.util.Config;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -8,11 +9,14 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
 import java.time.LocalTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * タスク作成画面のコントローラー
  */
 public class TaskCreateController {
+    private static final Logger logger = LoggerFactory.getLogger(TaskCreateController.class);
     /* タスク名入力フィールド */
     @FXML 
     private TextField taskNameField;
@@ -36,17 +40,24 @@ public class TaskCreateController {
     private String userId;
     private String teamID;
     private String teamName = "チーム名未取得";
+    private String creatorId;
+    private com.habit.domain.Team team;
 
     public void setUserId(String userId) {
         this.userId = userId;
     }
-
     public void setTeamID(String teamID) {
         this.teamID = teamID;
     }
-
     public void setTeamName(String teamName) {
         this.teamName = teamName;
+    }
+    public void setCreatorId(String creatorId) {
+        logger.info("creatorId set: " + creatorId);
+        this.creatorId = creatorId;
+    }
+    public void setTeam(com.habit.domain.Team team) {
+        this.team = team;
     }
 
     /**
@@ -114,7 +125,7 @@ public class TaskCreateController {
             return;
         }
         // ログ出力
-        System.out.println("タスク作成: " +
+        logger.info("タスク作成: " +
             "taskId=" + task.getTaskId() +
             ", name=" + task.getTaskName() +
             ", description=" + task.getDescription() +
@@ -132,12 +143,12 @@ public class TaskCreateController {
                 + "&cycleType=" + java.net.URLEncoder.encode(task.getCycleType(), "UTF-8")
                 + "&teamID=" + java.net.URLEncoder.encode(teamID, "UTF-8");
             HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:8080/saveTask"))
+                .uri(URI.create(Config.getServerUrl() + "/saveTask"))
                 .header("Content-Type", "application/x-www-form-urlencoded")
                 .POST(HttpRequest.BodyPublishers.ofString(body))
                 .build();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            System.out.println("タスク保存APIレスポンス: " + response.body());
+            logger.info("タスク保存APIレスポンス: " + response.body());
         } catch (Exception e) {
             showAlert("タスク保存APIエラー: " + e.getMessage());
             return;
@@ -156,6 +167,8 @@ public class TaskCreateController {
             controller.setUserId(userId);
             controller.setTeamID(teamID);
             controller.setTeamName(teamName);
+            controller.setCreatorId(creatorId);
+            controller.setTeam(team);
             stage.setScene(new javafx.scene.Scene(root));
             stage.setTitle("チームトップ");
             stage.show();
@@ -176,6 +189,8 @@ public class TaskCreateController {
             controller.setUserId(userId);
             controller.setTeamID(teamID);
             controller.setTeamName(teamName);
+            controller.setCreatorId(creatorId);
+            controller.setTeam(team);
             stage.setScene(new javafx.scene.Scene(root));
             stage.setTitle("チームトップ");
             stage.show();

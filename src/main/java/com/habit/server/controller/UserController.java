@@ -65,28 +65,39 @@ public class UserController {
       if (headers.containsKey("SESSION_ID")) {
         sessionId = headers.getFirst("SESSION_ID");
       }
-      String response = "joinedTeamIds=";
+
+      org.json.JSONObject responseObject = new org.json.JSONObject();
+      org.json.JSONArray responseArray = new org.json.JSONArray();
+      String currentUserId = null;
+
       if (sessionId != null) {
         User user = authService.getUserBySession(sessionId);
         if (user != null) {
+          currentUserId = user.getUserId();
           List<String> teamIds = user.getJoinedTeamIds();
-          response = "userId=" + user.getUserId();
-          response += "\njoinedTeamIds=" + String.join(",", teamIds);
-          // チーム名も取得
-          List<String> teamNames = new ArrayList<>();
           for (String id : teamIds) {
-            String name = teamRepository.findTeamNameById(id);
-            if (name == null)
-              name = id;
-            teamNames.add(name);
+            com.habit.domain.Team team = teamRepository.findById(id);
+            if (team != null) {
+              org.json.JSONObject teamJson = new org.json.JSONObject();
+              teamJson.put("teamId", team.getTeamID());
+              teamJson.put("teamName", team.getteamName());
+              teamJson.put("creatorId", team.getCreatorId());
+              teamJson.put("editPermission", team.getEditPermission()); // ★ 不足していた行を追加
+              responseArray.put(teamJson);
+            }
           }
-          response += "\njoinedTeamNames=" + String.join(",", teamNames);
         }
       }
-      exchange.sendResponseHeaders(200, response.getBytes().length);
-      OutputStream os = exchange.getResponseBody();
-      os.write(response.getBytes());
-      os.close();
+
+      responseObject.put("teams", responseArray);
+      responseObject.put("userId", currentUserId);
+
+      String response = responseObject.toString();
+      exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+      exchange.sendResponseHeaders(200, response.getBytes("UTF-8").length);
+      try (OutputStream os = exchange.getResponseBody()) {
+        os.write(response.getBytes("UTF-8"));
+      }
     }
   }
 

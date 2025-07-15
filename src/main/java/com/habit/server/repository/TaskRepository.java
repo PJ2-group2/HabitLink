@@ -5,8 +5,11 @@ import com.habit.domain.UserTaskStatus;
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TaskRepository {
+  private static final Logger logger = LoggerFactory.getLogger(TaskRepository.class);
   private final String databaseUrl;
   private static final String DB_URL = "jdbc:sqlite:habit.db";
 
@@ -65,8 +68,7 @@ public class TaskRepository {
       }
       if (hasTask && !hasTaskName) {
         // SQLiteは直接カラム名変更できないため、手動で対応が必要
-        System.out.println("注意: tasksテーブルのカラム 'task' を 'taskName' "
-                           + "にリネームしてください。");
+        logger.warn("注意: tasksテーブルのカラム 'task' を 'taskName' にリネームしてください。");
       }
 
       // ユーザーごとのタスク達成状況
@@ -252,5 +254,32 @@ public class TaskRepository {
       e.printStackTrace();
     }
     return list;
+  }
+
+  /*
+   * タスクIDでタスクを取得
+   */
+  public Task findById(String taskId) {
+    try (Connection conn = DriverManager.getConnection(databaseUrl)) {
+      String sql = "SELECT * FROM tasks WHERE taskId = ?";
+      try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        pstmt.setString(1, taskId);
+        ResultSet rs = pstmt.executeQuery();
+        if (rs.next()) {
+          Task task = new Task(
+              rs.getString("taskId"), rs.getString("taskName"),
+              rs.getString("description"), 
+              rs.getString("teamID"),
+              rs.getString("dueDate") != null
+                  ? java.time.LocalDate.parse(rs.getString("dueDate"))
+                  : null,
+              rs.getString("cycleType"));
+          return task;
+        }
+      }
+    } catch (SQLException e) {
+      e.printStackTrace();
+    }
+    return null;
   }
 }

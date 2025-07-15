@@ -11,8 +11,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
 import org.json.JSONArray;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MessageController {
+  private static final Logger logger = LoggerFactory.getLogger(MessageController.class);
   private final MessageRepository messageRepository;
   private final UserRepository userRepository;
 
@@ -28,6 +31,10 @@ public class MessageController {
 
   public HttpHandler getSendChatMessageHandler() {
     return this.new SendChatMessageHandler();
+  }
+
+  public HttpHandler getDeleteChatMessageHandler() {
+    return this.new DeleteChatMessageHandler();
   }
 
   private class GetChatLogHandler implements HttpHandler {
@@ -56,6 +63,11 @@ public class MessageController {
               messageRepository.findMessagesByteamID(teamID, limit);
           for (var entry : messages) {
             User sender = userRepository.findById(entry.senderId);
+            // senderがnullの場合（例：システムユーザー）のための代替処理
+            if (sender == null) {
+                // システムメッセージ用の代替ユーザーを作成
+                sender = new User(entry.senderId, "System", "");
+            }
             Message msg = new Message(entry.id, sender, entry.teamId,
                                       entry.content, MessageType.NORMAL);
             msg.setTimeStamp(entry.time);
@@ -146,11 +158,63 @@ public class MessageController {
                                     com.habit.domain.MessageType.NORMAL);
       messageRepository.save(message);
 
-      System.out.println(
-          "[チャット] teamID=" + teamID + ", senderId=" + senderId +
-          ", username=" + sender.getUsername() + ", content=" + content);
+      logger.info(
+          "[チャット] teamID={} , senderId={} , username={} , content={}",
+          teamID,
+          senderId,
+          sender.getUsername(),
+          content);
 
       respond(exchange, 200, "チャット送信成功");
+    }
+  }
+
+
+  /**
+   * チャットメッセージ削除用のハンドラー。
+   * DELETEメソッドでリクエストを受け、message_idパラメータで指定されたメッセージを削除する。
+   */
+  private class DeleteChatMessageHandler implements HttpHandler {
+    public void respond(HttpExchange exchange, int code, String response)
+        throws IOException {
+      exchange.sendResponseHeaders(code, response.getBytes().length);
+      OutputStream os = exchange.getResponseBody();
+      os.write(response.getBytes());
+      os.close();
+    }
+
+    @Override
+    public void handle(HttpExchange exchange) throws IOException {
+      if (!"DELETE".equals(exchange.getRequestMethod())) {
+        respond(exchange, 405, "DELETEメソッドのみ対応");
+        return;
+      }
+
+      String query = exchange.getRequestURI().getQuery();
+      String messageId = null;
+      if (query != null) {
+        String[] params = query.split("&");
+        for (String param : params) {
+          if (param.startsWith("message_id=")) {
+            messageId = java.net.URLDecoder.decode(param.substring(11), "UTF-8");
+            break;
+          }
+        }
+      }
+
+      if (messageId == null) {
+        respond(exchange, 400, "パラメータが不正です");
+        return;
+      }
+
+      try {
+        messageRepository.delete(messageId);
+        logger.info("[チャット] messageId={} のメッセージを削除しました", messageId);
+        respond(exchange, 200, "メッセージ削除成功");
+      } catch (Exception e) {
+        logger.error("Error deleting message: {}", e.getMessage(), e);
+        respond(exchange, 500, "サーバー内部エラー");
+      }
     }
   }
 }

@@ -1,5 +1,6 @@
 package com.habit.client;
 
+import com.habit.domain.util.Config;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -8,8 +9,11 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class CreateTeamController {
+    private static final Logger logger = LoggerFactory.getLogger(CreateTeamController.class);
     /** チーム名入力フィールド */
     @FXML
     private TextField teamNameField;
@@ -44,12 +48,12 @@ public class CreateTeamController {
 
     public void setUserId(String userId) {
         this.userId = userId;
-        System.out.println("userId set: " + userId);
+        logger.info("userId set: {}", userId);
     }
 
     public void setTeamID(String teamID) {
         this.teamID = teamID;
-        System.out.println("teamID set: " + teamID);
+        logger.info("teamID set: {}", teamID);
     }
 
     private ObservableList<String> invitedMembers = FXCollections.observableArrayList(); // 招待されたメンバーのリスト
@@ -63,7 +67,7 @@ public class CreateTeamController {
         // 初期値設定
         maxMembersSpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 30, 5));
         editPermissionChoice.setItems(FXCollections.observableArrayList("自分だけ", "自由"));
-        editPermissionChoice.getSelectionModel().selectFirst();
+        editPermissionChoice.setValue("自由");
         inviteList.setItems(invitedMembers);
 
         // メンバー追加ボタンのアクション設定
@@ -101,6 +105,11 @@ public class CreateTeamController {
                 return;
             }
 
+            if (passcode.isEmpty()) {
+                new Alert(Alert.AlertType.ERROR, "あいことばを入力してください").showAndWait();
+                return;
+            }
+
             // サーバ連携: key=value&...形式でPOST
             try {
                 StringBuilder sb = new StringBuilder();
@@ -114,7 +123,7 @@ public class CreateTeamController {
                 HttpClient client = HttpClient.newHttpClient();
                 // リクエストビルダーを使用してリクエストを構築
                 HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()
-                    .uri(URI.create("http://localhost:8080/createTeam"))
+                    .uri(URI.create(Config.getServerUrl() + "/createTeam"))
                     .header("Content-Type", "application/x-www-form-urlencoded");
                 // セッションIDをヘッダに付与
                 String sessionId = LoginController.getSessionId();
@@ -149,14 +158,10 @@ public class CreateTeamController {
                     }
                     
                     javafx.stage.Stage stage = (javafx.stage.Stage) btnCreateTeam.getScene().getWindow();
-                    javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/TeamTop.fxml"));
+                    javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/com/habit/client/gui/Home.fxml"));
                     javafx.scene.Parent root = loader.load();
-                    TeamTopController controller = loader.getController();
-                    controller.setUserId(userId);
-                    controller.setTeamName(teamName);
-                    controller.setTeamID(createdTeamId); // チームIDは最後にセット
                     stage.setScene(new javafx.scene.Scene(root));
-                    stage.setTitle("チームトップ");
+                    stage.setTitle("ホーム");
 
                     // チーム作成後すぐタスク作成画面に遷移する場合はこちら
                     /*
@@ -168,7 +173,11 @@ public class CreateTeamController {
                     stage.setTitle("タスク作成");
                     */
                 } else {
-                    new Alert(Alert.AlertType.ERROR, body).showAndWait();
+                    if (body.contains("そのチーム名は既に使用されています")) {
+                        new Alert(Alert.AlertType.ERROR, "そのチーム名は既に使用されています").showAndWait();
+                    } else {
+                        new Alert(Alert.AlertType.ERROR, body).showAndWait();
+                    }
                 }
             } catch (Exception ex) {
                 ex.printStackTrace();

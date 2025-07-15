@@ -42,6 +42,9 @@ public class AuthService {
    * 新規登録し、セッションIDを発行して返す
    */
   public String registerAndCreateSession(String username, String password) {
+    if (userRepository.findByUsername(username) != null) {
+      return null; // ユーザー名が既に存在する場合はnullを返す
+    }
     User user =
         new User(java.util.UUID.randomUUID().toString(), username, password);
     userRepository.save(user);

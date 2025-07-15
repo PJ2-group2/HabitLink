@@ -1,5 +1,6 @@
 package com.habit.client;
 
+import com.habit.domain.util.Config;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -9,6 +10,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 
 /**
  * ログイン画面のコントローラークラス。
@@ -76,8 +79,8 @@ public class LoginController {
       HttpClient client = HttpClient.newHttpClient();
 
       // モードに応じてURLを切り替え、送信先URLを組み立てる。
-      String url = isRegisterMode ? "http://localhost:8080/register"
-                                  : "http://localhost:8080/login";
+      String url = isRegisterMode ? Config.getServerUrl() + "/register"
+                                  : Config.getServerUrl() + "/login";
 
       // username, passwordをbodyに含める
       String body =
@@ -126,11 +129,30 @@ public class LoginController {
         });
       } else {
         // サーバーからのメッセージを表示
-        loginStatusLabel.setText(responseBody);
+        if (responseBody.contains("そのユーザー名は既に使用されています")) {
+            showAlert("登録エラー", "そのユーザー名は既に使用されています。");
+        } else {
+            loginStatusLabel.setText(responseBody);
+        }
       }
     } catch (Exception ex) {
       // サーバー接続エラー時の処理
       loginStatusLabel.setText("サーバ接続エラー: " + ex.getMessage());
     }
+  }
+
+  /**
+   * エラーメッセージを表示するためのヘルパーメソッド。
+   * アラートダイアログを表示する。
+   *
+   * @param title アラートのタイトル
+   * @param content アラートの内容
+   */
+  private void showAlert(String title, String content) {
+    Alert alert = new Alert(AlertType.ERROR);
+    alert.setTitle(title);
+    alert.setHeaderText(null);
+    alert.setContentText(content);
+    alert.showAndWait();
   }
 }

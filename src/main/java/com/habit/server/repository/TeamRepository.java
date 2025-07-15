@@ -158,20 +158,34 @@ public class TeamRepository {
   }
 
   // チーム名でメンバー追加
-  public boolean addMemberByTeamName(String teamName, String memberId) {
+  public int addMemberByTeamName(String teamName, String memberId) {
     try (Connection conn = DriverManager.getConnection(databaseUrl)) {
       // まずteamID取得
-      String sql = "SELECT id FROM teams WHERE teamName = ?";
+      String sql = "SELECT id, maxMembers FROM teams WHERE teamName = ?";
       String teamID = null;
+      int maxMembers = 0;
       try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
         pstmt.setString(1, teamName);
         ResultSet rs = pstmt.executeQuery();
         if (rs.next()) {
           teamID = rs.getString("id");
+          maxMembers = rs.getInt("maxMembers");
         }
       }
       if (teamID == null)
-        return false;
+        return -1; // チームが存在しない
+
+      // 現在のメンバー数を取得
+      String countSql = "SELECT COUNT(memberId) FROM team_members WHERE teamID = ?";
+      int currentMembers = 0;
+      try (PreparedStatement pstmt = conn.prepareStatement(countSql)) {
+          pstmt.setString(1, teamID);
+          ResultSet rs = pstmt.executeQuery();
+          if (rs.next()) {
+              currentMembers = rs.getInt(1);
+          }
+      }
+
       // 既にメンバーかチェック
       String checkSql =
           "SELECT 1 FROM team_members WHERE teamID = ? AND memberId = ?";
@@ -180,8 +194,14 @@ public class TeamRepository {
         pstmt.setString(2, memberId);
         ResultSet rs = pstmt.executeQuery();
         if (rs.next())
-          return true; // 既にメンバー
+          return 2; // 既にメンバー
       }
+
+      // 上限人数チェック
+      if (currentMembers >= maxMembers) {
+          return 0; // 上限到達
+      }
+
       // 追加
       String insSql =
           "INSERT INTO team_members (teamID, memberId) VALUES (?, ?)";
@@ -190,11 +210,11 @@ public class TeamRepository {
         pstmt.setString(2, memberId);
         pstmt.executeUpdate();
       }
-      return true;
+      return 1; // 参加成功
     } catch (SQLException e) {
       e.printStackTrace();
     }
-    return false;
+    return -1; // エラー
   }
 
   // 新しいsave: 追加情報も保存
@@ -313,14 +333,11 @@ public class TeamRepository {
         pstmt.setString(1, teamId);
         ResultSet rs = pstmt.executeQuery();
         if (rs.next()) {
-          // TeamModeは簡略化（実際の実装に合わせて調整）
-          com.habit.domain.TeamMode mode = com.habit.domain.TeamMode.FIXED_TASK_MODE; // デフォルト値
-          
           Team team = new Team(
             rs.getString("id"),
             rs.getString("teamName"),
             rs.getString("creatorId"),
-            mode
+            rs.getString("editPermission")
           );
           
           // メンバー一覧を取得して設定
@@ -336,5 +353,73 @@ public class TeamRepository {
       e.printStackTrace();
     }
     return null;
+  }
+
+  /*
+   * 指定されたチームIDのチームを削除する。
+   * 関連するデータも全て削除される。
+   */
+  public void delete(String teamId) {
+    Connection conn = null;
+    try {
+        conn = DriverManager.getConnection(databaseUrl);
+        conn.setAutoCommit(false);
+
+        // 関連データの削除
+        // user_task_status
+        String delUserTaskStatusSql = "DELETE FROM user_task_statuses WHERE teamId = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(delUserTaskStatusSql)) {
+            pstmt.setString(1, teamId);
+            pstmt.executeUpdate();
+        }
+
+        // tasks
+        String delTasksSql = "DELETE FROM tasks WHERE teamID = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(delTasksSql)) {
+            pstmt.setString(1, teamId);
+            pstmt.executeUpdate();
+        }
+
+        // messages
+        String delMessagesSql = "DELETE FROM messages WHERE team_id = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(delMessagesSql)) {
+            pstmt.setString(1, teamId);
+            pstmt.executeUpdate();
+        }
+
+        // team_members
+        String delMembersSql = "DELETE FROM team_members WHERE teamID = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(delMembersSql)) {
+            pstmt.setString(1, teamId);
+            pstmt.executeUpdate();
+        }
+
+        // teams
+        String delTeamSql = "DELETE FROM teams WHERE id = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(delTeamSql)) {
+            pstmt.setString(1, teamId);
+            pstmt.executeUpdate();
+        }
+
+        conn.commit();
+    } catch (SQLException e) {
+        e.printStackTrace();
+        if (conn != null) {
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+        }
+    } finally {
+        if (conn != null) {
+            try {
+                conn.setAutoCommit(true);
+                conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
   }
 }
