@@ -69,7 +69,7 @@ public class UserRepository {
       try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
         pstmt.setString(1, user.getUserId());
         pstmt.setString(2, user.getUsername());
-        pstmt.setString(3, user.getHashedPassword());
+        pstmt.setString(3, user.getPassword());
         pstmt.setInt(4, user.getSabotagePoints());
         // joinedTeamIdsをカンマ区切りで保存
         pstmt.setString(5, String.join(",", user.getJoinedTeamIds()));

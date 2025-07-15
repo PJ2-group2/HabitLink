@@ -5,6 +5,7 @@ import com.habit.server.repository.UserRepository;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import org.mindrot.jbcrypt.BCrypt;
 
 public class AuthService {
   private UserRepository userRepository;
@@ -20,7 +21,7 @@ public class AuthService {
    */
   public String loginAndCreateSession(String username, String password) {
     User user = userRepository.findByUsername(username);
-    if (user != null && user.authenticate(password)) {
+    if (user != null && BCrypt.checkpw(password, user.getPassword())) {
       String sessionId = UUID.randomUUID().toString();
       sessionMap.put(sessionId, user.getUserId());
       return sessionId;
@@ -45,8 +46,10 @@ public class AuthService {
     if (userRepository.findByUsername(username) != null) {
       return null; // ユーザー名が既に存在する場合はnullを返す
     }
+    // パスワードをハッシュ化
+    String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
     User user =
-        new User(java.util.UUID.randomUUID().toString(), username, password);
+        new User(java.util.UUID.randomUUID().toString(), username, hashedPassword);
     userRepository.save(user);
     String sessionId = UUID.randomUUID().toString();
     sessionMap.put(sessionId, user.getUserId());

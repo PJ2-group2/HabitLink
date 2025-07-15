@@ -27,11 +27,6 @@ public class User {
     this.joinedTeamIds = new java.util.ArrayList<>();
   }
 
-  public boolean authenticate(String password) {
-    // ハッシュ化ロジックは省略（実装時に追加）
-    return Objects.equals(this.hashedPassword, password);
-  }
-
   public void addSabotagePoints(int points) {
     this.sabotagePoints += points;
     if (this.sabotagePoints > 50) {
@@ -54,11 +49,11 @@ public class User {
 
   public String getUsername() { return username; }
 
-  public void setPassword(String newPassword) {
-    this.hashedPassword = newPassword;
+  public void setHashedPassword(String newHashedPassword) {
+    this.hashedPassword = newHashedPassword;
   }
 
-  public String getHashedPassword() { return hashedPassword; }
+  public String getPassword() { return hashedPassword; }
 
   /** 参加済みチームID一覧を取得 */
   public java.util.ArrayList<String> getJoinedTeamIds() {
