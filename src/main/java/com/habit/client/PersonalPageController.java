@@ -30,14 +30,25 @@ public class PersonalPageController {
     @FXML
     private Button btnBackToTeam;
 
-    // タスク一覧（Task型で受け取る）
-    private List<com.habit.domain.Task> tasks = new ArrayList<>();
+    // isDoneフラグを含めてタスク情報を保持する内部クラス
+    private static class TaskInfo {
+        com.habit.domain.Task task;
+        boolean isDone;
+
+        TaskInfo(com.habit.domain.Task task, boolean isDone) {
+            this.task = task;
+            this.isDone = isDone;
+        }
+    }
+
+    // タスク一覧（TaskInfo型で受け取る）
+    private List<TaskInfo> taskInfos = new ArrayList<>();
 
     // チームトップからタスク一覧を受け取る用（廃止予定 - 常に最新データを取得）
     public void setUserTasks(List<com.habit.domain.Task> tasks) {
         // 渡されたタスク一覧は無視して、常に最新データをAPIから取得
         logger.info("[PersonalPageController] fetching latest data from API");
-        this.tasks = fetchUserTasksForPersonalPage();
+        this.taskInfos = fetchUserTasksForPersonalPage();
         updateTaskTiles();
     }
 
@@ -98,78 +109,85 @@ public class PersonalPageController {
      */
     private void updateTaskTiles() {
         taskTilePane.getChildren().clear();
-        for (com.habit.domain.Task task : tasks) {
+        for (TaskInfo taskInfo : taskInfos) {
+            com.habit.domain.Task task = taskInfo.task;
+            boolean isDone = taskInfo.isDone;
+
             java.time.LocalDate dueDate = task.getDueDate();
-            java.time.LocalDate today = LocalDate.now();
-
             
-
             Button tileBtn = new Button();
-            tileBtn.setStyle("-fx-border-color: #aaa; -fx-padding: 30; -fx-background-color: #f9f9f9; -fx-min-width: 320px; -fx-min-height: 150px; -fx-alignment: center; -fx-font-size: 22px; -fx-font-weight: bold;");
             String name = task.getTaskName();
             String remainStr = getRemainingTimeString(dueDate);
-            tileBtn.setText(name + (remainStr.isEmpty() ? "" : "\n" + remainStr));
-            tileBtn.setOnAction(unused -> {
-                // 確認ダイアログを表示
-                Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-                alert.setTitle("タスク消化の確認");
-                alert.setHeaderText(null);
-                alert.setContentText("このタスクを消化しますか？");
-                Optional<ButtonType> result = alert.showAndWait();
-                if (result.isPresent() && result.get() == ButtonType.OK) {
-                    // タスク完了処理（API経由）
-                    try {
-                        if (userId == null || userId.isEmpty()) {
-                            logger.error("エラー: userIdが未設定です。タスク完了処理を中止します。");
+            
+            if (isDone) {
+                tileBtn.setText(name + "\n(完了)");
+                tileBtn.setStyle("-fx-border-color: #aaa; -fx-padding: 30; -fx-background-color: #e0e0e0; -fx-min-width: 320px; -fx-min-height: 150px; -fx-alignment: center; -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #888;");
+                tileBtn.setDisable(true); // 完了済みはクリック不可
+            } else {
+                tileBtn.setText(name + (remainStr.isEmpty() ? "" : "\n" + remainStr));
+                tileBtn.setStyle("-fx-border-color: #aaa; -fx-padding: 30; -fx-background-color: #f9f9f9; -fx-min-width: 320px; -fx-min-height: 150px; -fx-alignment: center; -fx-font-size: 22px; -fx-font-weight: bold;");
+                tileBtn.setOnAction(unused -> {
+                    // 確認ダイアログを表示
+                    Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+                    alert.setTitle("タスク消化の確認");
+                    alert.setHeaderText(null);
+                    alert.setContentText("このタスクを消化しますか？");
+                    Optional<ButtonType> result = alert.showAndWait();
+                    if (result.isPresent() && result.get() == ButtonType.OK) {
+                        // タスク完了処理（API経由）
+                        try {
+                            if (userId == null || userId.isEmpty()) {
+                                logger.error("エラー: userIdが未設定です。タスク完了処理を中止します。");
+                                return;
+                            }
+                            String taskId = task.getTaskId();
+                            LocalDate date = LocalDate.now();
+                            String sessionId = com.habit.client.LoginController.getSessionId();
+                            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+                            String url = Config.getServerUrl() + "/completeUserTask";
+                            String params = "userId=" + java.net.URLEncoder.encode(userId, "UTF-8") +
+                                           "&taskId=" + java.net.URLEncoder.encode(taskId, "UTF-8") +
+                                           "&date=" + java.net.URLEncoder.encode(date.toString(), "UTF-8");
+                            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                                    .uri(java.net.URI.create(url))
+                                    .timeout(java.time.Duration.ofSeconds(10))
+                                    .header("SESSION_ID", sessionId)
+                                    .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+                                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(params))
+                                    .build();
+                            java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+                            logger.info("タスク完了APIレスポンス: {}", response.body());
+                            
+                            // タスク完了成功の場合のみタイル一覧を再読み込み
+                            if (response.statusCode() == 200) {
+                                // 少し待機してから再読み込み（即座のタスク再設定処理完了を待つ）
+                                new Thread(() -> {
+                                    try {
+                                        Thread.sleep(500); // 0.5秒待機
+                                        javafx.application.Platform.runLater(() -> {
+                                            try {
+                                                this.taskInfos = fetchUserTasksForPersonalPage();
+                                                updateTaskTiles();
+                                                logger.info("個人ページのタスク一覧を更新しました");
+                                            } catch (Exception ex) {
+                                                logger.error("タスク一覧更新エラー: {}", ex.getMessage(), ex);
+                                            }
+                                        });
+                                    } catch (InterruptedException ie) {
+                                        Thread.currentThread().interrupt();
+                                    }
+                                }).start();
+                            } else {
+                                logger.error("タスク完了APIエラー: statusCode={}", response.statusCode());
+                            }
                             return;
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
-                        String taskId = task.getTaskId();
-                        LocalDate date = LocalDate.now();
-                        String sessionId = com.habit.client.LoginController.getSessionId();
-                        java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
-                        String url = Config.getServerUrl() + "/completeUserTask";
-                        String params = "userId=" + java.net.URLEncoder.encode(userId, "UTF-8") +
-                                       "&taskId=" + java.net.URLEncoder.encode(taskId, "UTF-8") +
-                                       "&date=" + java.net.URLEncoder.encode(date.toString(), "UTF-8");
-                        java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
-                                .uri(java.net.URI.create(url))
-                                .timeout(java.time.Duration.ofSeconds(10))
-                                .header("SESSION_ID", sessionId)
-                                .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
-                                .POST(java.net.http.HttpRequest.BodyPublishers.ofString(params))
-                                .build();
-                        java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
-                        logger.info("タスク完了APIレスポンス: {}", response.body());
-                        
-                        // タスク完了成功の場合のみタイル一覧を再読み込み
-                        if (response.statusCode() == 200) {
-                            // 少し待機してから再読み込み（即座のタスク再設定処理完了を待つ）
-                            new Thread(() -> {
-                                try {
-                                    Thread.sleep(500); // 0.5秒待機
-                                    javafx.application.Platform.runLater(() -> {
-                                        try {
-                                            this.tasks = fetchUserTasksForPersonalPage();
-                                            updateTaskTiles();
-                                            logger.info("個人ページのタスク一覧を更新しました");
-                                        } catch (Exception ex) {
-                                            logger.error("タスク一覧更新エラー: {}", ex.getMessage(), ex);
-                                        }
-                                    });
-                                } catch (InterruptedException ie) {
-                                    Thread.currentThread().interrupt();
-                                }
-                            }).start();
-                        } else {
-                            logger.error("タスク完了APIエラー: statusCode={}", response.statusCode());
-                        }
-                        return;
-                    } catch (Exception e) {
-                        e.printStackTrace();
+                        logger.info("タスク選択: {}", name);
                     }
-                    logger.info("タスク選択: {}", name);
-                }
-            });
+                });
+            }
 
             // コンテキストメニュー（右クリック）を追加
             ContextMenu contextMenu = new ContextMenu();
@@ -209,14 +227,14 @@ public class PersonalPageController {
         return String.format("%d時間%d分", hours, minutes);
     }
 
-    // タスク一覧をAPIから取得する（TeamTopControllerのgetUserTasksForPersonalPage()相当）
-    private List<com.habit.domain.Task> fetchUserTasksForPersonalPage() {
+    // タスク一覧をAPIから取得する
+    private List<TaskInfo> fetchUserTasksForPersonalPage() {
         try {
             String sessionId = com.habit.client.LoginController.getSessionId();
             java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
             
             // 新しいAPIを使用
-            String url = Config.getServerUrl() + "/getIncompleteUserTaskStatus?teamID=" + java.net.URLEncoder.encode(teamID, "UTF-8");
+            String url = Config.getServerUrl() + "/getAllUserTaskStatus?teamID=" + java.net.URLEncoder.encode(teamID, "UTF-8");
             logger.info("[PersonalPageController] Fetching user tasks from: {}", url);
             
             java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
@@ -229,7 +247,7 @@ public class PersonalPageController {
             String json = response.body();
             logger.info("[PersonalPageController] API response: {}", json);
             
-            java.util.List<com.habit.domain.Task> tasks = new java.util.ArrayList<>();
+            java.util.List<TaskInfo> taskInfos = new java.util.ArrayList<>();
             if (json != null && json.startsWith("[")) {
                 org.json.JSONArray arr = new org.json.JSONArray(json);
                 for (int i = 0; i < arr.length(); i++) {
@@ -237,6 +255,8 @@ public class PersonalPageController {
                     String taskId = obj.optString("taskId", null);
                     String taskName = obj.optString("taskName", null);
                     String dueDateStr = obj.optString("dueDate", null);
+                    boolean isDone = obj.optBoolean("isDone", false);
+
                     java.time.LocalDate dueDate = null;
                     if (dueDateStr != null && !dueDateStr.isEmpty() && !"null".equals(dueDateStr)) {
                         try {
@@ -262,13 +282,13 @@ public class PersonalPageController {
                             t.setDueDate(dueDate);
                         }
                         
-                        logger.info("[PersonalPageController] Adding task: {} (ID: {} , dueDate: {} , cycleType: {})", taskName, taskId, dueDate, cycleType);
-                        tasks.add(t);
+                        logger.info("[PersonalPageController] Adding task: {} (ID: {} , dueDate: {} , cycleType: {}, isDone: {})", taskName, taskId, dueDate, cycleType, isDone);
+                        taskInfos.add(new TaskInfo(t, isDone));
                     }
                 }
             }
-            logger.info("[PersonalPageController] Total tasks returned: {}", tasks.size());
-            return tasks;
+            logger.info("[PersonalPageController] Total tasks returned: {}", taskInfos.size());
+            return taskInfos;
         } catch (Exception e) {
             logger.error("[PersonalPageController] Error fetching tasks: {}", e.getMessage(), e);
             e.printStackTrace();
@@ -305,7 +325,7 @@ public class PersonalPageController {
                 if (response.statusCode() == 200) {
                     logger.info("タスクが正常に削除されました: {}", task.getTaskName());
                     javafx.application.Platform.runLater(() -> {
-                        tasks.remove(task);
+                        taskInfos.remove(task);
                         updateTaskTiles();
                     });
                 } else {
