@@ -155,4 +155,24 @@ public class TeamTaskService {
     public List<UserTaskStatus> getUserTeamTaskStatuses(String userId, LocalDate date) {
         return userTaskStatusRepository.findByUserIdAndDateAndTeamIdNotNull(userId, date);
     }
+
+    /**
+     * タスクを削除する
+     * @param teamId チームID
+     * @param taskId タスクID
+     * @param userId ユーザーID
+     */
+    public void deleteTask(String teamId, String taskId, String userId) {
+        Team team = teamRepository.findById(teamId);
+        if (team == null) {
+            throw new IllegalArgumentException("チームが見つかりません");
+        }
+
+        // 権限チェック
+        if ("CREATOR_ONLY".equals(team.getEditPermission()) && !team.getCreatorId().equals(userId)) {
+            throw new SecurityException("タスクの削除権限がありません");
+        }
+
+        taskRepository.deleteById(taskId);
+    }
 }

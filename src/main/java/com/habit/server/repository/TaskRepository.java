@@ -282,4 +282,50 @@ public class TaskRepository {
     }
     return null;
   }
+
+  /**
+   * タスクIDでタスクを削除する
+   * @param taskId
+   */
+  public void deleteById(String taskId) {
+    Connection conn = null;
+    try {
+        conn = DriverManager.getConnection(databaseUrl);
+        conn.setAutoCommit(false);
+
+        // user_task_statusesテーブルから関連レコードを削除
+        String delUserTaskStatusSql = "DELETE FROM user_task_statuses WHERE taskId = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(delUserTaskStatusSql)) {
+            pstmt.setString(1, taskId);
+            pstmt.executeUpdate();
+        }
+
+        // tasksテーブルからタスクを削除
+        String delTaskSql = "DELETE FROM tasks WHERE taskId = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(delTaskSql)) {
+            pstmt.setString(1, taskId);
+            pstmt.executeUpdate();
+        }
+
+        conn.commit();
+    } catch (SQLException e) {
+        e.printStackTrace();
+        if (conn != null) {
+            try {
+                conn.rollback();
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+        }
+    } finally {
+        if (conn != null) {
+            try {
+                conn.setAutoCommit(true);
+                conn.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+  }
 }

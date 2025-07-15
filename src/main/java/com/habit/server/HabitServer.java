@@ -219,6 +219,8 @@ public class HabitServer {
         teamTaskController
             .getUserTeamTasksHandler()); // ユーザーのチーム共通タスク一覧取得
 
+    server.createContext("/deleteTask", teamTaskController.deleteTaskHandler());
+
     server.setExecutor(null);
     server.start();
 
