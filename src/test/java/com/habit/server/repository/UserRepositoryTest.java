@@ -35,7 +35,7 @@ class UserRepositoryTest {
     assertNotNull(fetched, "Should find saved user by ID");
     assertEquals(u.getUserId(), fetched.getUserId());
     assertEquals(u.getUsername(), fetched.getUsername());
-    assertEquals(u.getHashedPassword(), fetched.getHashedPassword());
+    assertEquals(u.getPassword(), fetched.getPassword());
     assertEquals(30, fetched.getSabotagePoints());
     assertIterableEquals(u.getJoinedTeamIds(), fetched.getJoinedTeamIds(),
                          "JoinedTeamIds should round-trip");
@@ -76,13 +76,13 @@ class UserRepositoryTest {
     repo.save(u);
 
     // change fields locally and save again
-    u.setPassword("newpass");
+    u.setHashedPassword("newpass");
     u.addSabotagePoints(4); // now total 5
     u.addJoinedTeamId("teamX");
     repo.save(u);
 
     User fetched = repo.findById("u4");
-    assertEquals("newpass", fetched.getHashedPassword());
+    assertEquals("newpass", fetched.getPassword());
     assertEquals(30, fetched.getSabotagePoints());
     assertTrue(fetched.getJoinedTeamIds().contains("teamX"));
   }
