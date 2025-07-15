@@ -159,6 +159,11 @@ public class HabitServer {
         "/getIncompleteUserTaskStatus",
         userTaskStatusController.getIncompleteUserTaskStatusHandler(
             authService));
+    // ユーザーの全タスクステータス（最新のみ）取得API
+    server.createContext(
+        "/getAllUserTaskStatus",
+        userTaskStatusController.getAllUserTaskStatusHandler(
+            authService));
     // チーム全員分のタスク進捗一覧API
     server.createContext(
         "/getTeamTaskStatusList",

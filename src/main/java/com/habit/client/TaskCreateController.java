@@ -149,8 +149,18 @@ public class TaskCreateController {
                 .build();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             logger.info("タスク保存APIレスポンス: " + response.body());
+
+            if (response.statusCode() == 200) {
+                // 成功時の処理
+            } else if (response.statusCode() == 409) {
+                showAlert("エラー: 同じ名前のタスクが既に存在します。");
+                return;
+            } else {
+                showAlert("タスク保存APIエラー: " + response.statusCode() + " - " + response.body());
+                return;
+            }
         } catch (Exception e) {
-            showAlert("タスク保存APIエラー: " + e.getMessage());
+            showAlert("タスク保存中にエラーが発生しました: " + e.getMessage());
             return;
         }
 
