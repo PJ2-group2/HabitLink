@@ -170,6 +170,19 @@ public class PersonalPageController {
                     logger.info("タスク選択: {}", name);
                 }
             });
+
+            // コンテキストメニュー（右クリック）を追加
+            ContextMenu contextMenu = new ContextMenu();
+            MenuItem deleteItem = new MenuItem("削除");
+            deleteItem.setOnAction(event -> deleteTask(task));
+
+            // 権限チェック: "ALL_MEMBERS" または 自分が作成者である場合に削除メニューを追加
+            if (team != null && team.getEditPermission() != null) {
+                if ("ALL_MEMBERS".equals(team.getEditPermission()) || userId.equals(team.getCreatorId())) {
+                    contextMenu.getItems().add(deleteItem);
+                }
+            }
+            tileBtn.setContextMenu(contextMenu);
             taskTilePane.getChildren().add(tileBtn);
         }
     }
@@ -260,6 +273,56 @@ public class PersonalPageController {
             logger.error("[PersonalPageController] Error fetching tasks: {}", e.getMessage(), e);
             e.printStackTrace();
             return new java.util.ArrayList<>();
+        }
+    }
+
+    private void deleteTask(com.habit.domain.Task task) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("タスク削除の確認");
+        alert.setHeaderText(null);
+        alert.setContentText("本当にタスク '" + task.getTaskName() + "' を削除しますか？\nこの操作は元に戻せません。");
+        Optional<ButtonType> result = alert.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            try {
+                String sessionId = com.habit.client.LoginController.getSessionId();
+                java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
+                String url = Config.getServerUrl() + "/deleteTask";
+
+                org.json.JSONObject jsonBody = new org.json.JSONObject();
+                jsonBody.put("teamId", teamID);
+                jsonBody.put("taskId", task.getTaskId());
+                jsonBody.put("userId", userId);
+
+                java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+                        .uri(java.net.URI.create(url))
+                        .timeout(java.time.Duration.ofSeconds(10))
+                        .header("SESSION_ID", sessionId)
+                        .header("Content-Type", "application/json; charset=UTF-8")
+                        .POST(java.net.http.HttpRequest.BodyPublishers.ofString(jsonBody.toString()))
+                        .build();
+                java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+
+                if (response.statusCode() == 200) {
+                    logger.info("タスクが正常に削除されました: {}", task.getTaskName());
+                    javafx.application.Platform.runLater(() -> {
+                        tasks.remove(task);
+                        updateTaskTiles();
+                    });
+                } else {
+                    org.json.JSONObject jsonResponse = new org.json.JSONObject(response.body());
+                    String errorMessage = jsonResponse.optString("error", "不明なエラーが発生しました。");
+                    logger.error("タスク削除APIエラー: statusCode={}, message={}", response.statusCode(), errorMessage);
+                    javafx.application.Platform.runLater(() -> {
+                        Alert errorAlert = new Alert(Alert.AlertType.ERROR);
+                        errorAlert.setTitle("削除エラー");
+                        errorAlert.setHeaderText(null);
+                        errorAlert.setContentText(errorMessage);
+                        errorAlert.showAndWait();
+                    });
+                }
+            } catch (Exception e) {
+                logger.error("タスク削除中に例外が発生しました: {}", e.getMessage(), e);
+            }
         }
     }
 }

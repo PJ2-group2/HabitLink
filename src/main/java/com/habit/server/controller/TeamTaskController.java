@@ -35,6 +35,10 @@ public class TeamTaskController {
         return new GetUserTeamTasksHandler();
     }
 
+    public HttpHandler deleteTaskHandler() {
+        return new DeleteTaskHandler();
+    }
+
     /**
      * チーム共通タスクの完了率取得API
      */
@@ -150,6 +154,50 @@ public class TeamTaskController {
 
             exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
             exchange.sendResponseHeaders(200, response.getBytes("UTF-8").length);
+            OutputStream os = exchange.getResponseBody();
+            os.write(response.getBytes("UTF-8"));
+            os.close();
+        }
+    }
+
+    /**
+     * タスク削除API
+     */
+    class DeleteTaskHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            if (!"POST".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(405, -1); // Method Not Allowed
+                return;
+            }
+
+            String requestBody = new String(exchange.getRequestBody().readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            org.json.JSONObject json = new org.json.JSONObject(requestBody);
+
+            String teamId = json.optString("teamId", null);
+            String taskId = json.optString("taskId", null);
+            String userId = json.optString("userId", null);
+
+            String response;
+            int statusCode = 200;
+            try {
+                if (teamId == null || taskId == null || userId == null) {
+                    response = "{\"error\":\"teamId, taskId, userIdが必要です\"}";
+                    statusCode = 400;
+                } else {
+                    teamTaskService.deleteTask(teamId, taskId, userId);
+                    response = "{\"message\":\"タスクが正常に削除されました\"}";
+                }
+            } catch (SecurityException e) {
+                response = "{\"error\":\"" + e.getMessage() + "\"}";
+                statusCode = 403; // Forbidden
+            } catch (Exception e) {
+                response = "{\"error\":\"" + e.getMessage() + "\"}";
+                statusCode = 500;
+            }
+
+            exchange.getResponseHeaders().set("Content-Type", "application/json; charset=UTF-8");
+            exchange.sendResponseHeaders(statusCode, response.getBytes("UTF-8").length);
             OutputStream os = exchange.getResponseBody();
             os.write(response.getBytes("UTF-8"));
             os.close();
