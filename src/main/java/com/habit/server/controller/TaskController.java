@@ -168,6 +168,7 @@ public class TaskController {
       byte[] bodyBytes = exchange.getRequestBody().readAllBytes();
       String bodyStr = (bodyBytes != null) ? new String(bodyBytes, java.nio.charset.StandardCharsets.UTF_8) : "";
       String response;
+      int statusCode = 200;
       try {
         // key=value&...形式で受信
         String[] params = bodyStr.split("&");
@@ -187,6 +188,23 @@ public class TaskController {
             : null;
         String cycleType = map.getOrDefault("cycleType", "daily");
         String teamID = map.get("teamID");
+
+        // --- タスク名重複チェック ---
+        if (teamID != null && !teamID.isEmpty() && taskName != null && !taskName.isEmpty()) {
+            java.util.List<com.habit.domain.Task> existingTasks = taskRepository.findTeamTasksByTeamID(teamID);
+            boolean isDuplicate = existingTasks.stream().anyMatch(t -> t.getTaskName().equalsIgnoreCase(taskName));
+            if (isDuplicate) {
+                response = "同じ名前のタスクが既に存在します";
+                statusCode = 409; // Conflict
+                exchange.sendResponseHeaders(statusCode, response.getBytes("UTF-8").length);
+                try (java.io.OutputStream os = exchange.getResponseBody()) {
+                    os.write(response.getBytes("UTF-8"));
+                }
+                return;
+            }
+        }
+        // --- 重複チェックここまで ---
+
         com.habit.domain.Task task;
 
         if (teamID != null && !teamID.isEmpty()) {
@@ -208,8 +226,9 @@ public class TaskController {
         response = "タスク保存成功";
       } catch (Exception ex) {
         response = "タスク保存失敗: " + ex.getMessage();
+        statusCode = 500;
       }
-      exchange.sendResponseHeaders(200, response.getBytes().length);
+      exchange.sendResponseHeaders(statusCode, response.getBytes().length);
       try (java.io.OutputStream os = exchange.getResponseBody()) {
         os.write(response.getBytes());
       }
