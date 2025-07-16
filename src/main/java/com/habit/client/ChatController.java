@@ -14,12 +14,21 @@ import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 import javafx.scene.layout.HBox;
 import org.json.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ChatController {
   private static final Logger logger =
       LoggerFactory.getLogger(ChatController.class);
+
+  private ScheduledExecutorService scheduler;
+  private ScheduledFuture<?> chatUpdateFuture;
+  private boolean isInitialLoad = true;
+  private HttpClient httpClient;
   /* チーム名ラベル */
   @FXML private Label teamNameLabel;
   /* チャットリスト */
@@ -54,14 +63,22 @@ public class ChatController {
   public void setTeamID(String teamID) {
     this.teamID = teamID;
     fetchAndSetTeamName(teamID);
-    loadChatLog(); // teamIDがセットされた後に履歴を取得
-  }
+    loadChatLog(true); // teamIDがセットされた後に履歴を取得 (初回呼び出し)
+
+    // ポーリングを開始
+    if (scheduler != null && (chatUpdateFuture == null || chatUpdateFuture.isDone())) {
+      chatUpdateFuture = scheduler.scheduleAtFixedRate(() -> loadChatLog(false), 0, 3, TimeUnit.SECONDS);
+    }
+
+    }
+
   public void setTeamName(String teamName) {
     this.teamName = teamName;
     if (teamNameLabel != null) {
       teamNameLabel.setText(teamName);
     }
   }
+
   public void setTeam(com.habit.domain.Team team) {
     this.team = team;
   }
@@ -71,18 +88,16 @@ public class ChatController {
    * チームIDがセットされたタイミングで呼び出される。
    */
   private void fetchAndSetTeamName(String teamID) {
-    new Thread(() -> {
+    scheduler.execute(() -> {
       try {
-        HttpClient client = HttpClient.newHttpClient();
         String urlStr = Config.getServerUrl() + "/getTeamName?teamID=" +
-                        URLEncoder.encode(teamID, "UTF-8");
+            URLEncoder.encode(teamID, "UTF-8");
         HttpRequest request = HttpRequest.newBuilder()
-                                  .uri(URI.create(urlStr))
-                                  .timeout(java.time.Duration.ofSeconds(3))
-                                  .GET()
-                                  .build();
-        HttpResponse<String> response =
-            client.send(request, HttpResponse.BodyHandlers.ofString());
+            .uri(URI.create(urlStr))
+            .timeout(java.time.Duration.ofSeconds(3))
+            .GET()
+            .build();
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         String name = response.body();
         if (name != null && !name.isEmpty()) {
           javafx.application.Platform.runLater(() -> {
@@ -95,7 +110,7 @@ public class ChatController {
       } catch (Exception e) {
         e.printStackTrace();
       }
-    }).start();
+    });
   }
 
   /**
@@ -104,6 +119,9 @@ public class ChatController {
    */
   @FXML
   public void initialize() {
+    scheduler = Executors.newSingleThreadScheduledExecutor();
+    httpClient = HttpClient.newHttpClient();
+
     // loadChatLog()はここで呼ばない
     // チーム名がセットされている場合はラベルに表示
     if (teamNameLabel != null && teamName != null) {
@@ -147,7 +165,8 @@ public class ChatController {
           Label senderLabel = new Label(message.getSender().getUsername());
           Label contentLabel = new Label(message.getContent());
           contentLabel.setWrapText(true);
-          Label timestampLabel = new Label(message.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+          Label timestampLabel = new Label(
+              message.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
 
           senderLabel.getStyleClass().add("sender-label");
           contentLabel.getStyleClass().add("content-label");
@@ -196,13 +215,29 @@ public class ChatController {
         controller.setTeamName(teamName);
         controller.setCreatorId(creatorId);
         controller.setTeam(team);
-        javafx.stage.Stage stage =
-            (javafx.stage.Stage)btnBackToTeamTop.getScene().getWindow();
+        javafx.stage.Stage stage = (javafx.stage.Stage) btnBackToTeamTop.getScene().getWindow();
         stage.setScene(new javafx.scene.Scene(root));
         stage.setTitle("チームトップ");
+        // ポーリングを停止
+        if (chatUpdateFuture != null) {
+          chatUpdateFuture.cancel(true);
+        }
+        // schedulerをシャットダウン
+        if (scheduler != null && !scheduler.isShutdown()) {
+          scheduler.shutdownNow();
+        }
       } catch (Exception ex) {
         ex.printStackTrace();
       }
+    });
+
+    // アプリケーション終了時にschedulerをシャットダウン
+    Platform.runLater(() -> {
+      btnBackToTeamTop.getScene().getWindow().setOnHidden(event -> {
+        if (scheduler != null && !scheduler.isShutdown()) {
+          scheduler.shutdownNow();
+        }
+      });
     });
   }
 
@@ -210,10 +245,9 @@ public class ChatController {
    * チャットログをサーバーから取得し、リストに表示するメソッド。
    * 新しいスレッドで実行される。
    */
-  private void loadChatLog() {
-    new Thread(() -> {
+  private void loadChatLog(boolean isInitialCall) {
+    scheduler.execute(() -> {
       try {
-        HttpClient client = HttpClient.newHttpClient();
         String url = chatLogUrl +
                      "?teamID=" + URLEncoder.encode(teamID, "UTF-8") +
                      "&limit=50";
@@ -223,7 +257,7 @@ public class ChatController {
                                   .GET()
                                   .build();
         HttpResponse<String> response =
-            client.send(request, HttpResponse.BodyHandlers.ofString());
+            httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
         List<Message> messages = new ArrayList<>();
         JSONArray arr = new JSONArray(response.body());
@@ -237,14 +271,14 @@ public class ChatController {
 
         Platform.runLater(() -> {
           chatList.getItems().setAll(messages);
-          if (!messages.isEmpty()) {
+          if (isInitialCall && !messages.isEmpty()) {
             chatList.scrollTo(messages.size() - 1);
           }
         });
       } catch (Exception e) {
         e.printStackTrace();
       }
-    }).start();
+    });
   }
 
   /**
@@ -254,9 +288,8 @@ public class ChatController {
    * @param message 送信するチャットメッセージ
    */
   private void sendChatMessage(String message) {
-    new Thread(() -> {
+    scheduler.execute(() -> {
       try {
-        HttpClient client = HttpClient.newHttpClient();
         String params = "senderId=" + URLEncoder.encode(userId, "UTF-8") +
                         "&teamID=" + URLEncoder.encode(teamID, "UTF-8") +
                         "&content=" + URLEncoder.encode(message, "UTF-8");
@@ -269,14 +302,14 @@ public class ChatController {
                 .POST(HttpRequest.BodyPublishers.ofString(params))
                 .build();
         HttpResponse<String> response =
-            client.send(request, HttpResponse.BodyHandlers.ofString());
+            httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() == 200) {
-          loadChatLog();
+          loadChatLog(false);
         }
       } catch (Exception e) {
         e.printStackTrace();
       }
-    }).start();
+    });
   }
 
   /**
@@ -286,22 +319,21 @@ public class ChatController {
    * @param messageId 削除するメッセージのID
    */
   private void deleteChatMessage(String messageId) {
-    new Thread(() -> {
+    scheduler.execute(() -> {
       try {
-        HttpClient client = HttpClient.newHttpClient();
         String deleteUrl = Config.getServerUrl() + "/deleteChatMessage?message_id=" + URLEncoder.encode(messageId, "UTF-8");
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(deleteUrl))
             .timeout(java.time.Duration.ofSeconds(3))
             .DELETE()
             .build();
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() == 200) {
-          loadChatLog();
+          loadChatLog(false);
         }
       } catch (Exception e) {
         e.printStackTrace();
       }
-    }).start();
+    });
   }
 }
