@@ -28,6 +28,7 @@ public class ChatController {
   private ScheduledExecutorService scheduler;
   private ScheduledFuture<?> chatUpdateFuture;
   private boolean isInitialLoad = true;
+  private HttpClient httpClient;
   /* チーム名ラベル */
   @FXML private Label teamNameLabel;
   /* チャットリスト */
@@ -87,9 +88,8 @@ public class ChatController {
    * チームIDがセットされたタイミングで呼び出される。
    */
   private void fetchAndSetTeamName(String teamID) {
-    new Thread(() -> {
+    scheduler.execute(() -> {
       try {
-        HttpClient client = HttpClient.newHttpClient();
         String urlStr = Config.getServerUrl() + "/getTeamName?teamID=" +
             URLEncoder.encode(teamID, "UTF-8");
         HttpRequest request = HttpRequest.newBuilder()
@@ -97,7 +97,7 @@ public class ChatController {
             .timeout(java.time.Duration.ofSeconds(3))
             .GET()
             .build();
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         String name = response.body();
         if (name != null && !name.isEmpty()) {
           javafx.application.Platform.runLater(() -> {
@@ -110,7 +110,7 @@ public class ChatController {
       } catch (Exception e) {
         e.printStackTrace();
       }
-    }).start();
+    });
   }
 
   /**
@@ -120,6 +120,7 @@ public class ChatController {
   @FXML
   public void initialize() {
     scheduler = Executors.newSingleThreadScheduledExecutor();
+    httpClient = HttpClient.newHttpClient();
 
     // loadChatLog()はここで呼ばない
     // チーム名がセットされている場合はラベルに表示
@@ -217,6 +218,14 @@ public class ChatController {
         javafx.stage.Stage stage = (javafx.stage.Stage) btnBackToTeamTop.getScene().getWindow();
         stage.setScene(new javafx.scene.Scene(root));
         stage.setTitle("チームトップ");
+        // ポーリングを停止
+        if (chatUpdateFuture != null) {
+          chatUpdateFuture.cancel(true);
+        }
+        // schedulerをシャットダウン
+        if (scheduler != null && !scheduler.isShutdown()) {
+          scheduler.shutdownNow();
+        }
       } catch (Exception ex) {
         ex.printStackTrace();
       }
@@ -228,9 +237,8 @@ public class ChatController {
    * 新しいスレッドで実行される。
    */
   private void loadChatLog(boolean isInitialCall) {
-    new Thread(() -> {
+    scheduler.execute(() -> {
       try {
-        HttpClient client = HttpClient.newHttpClient();
         String url = chatLogUrl +
                      "?teamID=" + URLEncoder.encode(teamID, "UTF-8") +
                      "&limit=50";
@@ -240,7 +248,7 @@ public class ChatController {
                                   .GET()
                                   .build();
         HttpResponse<String> response =
-            client.send(request, HttpResponse.BodyHandlers.ofString());
+            httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
         List<Message> messages = new ArrayList<>();
         JSONArray arr = new JSONArray(response.body());
@@ -255,13 +263,13 @@ public class ChatController {
         Platform.runLater(() -> {
           chatList.getItems().setAll(messages);
           if (isInitialCall && !messages.isEmpty()) {
-            chatList.scrollTo(messages.size());
+            chatList.scrollTo(messages.size() - 1);
           }
         });
       } catch (Exception e) {
         e.printStackTrace();
       }
-    }).start();
+    });
   }
 
   /**
@@ -271,9 +279,8 @@ public class ChatController {
    * @param message 送信するチャットメッセージ
    */
   private void sendChatMessage(String message) {
-    new Thread(() -> {
+    scheduler.execute(() -> {
       try {
-        HttpClient client = HttpClient.newHttpClient();
         String params = "senderId=" + URLEncoder.encode(userId, "UTF-8") +
                         "&teamID=" + URLEncoder.encode(teamID, "UTF-8") +
                         "&content=" + URLEncoder.encode(message, "UTF-8");
@@ -286,14 +293,14 @@ public class ChatController {
                 .POST(HttpRequest.BodyPublishers.ofString(params))
                 .build();
         HttpResponse<String> response =
-            client.send(request, HttpResponse.BodyHandlers.ofString());
+            httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() == 200) {
           loadChatLog(false);
         }
       } catch (Exception e) {
         e.printStackTrace();
       }
-    }).start();
+    });
   }
 
   /**
@@ -303,22 +310,21 @@ public class ChatController {
    * @param messageId 削除するメッセージのID
    */
   private void deleteChatMessage(String messageId) {
-    new Thread(() -> {
+    scheduler.execute(() -> {
       try {
-        HttpClient client = HttpClient.newHttpClient();
         String deleteUrl = Config.getServerUrl() + "/deleteChatMessage?message_id=" + URLEncoder.encode(messageId, "UTF-8");
         HttpRequest request = HttpRequest.newBuilder()
             .uri(URI.create(deleteUrl))
             .timeout(java.time.Duration.ofSeconds(3))
             .DELETE()
             .build();
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
         if (response.statusCode() == 200) {
           loadChatLog(false);
         }
       } catch (Exception e) {
         e.printStackTrace();
       }
-    }).start();
+    });
   }
 }
