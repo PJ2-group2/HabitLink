@@ -11,6 +11,8 @@ import java.util.*;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
+import javafx.scene.layout.VBox;
+import javafx.scene.layout.HBox;
 import org.json.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +25,7 @@ public class ChatController {
   /* チャットリスト */
   @FXML private ListView<Message> chatList;
   /* チャット入力フィールド */
-  @FXML private TextField chatInput;
+  @FXML private TextArea chatInput;
   /* チャット送信ボタン */
   @FXML private Button btnSend;
   /* チームトップに戻るボタン */
@@ -128,6 +130,7 @@ public class ChatController {
             }
           }
         });
+        deleteItem.getStyleClass().add("delete-menu-item");
         contextMenu.getItems().add(deleteItem);
       }
 
@@ -136,25 +139,38 @@ public class ChatController {
         super.updateItem(message, empty);
         if (empty || message == null) {
           setText(null);
+          setGraphic(null);
           setContextMenu(null);
         } else {
-          // メッセージのテキストを username:contents[timestamp] 形式で設定
-          final String formatPattern = "yyyy-MM-dd HH:mm:ss";
-          StringBuilder sb = new StringBuilder();
-          sb.append(message.getSender().getUsername());
-          sb.append(": ");
-          sb.append(message.getContent());
-          sb.append("[");
-          sb.append(message.getTimestamp().format(DateTimeFormatter.ofPattern(formatPattern)));
-          sb.append("]");
-          setText(sb.toString());
+          // VBox for layout (the message bubble itself)
+          VBox messageBubble = new VBox(2);
+          Label senderLabel = new Label(message.getSender().getUsername());
+          Label contentLabel = new Label(message.getContent());
+          contentLabel.setWrapText(true);
+          Label timestampLabel = new Label(message.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
 
-          // 自分のメッセージの場合のみContextMenuを設定
+          senderLabel.getStyleClass().add("sender-label");
+          contentLabel.getStyleClass().add("content-label");
+          timestampLabel.getStyleClass().add("timestamp-label");
+
+          messageBubble.getChildren().addAll(senderLabel, contentLabel, timestampLabel);
+          messageBubble.setMaxWidth(300); // Adjust as needed for wrapping
+
+          // HBox for alignment (left or right)
+          HBox messageContainer = new HBox();
+          messageContainer.getChildren().add(messageBubble);
+
           if (message.getSender().getUserId().equals(userId)) {
+            messageContainer.getStyleClass().add("sent-message-container");
+            messageBubble.getStyleClass().add("my-message-bubble");
             setContextMenu(contextMenu);
           } else {
+            messageContainer.getStyleClass().add("received-message-container");
+            messageBubble.getStyleClass().add("other-message-bubble");
             setContextMenu(null);
           }
+          setGraphic(messageContainer);
+          setText(null);
         }
       }
     });
@@ -219,7 +235,12 @@ public class ChatController {
         // sort according to time stamp
         messages.sort(Comparator.comparing(Message::getTimestamp));
 
-        Platform.runLater(() -> { chatList.getItems().setAll(messages); });
+        Platform.runLater(() -> {
+          chatList.getItems().setAll(messages);
+          if (!messages.isEmpty()) {
+            chatList.scrollTo(messages.size() - 1);
+          }
+        });
       } catch (Exception e) {
         e.printStackTrace();
       }

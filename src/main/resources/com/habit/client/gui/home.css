@@ -5,7 +5,7 @@
 .custom-button{
 	-fx-background-color:  #87cefa;
 	-fx-background-radius: 20pt;
-	-fx-border-width: 1pt;
+	-border-width: 1pt;
 	-fx-border-color: #87cefa;
 	-fx-border-radius: 20pt;
 }
@@ -42,10 +42,10 @@
 	-fx-border-width: 1pt;
 	-fx-border-color: #00bfff;
 
-	
+
 }
 
-.listView .list-cell:filled:hover, .listView .listcell:filled:selected{
+.listView .list-cell:filled:hover, .listView .list-cell:filled:selected{
 	-fx-background-color: #1e90ff;
 	-fx-border-color: #000080;
 
@@ -76,4 +76,16 @@
 	-fx-padding: 8;
 	-fx-text-fil: #3a3a3a;
 	-fx-alignment: center;
+}
+
+.delete-menu-item {
+    -fx-background-radius: 10px; /* 角を丸くする */
+}
+
+.delete-menu-item .label {
+    -fx-font-size: 16px; /* フォントサイズを大きくする */
+}
+
+.delete-menu-item:hover {
+    -fx-background-color: #b3d8fa; /* ホバー時の背景色 */
 }

@@ -123,6 +123,7 @@ public class HomeController {
             }
           }
         });
+        deleteItem.getStyleClass().add("delete-menu-item");
         contextMenu.getItems().add(deleteItem);
       }
 

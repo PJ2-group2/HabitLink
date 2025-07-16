@@ -21,15 +21,69 @@
 	-fx-background-radius: 20pt;
 	-fx-background-insets: 0; 
 	-fx-padding: 8;
-}
-
-.listView .list-cell{
-	-fx-background-color: #f0ffff;
-	-fx-background-radius: 20pt;
-	-fx-background-insets: 1;
-	-fx-padding: 8;
+    -fx-background-color: #f0ffff;
+    -fx-control-inner-background: #f0ffff;
 }
 
 .listView .list-cell:filled{
-	-fx-background-color: #b3d8fa;
+	-fx-background-color: transparent;
+	-fx-background-insets: 0;
+	-fx-padding: 5;
+}
+
+.listView .list-cell:filled:hover{
+	-fx-background-color: transparent;
+}
+
+.delete-menu-item {
+    -fx-background-radius: 10px; /* 角を丸くする */
+}
+
+.delete-menu-item .label {
+    -fx-font-size: 16px; /* フォントサイズを大きくする */
+}
+
+.delete-menu-item:hover {
+    -fx-background-color: #b3d8fa; /* ホバー時の背景色 */
+}
+
+/* Message containers for alignment */
+.sent-message-container {
+    -fx-alignment: CENTER_RIGHT;
+}
+
+.received-message-container {
+    -fx-alignment: CENTER_LEFT;
+}
+
+/* Message bubbles */
+.my-message-bubble {
+    -fx-background-color: #b7e1f7; /*for sent messages */
+    -fx-background-radius: 15;
+    -fx-padding: 10;
+}
+
+.other-message-bubble {
+    -fx-background-color: #e0f4ff; /*for received messages */
+    -fx-background-radius: 15;
+    -fx-padding: 10;
+    -fx-border-color: #E0E0E0;
+    -fx-border-width: 1;
+    -fx-border-radius: 15;
+}
+
+.sender-label {
+    -fx-font-weight: bold;
+    -fx-font-size: 1.0em;
+    -fx-text-fill: #333333;
+}
+
+.content-label {
+    -fx-font-size: 1.2em;
+    -fx-text-fill: #333333;
+}
+
+.timestamp-label {
+    -fx-font-size: 0.7em;
+    -fx-text-fill: #757575;
 }
