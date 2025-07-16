@@ -22,6 +22,6 @@
     <TextField fx:id="usernameField" maxWidth="-Infinity" minWidth="-Infinity" prefWidth="200.0" promptText="ユーザ名" />
     <PasswordField fx:id="passwordField" maxWidth="-Infinity" prefWidth="200.0" promptText="パスワード" />
     <Button fx:id="btnLogin" onAction="#handleLoginButtonAction" text="ログイン" />
-    <Button fx:id="btnSwitchMode" text="新規登録モードへ" />
+    <Button fx:id="btnSwitchMode" id="switchModeButton" text="新規登録モードへ" />
     <Label fx:id="loginStatusLabel" text="" />
 </VBox>
