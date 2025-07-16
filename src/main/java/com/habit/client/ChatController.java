@@ -143,7 +143,7 @@ public class ChatController {
           setContextMenu(null);
         } else {
           // VBox for layout (the message bubble itself)
-          VBox messageBubble = new VBox(5);
+          VBox messageBubble = new VBox(2);
           Label senderLabel = new Label(message.getSender().getUsername());
           Label contentLabel = new Label(message.getContent());
           contentLabel.setWrapText(true);
