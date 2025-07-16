@@ -25,7 +25,7 @@ public class ChatController {
   /* チャットリスト */
   @FXML private ListView<Message> chatList;
   /* チャット入力フィールド */
-  @FXML private TextField chatInput;
+  @FXML private TextArea chatInput;
   /* チャット送信ボタン */
   @FXML private Button btnSend;
   /* チームトップに戻るボタン */
