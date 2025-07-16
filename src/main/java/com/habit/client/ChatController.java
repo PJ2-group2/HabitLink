@@ -235,7 +235,12 @@ public class ChatController {
         // sort according to time stamp
         messages.sort(Comparator.comparing(Message::getTimestamp));
 
-        Platform.runLater(() -> { chatList.getItems().setAll(messages); });
+        Platform.runLater(() -> {
+          chatList.getItems().setAll(messages);
+          if (!messages.isEmpty()) {
+            chatList.scrollTo(messages.size() - 1);
+          }
+        });
       } catch (Exception e) {
         e.printStackTrace();
       }

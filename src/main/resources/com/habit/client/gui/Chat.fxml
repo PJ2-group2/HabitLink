@@ -7,12 +7,12 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.AnchorPane?>
 
-<AnchorPane stylesheets="@Chat.css" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.habit.client.ChatController" prefWidth="900.0" prefHeight="700.0">
-    <Label fx:id="teamNameLabel" layoutX="40" layoutY="0" prefHeight="40" prefWidth="800" text="チーム名" AnchorPane.leftAnchor="40.0" />
-    <ListView fx:id="chatList" focusTraversable="false" layoutX="40" layoutY="60" prefHeight="500" prefWidth="800" styleClass="listView" AnchorPane.leftAnchor="40.0" AnchorPane.rightAnchor="40.0" />
-    <TextField fx:id="chatInput" layoutX="40" layoutY="580" prefWidth="650" prefHeight="40" AnchorPane.leftAnchor="40.0" />
-    <Button fx:id="btnSend" layoutX="710" layoutY="580" prefWidth="130" prefHeight="40" text="送信" AnchorPane.leftAnchor="710.0" />
-    <Button fx:id="btnBackToTeamTop" layoutX="40" layoutY="640" prefWidth="200" prefHeight="40" text="チームトップへ戻る" AnchorPane.leftAnchor="40.0" />
+<AnchorPane stylesheets="@Chat.css" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.habit.client.ChatController" prefWidth="500.0" prefHeight="600.0">
+    <Label fx:id="teamNameLabel" layoutX="40" layoutY="0" prefHeight="40" text="チーム名" AnchorPane.leftAnchor="40.0" AnchorPane.rightAnchor="40.0" />
+    <ListView fx:id="chatList" focusTraversable="false" layoutX="40" layoutY="60" prefHeight="430" styleClass="listView" AnchorPane.leftAnchor="40.0" AnchorPane.rightAnchor="40.0" />
+    <TextField fx:id="chatInput" layoutX="40" layoutY="500" prefHeight="40" AnchorPane.leftAnchor="40.0" AnchorPane.rightAnchor="150.0" />
+    <Button fx:id="btnSend" layoutX="450" layoutY="500" prefWidth="130" prefHeight="40" text="送信" AnchorPane.rightAnchor="40.0" />
+    <Button fx:id="btnBackToTeamTop" layoutX="40" layoutY="560" prefWidth="200" prefHeight="40" text="チームトップへ戻る" AnchorPane.leftAnchor="40.0" />
    <padding>
       <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
    </padding>
