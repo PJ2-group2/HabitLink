@@ -230,6 +230,15 @@ public class ChatController {
         ex.printStackTrace();
       }
     });
+
+    // アプリケーション終了時にschedulerをシャットダウン
+    Platform.runLater(() -> {
+      btnBackToTeamTop.getScene().getWindow().setOnHidden(event -> {
+        if (scheduler != null && !scheduler.isShutdown()) {
+          scheduler.shutdownNow();
+        }
+      });
+    });
   }
 
   /**
