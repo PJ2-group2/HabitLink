@@ -98,12 +98,13 @@
     -fx-border-color: #ffcdd2;
 }
 
-.chatList .list-cell{
-    -fx-background-radius: 10;
-    -fx-border-radius: 10;
-    -fx-background-color: transparent;
-    -fx-border-color: transparent;
-    -fx-font-size: 14;
+.chatList .list-cell:filled:selected {
+    -fx-text-fill: #333333; /* 選択時の文字色を黒に固定 */
+    -fx-background-color: #e3f8ff; /* 背景色も通常時と同じに固定 */
+}
+
+.chatList .list-cell:filled:selected .text {
+    -fx-fill: #333333; /* 選択時のテキストノードの色を黒に固定 */
 }
 
 .btnToChat{
