@@ -27,9 +27,21 @@
 	-fx-background-color: #f0ffff;
 	-fx-background-radius: 20pt;
 	-fx-background-insets: 1;
-	-fx-padding: 8;
+	-fx-padding: 12;
 }
 
-.listView .list-cell:filled{
+.listView .list-cell:filled:hover{
 	-fx-background-color: #b3d8fa;
+}
+
+.delete-menu-item {
+    -fx-background-radius: 10px; /* 角を丸くする */
+}
+
+.delete-menu-item .label {
+    -fx-font-size: 16px; /* フォントサイズを大きくする */
+}
+
+.delete-menu-item:hover {
+    -fx-background-color: #b3d8fa; /* ホバー時の背景色 */
 }

@@ -128,6 +128,7 @@ public class ChatController {
             }
           }
         });
+        deleteItem.getStyleClass().add("delete-menu-item");
         contextMenu.getItems().add(deleteItem);
       }
 
