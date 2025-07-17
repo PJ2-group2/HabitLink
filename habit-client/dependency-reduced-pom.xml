@@ -21,29 +21,52 @@
               <goal>run</goal>
             </goals>
           </execution>
+          <execution>
+            <id>jlink</id>
+            <goals>
+              <goal>jlink</goal>
+            </goals>
+            <configuration>
+              <launcher>HabitLinkClient</launcher>
+              <jlinkExecutable>${java.home}/bin/jlink</jlinkExecutable>
+              <noManPages>true</noManPages>
+              <noHeaderFiles>true</noHeaderFiles>
+              <stripDebug>true</stripDebug>
+              <compress>2</compress>
+              <modules>
+                <module>javafx.controls</module>
+                <module>javafx.fxml</module>
+                <module>javafx.graphics</module>
+                <module>javafx.base</module>
+              </modules>
+              <bindServices>true</bindServices>
+              <vendor>HabitLink</vendor>
+              <appName>HabitLinkClient</appName>
+              <input>${project.build.directory}</input>
+              <installDir>HabitLinkClient</installDir>
+              <resourceDir>${project.basedir}/src/main/resources</resourceDir>
+            </configuration>
+          </execution>
         </executions>
         <configuration>
           <mainClass>com.habit.client.gui.HabitClientGUI</mainClass>
-          <launcher>HabitLinkClient</launcher>
-          <noManPages>true</noManPages>
-          <noHeaderFiles>true</noHeaderFiles>
-          <stripDebug>true</stripDebug>
-          <compress>2</compress>
-          <modules>
-            <module>javafx.controls</module>
-            <module>javafx.fxml</module>
-          </modules>
-          <bindServices>true</bindServices>
-          <vendor>HabitLink</vendor>
-          <appName>HabitLinkClient</appName>
-          <input>${project.build.directory}</input>
-          <installDir>HabitLinkClient</installDir>
-          <resourceDir>${project.basedir}/src/main/resources</resourceDir>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.2.0</version>
+        <configuration>
+          <archive>
+            <manifest>
+              <addClasspath>true</addClasspath>
+              <mainClass>com.habit.client.gui.MainWrapper</mainClass>
+            </manifest>
+          </archive>
         </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-shade-plugin</artifactId>
-        <version>3.2.4</version>
+        <version>3.5.1</version>
         <executions>
           <execution>
             <phase>package</phase>
@@ -53,44 +76,19 @@
             <configuration>
               <transformers>
                 <transformer>
-                  <mainClass>com.habit.client.gui.HabitClientGUI</mainClass>
+                  <mainClass>com.habit.client.gui.MainWrapper</mainClass>
                 </transformer>
               </transformers>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <artifactId>maven-jar-plugin</artifactId>
-        <version>3.2.0</version>
-        <configuration>
-          <archive>
-            <manifest>
-              <addClasspath>true</addClasspath>
-              <mainClass>com.habit.client.gui.HabitClientGUI</mainClass>
-            </manifest>
-          </archive>
-        </configuration>
-      </plugin>
-      <plugin>
-        <artifactId>maven-assembly-plugin</artifactId>
-        <version>3.3.0</version>
-        <executions>
-          <execution>
-            <id>make-assembly</id>
-            <phase>package</phase>
-            <goals>
-              <goal>single</goal>
-            </goals>
-            <configuration>
-              <archive>
-                <manifest>
-                  <mainClass>com.habit.client.gui.HabitClientGUI</mainClass>
-                </manifest>
-              </archive>
-              <descriptorRefs>
-                <descriptorRef>jar-with-dependencies</descriptorRef>
-              </descriptorRefs>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+              </filters>
             </configuration>
           </execution>
         </executions>
@@ -121,7 +119,7 @@
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
-      <version>1.2.11</version>
+      <version>1.5.6</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
