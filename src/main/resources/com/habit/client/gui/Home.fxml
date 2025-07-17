@@ -8,7 +8,7 @@
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="350" prefWidth="600" stylesheets="@home.css" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.habit.client.HomeController">
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400" prefWidth="600" stylesheets="@home.css" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.habit.client.HomeController">
     <left>
         <VBox alignment="CENTER" styleClass="vBox">
             <Label fx:id="cheerMessageLabel" alignment="CENTER_LEFT" focusTraversable="false" maxWidth="-Infinity" minWidth="-Infinity" prefHeight="60.0" prefWidth="250.0" wrapText="true">
@@ -19,6 +19,9 @@
             <VBox.margin>
                <Insets top="30.0" />
             </VBox.margin></ImageView>
+            <Label text="はびりん"
+                style="-fx-font-size: 12px; -fx-font-weight: bold;"
+                alignment="CENTER" />
         </VBox>
     </left>
     <center>

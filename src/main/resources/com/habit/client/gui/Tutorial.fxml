@@ -7,6 +7,8 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.text.Font?>
+<?import javafx.scene.text.TextFlow?>
+<?import javafx.scene.text.Text?>
 
 <StackPane xmlns="http://javafx.com/javafx/8.0.171"
            xmlns:fx="http://javafx.com/fxml"
@@ -19,18 +21,22 @@
         <!-- キャラクター画像 -->
         <ImageView fx:id="characterImageView" fitWidth="200" preserveRatio="true" />
 
+        <Label text="はびりん"
+            style="-fx-font-size: 16px; -fx-font-weight: bold;"
+            alignment="CENTER" />
+
+
         <!-- 吹き出しのような発言 -->
-        <Label fx:id="speechLabel"
-            text="こんにちは！私はあなたの習慣をサポートするキャラです！"
-            wrapText="true"
+    <TextFlow fx:id="speechTextFlow"
+            maxWidth="700"
+            minWidth="500"
+            minHeight="100"
+            textAlignment="CENTER"
             style="-fx-background-color: #ffffff; -fx-border-color: #cccccc;
                     -fx-border-radius: 15; -fx-background-radius: 15;
-                    -fx-padding: 30; -fx-effect: dropshadow(gaussian, lightgray, 10, 0.3, 2, 2);"
-            maxWidth="700" minWidth="500" minHeight="150" alignment="CENTER">
-            <font>
-                <Font name="Arial" size="18"/>
-            </font>
-        </Label>
+                    -fx-padding: 30; -fx-effect: dropshadow(gaussian, lightgray, 10, 0.3, 2, 2);
+                    -fx-text-alignment: center;">
+    </TextFlow>
 
 
         <Button text="Skip"
