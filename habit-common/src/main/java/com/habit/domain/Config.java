@@ -17,12 +17,19 @@ public class Config {
   private static final Properties properties = new Properties();
 
   static {
-    try (InputStream input = Config.class.getClassLoader().getResourceAsStream(
-             "application.properties")) {
-      if (input == null) {
-        logger.error("Sorry, unable to find application.properties");
-      } else {
-        properties.load(input);
+    try (InputStream input = new java.io.FileInputStream("application.properties")) {
+      properties.load(input);
+    } catch (java.io.FileNotFoundException e) {
+      // 外部にファイルがない場合、クラスパスから読み込む
+      try (InputStream input = Config.class.getClassLoader()
+          .getResourceAsStream("application.properties")) {
+        if (input == null) {
+          logger.error("Sorry, unable to find application.properties in both external and classpath");
+        } else {
+          properties.load(input);
+        }
+      } catch (IOException ex) {
+        ex.printStackTrace();
       }
     } catch (IOException ex) {
       ex.printStackTrace();

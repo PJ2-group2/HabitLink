@@ -1,6 +1,6 @@
 package com.habit.server;
 
-import com.habit.domain.Config;
+
 // 習慣化共有プログラムのサーバ側プログラム
 // クライアントからのHTTPリクエストを受けて、チームやタスクの情報を管理します
 // サーバはSQLiteを用いてチーム・タスク情報を永続化します
@@ -73,7 +73,7 @@ public class HabitServer {
   private static TaskAutoResetController taskAutoResetController;
 
   public static void main(String[] args) throws Exception {
-    final boolean is_debug = Config.getIsDebug();
+    final boolean is_debug = false;
     logger.debug("debug: {}", is_debug);
 
     // サーバを8080番ポートで起動
@@ -249,7 +249,7 @@ public class HabitServer {
       server.stop(0);
     }));
 
-    logger.info("サーバが起動しました: {}", Config.getServerUrl());
+    logger.info("サーバが8080ポートで起動しました");
     logger.info("タスク自動再設定機能が有効になりました");
 
     if (is_debug) {
