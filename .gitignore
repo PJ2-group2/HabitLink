@@ -6,3 +6,4 @@ target/*
 .cache/*
 habit.db
 last_execution.log
+.class
