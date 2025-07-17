@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.habit.server.service.TaskAutoResetServiceTest" time="0.188" tests="5" errors="0" skipped="0" failures="0">
+  <properties>
+    <property name="java.specification.version" value="24"/>
+    <property name="sun.cpu.isalist" value="amd64"/>
+    <property name="sun.jnu.encoding" value="MS932"/>
+    <property name="java.class.path" value="C:\Users\kazuk\ProjectLearning2\HabitLink\habit-server\target\test-classes;C:\Users\kazuk\ProjectLearning2\HabitLink\habit-server\target\classes;C:\Users\kazuk\ProjectLearning2\HabitLink\habit-common\target\habit-common-1.0-SNAPSHOT.jar;C:\Users\kazuk\.m2\repository\org\junit\jupiter\junit-jupiter\5.12.1\junit-jupiter-5.12.1.jar;C:\Users\kazuk\.m2\repository\org\junit\jupiter\junit-jupiter-api\5.12.1\junit-jupiter-api-5.12.1.jar;C:\Users\kazuk\.m2\repository\org\opentest4j\opentest4j\1.3.0\opentest4j-1.3.0.jar;C:\Users\kazuk\.m2\repository\org\junit\platform\junit-platform-commons\1.12.1\junit-platform-commons-1.12.1.jar;C:\Users\kazuk\.m2\repository\org\apiguardian\apiguardian-api\1.1.2\apiguardian-api-1.1.2.jar;C:\Users\kazuk\.m2\repository\org\junit\jupiter\junit-jupiter-params\5.12.1\junit-jupiter-params-5.12.1.jar;C:\Users\kazuk\.m2\repository\org\junit\jupiter\junit-jupiter-engine\5.12.1\junit-jupiter-engine-5.12.1.jar;C:\Users\kazuk\.m2\repository\org\junit\platform\junit-platform-engine\1.12.1\junit-platform-engine-1.12.1.jar;C:\Users\kazuk\.m2\repository\org\slf4j\slf4j-api\1.7.36\slf4j-api-1.7.36.jar;C:\Users\kazuk\.m2\repository\ch\qos\logback\logback-classic\1.2.11\logback-classic-1.2.11.jar;C:\Users\kazuk\.m2\repository\ch\qos\logback\logback-core\1.2.11\logback-core-1.2.11.jar;C:\Users\kazuk\.m2\repository\com\fasterxml\jackson\core\jackson-databind\2.13.3\jackson-databind-2.13.3.jar;C:\Users\kazuk\.m2\repository\com\fasterxml\jackson\core\jackson-annotations\2.13.3\jackson-annotations-2.13.3.jar;C:\Users\kazuk\.m2\repository\com\fasterxml\jackson\core\jackson-core\2.13.3\jackson-core-2.13.3.jar;C:\Users\kazuk\.m2\repository\org\xerial\sqlite-jdbc\3.45.1.0\sqlite-jdbc-3.45.1.0.jar;C:\Users\kazuk\.m2\repository\org\json\json\20250517\json-20250517.jar;C:\Users\kazuk\.m2\repository\org\mindrot\jbcrypt\0.4\jbcrypt-0.4.jar;"/>
+    <property name="java.vm.vendor" value="Oracle Corporation"/>
+    <property name="sun.arch.data.model" value="64"/>
+    <property name="user.variant" value=""/>
+    <property name="java.vendor.url" value="https://java.oracle.com/"/>
+    <property name="user.timezone" value="GMT+09:00"/>
+    <property name="os.name" value="Windows 11"/>
+    <property name="java.vm.specification.version" value="24"/>
+    <property name="sun.java.launcher" value="SUN_STANDARD"/>
+    <property name="user.country" value="JP"/>
+    <property name="sun.boot.library.path" value="C:\Program Files\Java\jdk-24\bin"/>
+    <property name="sun.java.command" value="C:\Users\kazuk\AppData\Local\Temp\surefire8085818693962579933\surefirebooter-20250717151008865_6.jar C:\Users\kazuk\AppData\Local\Temp\surefire8085818693962579933 2025-07-17T15-10-07_110-jvmRun1 surefire-20250717151008865_4tmp surefire_1-20250717151008865_5tmp"/>
+    <property name="jdk.debug" value="release"/>
+    <property name="surefire.test.class.path" value="C:\Users\kazuk\ProjectLearning2\HabitLink\habit-server\target\test-classes;C:\Users\kazuk\ProjectLearning2\HabitLink\habit-server\target\classes;C:\Users\kazuk\ProjectLearning2\HabitLink\habit-common\target\habit-common-1.0-SNAPSHOT.jar;C:\Users\kazuk\.m2\repository\org\junit\jupiter\junit-jupiter\5.12.1\junit-jupiter-5.12.1.jar;C:\Users\kazuk\.m2\repository\org\junit\jupiter\junit-jupiter-api\5.12.1\junit-jupiter-api-5.12.1.jar;C:\Users\kazuk\.m2\repository\org\opentest4j\opentest4j\1.3.0\opentest4j-1.3.0.jar;C:\Users\kazuk\.m2\repository\org\junit\platform\junit-platform-commons\1.12.1\junit-platform-commons-1.12.1.jar;C:\Users\kazuk\.m2\repository\org\apiguardian\apiguardian-api\1.1.2\apiguardian-api-1.1.2.jar;C:\Users\kazuk\.m2\repository\org\junit\jupiter\junit-jupiter-params\5.12.1\junit-jupiter-params-5.12.1.jar;C:\Users\kazuk\.m2\repository\org\junit\jupiter\junit-jupiter-engine\5.12.1\junit-jupiter-engine-5.12.1.jar;C:\Users\kazuk\.m2\repository\org\junit\platform\junit-platform-engine\1.12.1\junit-platform-engine-1.12.1.jar;C:\Users\kazuk\.m2\repository\org\slf4j\slf4j-api\1.7.36\slf4j-api-1.7.36.jar;C:\Users\kazuk\.m2\repository\ch\qos\logback\logback-classic\1.2.11\logback-classic-1.2.11.jar;C:\Users\kazuk\.m2\repository\ch\qos\logback\logback-core\1.2.11\logback-core-1.2.11.jar;C:\Users\kazuk\.m2\repository\com\fasterxml\jackson\core\jackson-databind\2.13.3\jackson-databind-2.13.3.jar;C:\Users\kazuk\.m2\repository\com\fasterxml\jackson\core\jackson-annotations\2.13.3\jackson-annotations-2.13.3.jar;C:\Users\kazuk\.m2\repository\com\fasterxml\jackson\core\jackson-core\2.13.3\jackson-core-2.13.3.jar;C:\Users\kazuk\.m2\repository\org\xerial\sqlite-jdbc\3.45.1.0\sqlite-jdbc-3.45.1.0.jar;C:\Users\kazuk\.m2\repository\org\json\json\20250517\json-20250517.jar;C:\Users\kazuk\.m2\repository\org\mindrot\jbcrypt\0.4\jbcrypt-0.4.jar;"/>
+    <property name="sun.cpu.endian" value="little"/>
+    <property name="user.home" value="C:\Users\kazuk"/>
+    <property name="user.language" value="ja"/>
+    <property name="java.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.version.date" value="2025-04-15"/>
+    <property name="java.home" value="C:\Program Files\Java\jdk-24"/>
+    <property name="file.separator" value="\"/>
+    <property name="basedir" value="C:\Users\kazuk\ProjectLearning2\HabitLink\habit-server"/>
+    <property name="java.vm.compressedOopsMode" value="Zero based"/>
+    <property name="line.separator" value="&#10;"/>
+    <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.specification.name" value="Java Platform API Specification"/>
+    <property name="surefire.real.class.path" value="C:\Users\kazuk\AppData\Local\Temp\surefire8085818693962579933\surefirebooter-20250717151008865_6.jar"/>
+    <property name="user.script" value=""/>
+    <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
+    <property name="java.runtime.version" value="24.0.1+9-30"/>
+    <property name="user.name" value="kazuk"/>
+    <property name="stdout.encoding" value="MS932"/>
+    <property name="path.separator" value=";"/>
+    <property name="os.version" value="10.0"/>
+    <property name="java.runtime.name" value="Java(TM) SE Runtime Environment"/>
+    <property name="file.encoding" value="Shift_JIS"/>
+    <property name="java.vm.name" value="Java HotSpot(TM) 64-Bit Server VM"/>
+    <property name="localRepository" value="C:\Users\kazuk\.m2\repository"/>
+    <property name="java.vendor.url.bug" value="https://bugreport.java.com/bugreport/"/>
+    <property name="java.io.tmpdir" value="C:\Users\kazuk\AppData\Local\Temp\"/>
+    <property name="java.version" value="24.0.1"/>
+    <property name="user.dir" value="C:\Users\kazuk\ProjectLearning2\HabitLink\habit-server"/>
+    <property name="os.arch" value="amd64"/>
+    <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
+    <property name="sun.os.patch.level" value=""/>
+    <property name="native.encoding" value="MS932"/>
+    <property name="java.library.path" value="C:\Program Files\Java\jdk-24\bin;C:\WINDOWS\Sun\Java\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\Program Files\Common Files\Oracle\Java\javapath;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Java\jdk-18.0.2.1\bin;C:\Program Files\dotnet\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files\Git\cmd;C:\protoc-26.1-win64\bin;C:\Users\kazuk\Downloads\x86_64-13.2.0-release-win32-seh-msvcrt-rt_v11-rev0\mingw64\bin;C:\ProgramData\chocolatey\bin;C:\zig-windows-x86_64-0.13.0;c:\Users\kazuk\AppData\Local\Programs\cursor\resources\app\bin;C:\Program Files\NVIDIA Corporation\NVIDIA app\NvDLISR;C:\Users\kazuk\Downloads\ffmpeg-7.0.2-full_build\ffmpeg-7.0.2-full_build\bin;C:\Program Files\Go\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\hdiffpatch_v4.8.0_bin_windows64\windows64;C:\Datamining\aria2-1.37.0-win-64bit-build1;C:\Datamining\repak_wuwa\bin;C:\Program Files\PowerShell\7\;C:\Users\kazuk\apache-maven-3.9.10-bin\apache-maven-3.9.10\bin;C:\Program Files\nodejs\;C:\Users\kazuk\AppData\Local\Programs\Python\Python313\Scripts\;C:\Users\kazuk\AppData\Local\Programs\Python\Python313\;C:\Users\kazuk\.cargo\bin;C:\Users\kazuk\AppData\Local\Programs\opam\bin;C:\Users\kazuk\AppData\Local\Programs\Python\Python310\Scripts\;C:\Users\kazuk\AppData\Local\Programs\Python\Python310\;C:\Users\kazuk\AppData\Local\Microsoft\WindowsApps;C:\Users\kazuk\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\kazuk\.dotnet\tools;C:\Users\kazuk\AppData\Local\Programs\Fiddler;C:\Users\kazuk\go\bin;C:\Users\kazuk\AppData\Local\Microsoft\WindowsApps;C:\Users\kazuk\AppData\Roaming\npm;."/>
+    <property name="java.vm.info" value="mixed mode, sharing"/>
+    <property name="stderr.encoding" value="MS932"/>
+    <property name="java.vendor" value="Oracle Corporation"/>
+    <property name="java.vm.version" value="24.0.1+9-30"/>
+    <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
+    <property name="java.class.version" value="68.0"/>
+  </properties>
+  <testcase name="testResetDailyTasks" classname="com.habit.server.service.TaskAutoResetServiceTest" time="0.04">
+    <system-out><![CDATA[15:10:09.694 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] チーム team-a のタスク数: 1
+15:10:09.697 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] 実行日: 2025-07-05, チェック対象日(前日): 2025-07-04
+15:10:09.697 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] タスク処理開始: 日課の散歩 (ID: task-daily-1)
+15:10:09.697 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] cycleType: DAILY
+15:10:09.698 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] 新しい期限日: 2025-07-05
+15:10:09.702 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] 2025-07-04 のUserTaskStatus数: 1
+15:10:09.702 [main] INFO  c.h.s.service.TaskAutoResetService - [INFO] 2025-07-04 の未処理UserTaskStatus件数: 1
+15:10:09.703 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] UserTaskStatus処理開始: userId=user-1, isDone=true, teamId=team-a, date=2025-07-04
+15:10:09.704 [main] ERROR c.h.s.service.TaskAutoResetService - [ERROR] ユーザーが見つかりません: userId=user-1
+15:10:09.708 [main] INFO  c.h.s.service.TaskAutoResetService - 新しいUserTaskStatusを生成: userId=user-1, taskId=task-daily-1, date=2025-07-05
+]]></system-out>
+  </testcase>
+  <testcase name="testResetForMultipleUsers" classname="com.habit.server.service.TaskAutoResetServiceTest" time="0.037">
+    <system-out><![CDATA[15:10:09.734 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] チーム team-d のタスク数: 1
+15:10:09.734 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] 実行日: 2025-07-05, チェック対象日(前日): 2025-07-04
+15:10:09.734 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] タスク処理開始: 全員で掃除 (ID: task-multi-user-1)
+15:10:09.734 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] cycleType: DAILY
+15:10:09.734 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] 新しい期限日: 2025-07-05
+15:10:09.737 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] 2025-07-04 のUserTaskStatus数: 2
+15:10:09.737 [main] INFO  c.h.s.service.TaskAutoResetService - [INFO] 2025-07-04 の未処理UserTaskStatus件数: 2
+15:10:09.737 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] UserTaskStatus処理開始: userId=user-3, isDone=true, teamId=team-d, date=2025-07-04
+15:10:09.738 [main] ERROR c.h.s.service.TaskAutoResetService - [ERROR] ユーザーが見つかりません: userId=user-3
+15:10:09.741 [main] INFO  c.h.s.service.TaskAutoResetService - 新しいUserTaskStatusを生成: userId=user-3, taskId=task-multi-user-1, date=2025-07-05
+15:10:09.741 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] UserTaskStatus処理開始: userId=user-4, isDone=false, teamId=team-d, date=2025-07-04
+15:10:09.742 [main] ERROR c.h.s.service.TaskAutoResetService - [ERROR] ユーザーが見つかりません: userId=user-4
+15:10:09.745 [main] INFO  c.h.s.service.TaskAutoResetService - 新しいUserTaskStatusを生成: userId=user-4, taskId=task-multi-user-1, date=2025-07-05
+]]></system-out>
+  </testcase>
+  <testcase name="testSabotagePointsIncreaseOnIncompleteTask" classname="com.habit.server.service.TaskAutoResetServiceTest" time="0.043">
+    <system-out><![CDATA[15:10:09.775 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] チーム team-e のタスク数: 1
+15:10:09.775 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] 実行日: 2025-07-05, チェック対象日(前日): 2025-07-04
+15:10:09.775 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] タスク処理開始: 未完了タスク (ID: task-sabotage-incomplete)
+15:10:09.775 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] cycleType: DAILY
+15:10:09.775 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] 新しい期限日: 2025-07-05
+15:10:09.778 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] 2025-07-04 のUserTaskStatus数: 1
+15:10:09.778 [main] INFO  c.h.s.service.TaskAutoResetService - [INFO] 2025-07-04 の未処理UserTaskStatus件数: 1
+15:10:09.778 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] UserTaskStatus処理開始: userId=user-5, isDone=false, teamId=team-e, date=2025-07-04
+15:10:09.779 [main] INFO  c.h.s.service.TaskAutoResetService - [INFO] タスク未完了により testuser5 のサボりポイントを増加 → サボり報告メッセージを送信
+15:10:09.780 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] メッセージ保存前: sender=system, teamId=team-e, content=testuser5さんが昨日のタスク「未完了タスク」をサボりました。
+15:10:09.783 [main] INFO  c.h.s.service.TaskAutoResetService - [SUCCESS] サボり報告メッセージ送信完了: チーム=team-e, ユーザー=testuser5, タスク=未完了タスク, 実行時刻=2025-07-05T00:01
+15:10:09.786 [main] INFO  c.h.s.service.TaskAutoResetService - [SUCCESS] testuser5 のサボりポイントを更新: 30 Pt
+15:10:09.789 [main] INFO  c.h.s.service.TaskAutoResetService - 新しいUserTaskStatusを生成: userId=user-5, taskId=task-sabotage-incomplete, date=2025-07-05
+]]></system-out>
+  </testcase>
+  <testcase name="testResetWeeklyTasks_NotDone" classname="com.habit.server.service.TaskAutoResetServiceTest" time="0.03">
+    <system-out><![CDATA[15:10:09.812 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] チーム team-b のタスク数: 1
+15:10:09.812 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] 実行日: 2025-07-05, チェック対象日(前日): 2025-07-04
+15:10:09.812 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] タスク処理開始: 週報の提出 (ID: task-weekly-1)
+15:10:09.812 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] cycleType: WEEKLY
+15:10:09.812 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] 新しい期限日: 2025-07-11
+15:10:09.815 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] 2025-07-04 のUserTaskStatus数: 1
+15:10:09.815 [main] INFO  c.h.s.service.TaskAutoResetService - [INFO] 2025-07-04 の未処理UserTaskStatus件数: 1
+15:10:09.815 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] UserTaskStatus処理開始: userId=user-2, isDone=false, teamId=team-b, date=2025-07-04
+15:10:09.816 [main] ERROR c.h.s.service.TaskAutoResetService - [ERROR] ユーザーが見つかりません: userId=user-2
+15:10:09.819 [main] INFO  c.h.s.service.TaskAutoResetService - 新しいUserTaskStatusを生成: userId=user-2, taskId=task-weekly-1, date=2025-07-11
+]]></system-out>
+  </testcase>
+  <testcase name="testSabotagePointsDecreaseOnCompleteTask" classname="com.habit.server.service.TaskAutoResetServiceTest" time="0.034">
+    <system-out><![CDATA[15:10:09.844 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] チーム team-f のタスク数: 1
+15:10:09.844 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] 実行日: 2025-07-05, チェック対象日(前日): 2025-07-04
+15:10:09.844 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] タスク処理開始: 完了タスク (ID: task-sabotage-complete)
+15:10:09.844 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] cycleType: DAILY
+15:10:09.844 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] 新しい期限日: 2025-07-05
+15:10:09.848 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] 2025-07-04 のUserTaskStatus数: 1
+15:10:09.848 [main] INFO  c.h.s.service.TaskAutoResetService - [INFO] 2025-07-04 の未処理UserTaskStatus件数: 1
+15:10:09.848 [main] INFO  c.h.s.service.TaskAutoResetService - [DEBUG] UserTaskStatus処理開始: userId=user-6, isDone=true, teamId=team-f, date=2025-07-04
+15:10:09.851 [main] INFO  c.h.s.service.TaskAutoResetService - [SUCCESS] testuser6 のサボりポイントを更新: 5 Pt
+15:10:09.854 [main] INFO  c.h.s.service.TaskAutoResetService - 新しいUserTaskStatusを生成: userId=user-6, taskId=task-sabotage-complete, date=2025-07-05
+]]></system-out>
+  </testcase>
+</testsuite>

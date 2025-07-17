@@ -1,0 +1,32 @@
+.root {
+    -fx-background-color: linear-gradient(to bottom right, #87cefa, #ffffff);
+}
+
+.button {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+	-fx-background-color: #1e90ff;
+    -fx-background-radius: 15;
+	-fx-border-radius: 15;
+	-fx-border-width: 1pt;
+	-fx-border-color: #1e90ff;
+}
+
+.button:hover, .button:focused {
+    -fx-background-color: #00bfff;
+	-fx-border-color: #000080;
+}
+
+#switchModeButton {
+    -fx-background-color: transparent; /* 背景を透明に */
+    -fx-text-fill: #1e90ff; /* 青色のテキスト */
+    -fx-border-color: transparent; /* ボーダーも透明に */
+    -fx-font-weight: normal; /* 太字ではない */
+    -fx-font-size: 14px;
+    -fx-underline: true; /* 下線 */
+    -fx-padding: 5px; /* パディングを調整 */
+}
+
+#switchModeButton:hover {
+    -fx-text-fill: #00bfff; /* ホバーで色を変える */
+}

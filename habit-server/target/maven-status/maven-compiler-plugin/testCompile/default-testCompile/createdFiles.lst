@@ -1,0 +1,3 @@
+com\habit\server\repository\MessageRepositoryTest.class
+com\habit\server\service\TaskAutoResetServiceTest.class
+com\habit\server\repository\UserRepositoryTest.class

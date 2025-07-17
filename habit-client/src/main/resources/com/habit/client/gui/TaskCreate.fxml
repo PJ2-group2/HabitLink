@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<AnchorPane xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.habit.client.TaskCreateController" prefWidth="400" prefHeight="350">
+    <VBox spacing="16" alignment="CENTER" AnchorPane.topAnchor="10" AnchorPane.leftAnchor="10" AnchorPane.rightAnchor="10">
+        <Label text="タスク作成" style="-fx-font-size: 20px;"/>
+        <HBox spacing="10">
+            <Label text="タスク名"/>
+            <TextField fx:id="taskNameField" promptText="タスク名"/>
+        </HBox>
+        <HBox spacing="10">
+            <Label text="期限日付"/>
+            <TextField fx:id="dueDateField" promptText="例: 2025-07-02 (省略可)"/>
+        </HBox>
+        <HBox spacing="10">
+            <Label text="周期"/>
+            <ChoiceBox fx:id="cycleTypeChoice"/>
+        </HBox>
+        <Button fx:id="btnCreate" text="作成" maxWidth="120" onAction="#handleBtnCreate"/>
+        <Button fx:id="btnCancel" text="やめる" maxWidth="120" onAction="#handleBtnCancel"/>
+    </VBox>
+</AnchorPane>

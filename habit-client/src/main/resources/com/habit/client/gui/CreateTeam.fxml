@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ChoiceBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="350.0" prefWidth="500" stylesheets="@createTeam.css" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.habit.client.CreateTeamController">
+    <center>
+        <TabPane>
+            <Tab closable="false" text="チーム設定">
+                <VBox alignment="CENTER" spacing="10">
+                    <TextField fx:id="teamNameField" promptText="チーム名" styleClass="text-field">
+                  <VBox.margin>
+                     <Insets left="20.0" right="20.0" />
+                  </VBox.margin></TextField>
+                    <TextField fx:id="passcodeField" promptText="合言葉" styleClass="text-field">
+                  <VBox.margin>
+                     <Insets left="20.0" right="20.0" />
+                  </VBox.margin></TextField>
+                    <HBox alignment="CENTER_LEFT" spacing="10" styleClass="h-box">
+                        <Label text="人数上限">
+                     <HBox.margin>
+                        <Insets left="20.0" />
+                     </HBox.margin></Label>
+                        <Spinner fx:id="maxMembersSpinner" initialValue="5" max="30" min="1" styleClass="my-spinner" />
+                    </HBox>
+                    <HBox alignment="CENTER_LEFT" spacing="10" styleClass="h-box">
+                        <Label text="タスク編集権限">
+                     <HBox.margin>
+                        <Insets left="20.0" />
+                     </HBox.margin></Label>
+                        <ChoiceBox fx:id="editPermissionChoice" styleClass="my-button" />
+                    </HBox>
+               <padding>
+                  <Insets bottom="20.0" />
+               </padding>
+                </VBox>
+            </Tab>
+            <Tab closable="false" text="メンバー招待">
+                <VBox alignment="CENTER" spacing="10">
+                    <HBox spacing="10" styleClass="h-box">
+                        <TextField fx:id="inviteMemberField" promptText="メンバーID">
+                     <HBox.margin>
+                        <Insets left="20.0" />
+                     </HBox.margin></TextField>
+                        <Button fx:id="btnAddMember" styleClass="my-button" text="追加" />
+                    </HBox>
+                    <ListView fx:id="inviteList" prefHeight="120" styleClass="listView">
+                  <VBox.margin>
+                     <Insets left="20.0" right="20.0" />
+                  </VBox.margin></ListView>
+                </VBox>
+            </Tab>
+        </TabPane>
+    </center>
+    <bottom>
+        <HBox alignment="CENTER" spacing="20" styleClass="footer">
+            <Button fx:id="btnCreateTeam" styleClass="my-button" text="作成">
+            <HBox.margin>
+               <Insets bottom="20.0" />
+            </HBox.margin></Button>
+            <Button fx:id="btnBackHome" styleClass="my-button" text="ホームに戻る">
+            <HBox.margin>
+               <Insets bottom="20.0" />
+            </HBox.margin></Button>
+        </HBox>
+    </bottom>
+</BorderPane>

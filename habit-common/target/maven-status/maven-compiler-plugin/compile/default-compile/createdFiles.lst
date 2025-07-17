@@ -1,0 +1,7 @@
+com\habit\domain\User.class
+com\habit\domain\util\Config.class
+com\habit\domain\Task.class
+com\habit\domain\MessageType.class
+com\habit\domain\Team.class
+com\habit\domain\Message.class
+com\habit\domain\UserTaskStatus.class
