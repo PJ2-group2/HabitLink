@@ -2,7 +2,7 @@ msg
 .project
 .classpath
 .settings/*
-target/*
+target/
 .cache/*
 habit.db
 last_execution.log
