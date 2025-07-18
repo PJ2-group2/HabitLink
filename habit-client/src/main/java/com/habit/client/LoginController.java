@@ -116,18 +116,23 @@ public class LoginController {
           sessionId =
               responseBody.substring(idx + "SESSION_ID:".length()).trim();
         }
-        // ホーム画面へ遷移
+        // 登録かログインかで遷移先を決める
+        String fxmlPath = isRegisterMode
+                ? "/com/habit/client/gui/Tutorial.fxml" // ←新規登録後の専用画面
+                : "/com/habit/client/gui/Home.fxml";
+        String stageTitle = isRegisterMode ? "登録完了" : "ホーム";
+
+        // 画面へ遷移
         javafx.application.Platform.runLater(() -> {
-          try {
-            javafx.stage.Stage stage =
-                (javafx.stage.Stage)btnLogin.getScene().getWindow();
-            javafx.scene.Parent root = javafx.fxml.FXMLLoader.load(
-                getClass().getResource("/com/habit/client/gui/Home.fxml"));
-            stage.setScene(new javafx.scene.Scene(root));
-            stage.setTitle("ホーム");
-          } catch (Exception ex) {
-            loginStatusLabel.setText("画面遷移エラー: " + ex.getMessage());
-          }
+            try {
+                javafx.stage.Stage stage = (javafx.stage.Stage) btnLogin.getScene().getWindow();
+                javafx.scene.Parent root = javafx.fxml.FXMLLoader.load(getClass().getResource(fxmlPath));
+                stage.setScene(new javafx.scene.Scene(root));
+                stage.setTitle(stageTitle);
+            } catch (Exception ex) {
+                loginStatusLabel.setText("画面遷移エラー: " + ex.getMessage());
+                ex.printStackTrace();
+            }
         });
       } else {
         // サーバーからのメッセージを表示

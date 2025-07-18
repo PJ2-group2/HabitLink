@@ -28,7 +28,12 @@
                 <VBox alignment="CENTER" spacing="10">
                     <Label fx:id="cheerMessageLabel" text="" style="-fx-font-size: 16px; -fx-background-color: #fffbe7; -fx-border-color: #cccccc; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 10; -fx-text-fill: #3a3a3a;" wrapText="true" maxWidth="280" alignment="CENTER"/>
                     <ImageView fx:id="teamCharView" fitWidth="285" fitHeight="285" preserveRatio="true"/>
+                    <Label text="はびりん"
+                        style="-fx-font-size: 12px; -fx-font-weight: bold;"
+                        alignment="CENTER" />
                 </VBox>
+
+                
             </VBox>
             
             <!-- 右側: タスク表とその他の要素 -->
