@@ -986,7 +986,8 @@ public class TeamTopController {
                              ("; -fx-alignment: center; -fx-font-size: 20px; "
                               + "-fx-font-weight: bold; -fx-padding: 4 0;"));
                   } else {
-                    setText(String.valueOf(daysDone));
+                    // setText(String.valueOf(daysDone)); // 数字表示を消す
+                    setText("");
                     String color;
                     switch (daysDone) {
                     case 0:
