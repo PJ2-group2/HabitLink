@@ -1,47 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.image.ImageView?>
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.text.Font?>
 <?import javafx.scene.text.TextFlow?>
-<?import javafx.scene.text.Text?>
 
-<StackPane xmlns="http://javafx.com/javafx/8.0.171"
-           xmlns:fx="http://javafx.com/fxml"
-           fx:controller="com.habit.client.TutorialController">
+<StackPane stylesheets="@Tutorial.css" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.habit.client.TutorialController">
     <VBox alignment="CENTER" spacing="20" style="-fx-background-color: #f0f8ff;">
     <padding>
-        <Insets top="40" right="40" bottom="40" left="40"/>
+        <Insets bottom="40" left="40" right="40" top="40" />
     </padding>
         
         <!-- キャラクター画像 -->
         <ImageView fx:id="characterImageView" fitWidth="200" preserveRatio="true" />
 
-        <Label text="はびりん"
-            style="-fx-font-size: 16px; -fx-font-weight: bold;"
-            alignment="CENTER" />
+        <Label alignment="CENTER" style="-fx-font-size: 16px; -fx-font-weight: bold;" text="はびりん" />
 
 
         <!-- 吹き出しのような発言 -->
-    <TextFlow fx:id="speechTextFlow"
-            maxWidth="700"
-            minWidth="500"
-            minHeight="100"
-            textAlignment="CENTER"
-            style="-fx-background-color: #ffffff; -fx-border-color: #cccccc;
-                    -fx-border-radius: 15; -fx-background-radius: 15;
-                    -fx-padding: 30; -fx-effect: dropshadow(gaussian, lightgray, 10, 0.3, 2, 2);
-                    -fx-text-alignment: center;">
+    <TextFlow fx:id="speechTextFlow" maxWidth="700" minHeight="100" minWidth="500" style="-fx-background-color: #e0ffff; -fx-border-color: #cccccc; -fx-border-radius: 15; -fx-background-radius: 15; -fx-padding: 30; -fx-effect: dropshadow(gaussian, lightgray, 10, 0.3, 2, 2); -fx-text-alignment: center;" textAlignment="CENTER">
     </TextFlow>
 
+        <HBox alignment="CENTER" spacing="20">
+            <Button onAction="#handleSkip" style="-fx-font-size: 12pt; -fx-padding: 8 16;" styleClass="my-button" text="Skip" />
+            <Button onAction="#handleNext" style="-fx-font-size: 12pt; -fx-padding: 8 16;" styleClass="my-button" text="次へ" />
 
-        <Button text="Skip"
-            onAction="#handleSkip"
-            style="-fx-font-size: 12pt; -fx-padding: 8 16;" />
+        </HBox>
 
     </VBox>
 </StackPane>
