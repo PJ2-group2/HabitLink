@@ -54,6 +54,7 @@
   </dependencies>
 
   <build>
+    <finalName>HabitLink_Server</finalName>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

@@ -9,6 +9,7 @@
   <artifactId>habit-client</artifactId>
   <name>habit-client</name>
   <build>
+    <finalName>HabitLink_Client</finalName>
     <plugins>
       <plugin>
         <groupId>org.openjfx</groupId>
