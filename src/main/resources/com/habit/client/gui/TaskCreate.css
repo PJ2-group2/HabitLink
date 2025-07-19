@@ -1,0 +1,47 @@
+.root{
+	-fx-background-color: #e0ffff;
+}
+
+.my-button{
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+	-fx-background-color: #00bfff;
+    -fx-background-radius: 15;
+	-fx-border-radius: 15;
+	-fx-border-width: 1pt;
+	-fx-border-color: transparent;
+}
+
+.my-button:hover, .my-button:focused {
+    -fx-background-color: #1e90ff;
+	-fx-border-color: #000080;
+}
+
+.choice-box .open-button .arrow{
+	-fx-background-color: #000080;
+	-fx-border-color: #000080;
+}
+
+.choice-box .label{
+	-fx-text-fill: white;
+	-fx-font-weight: bold;
+}
+
+
+
+.choice-box .menu-item {
+    -fx-background-color: white;
+}
+
+.choice-box .menu-item >.label {
+	-fx-text-fill: black;
+}
+
+.choice-box .menu-item:focused {
+    -fx-background-color: #00bfff;
+}
+
+.choice-box .menu-item:focused >.label{
+	-fx-text-fill: white;
+}
+
