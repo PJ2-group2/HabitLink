@@ -25,7 +25,7 @@ mvn clean install
 以下のコマンドでサーバーを起動します。
 
 ```bash
-java -jar habit-server/target/HabitLinkServer.jar
+java -jar habit-server/target/HabitLink_Server.jar
 ```
 
 サーバーは `8080` 番ポートで起動します。
@@ -35,7 +35,7 @@ java -jar habit-server/target/HabitLinkServer.jar
 以下のコマンドでクライアントGUIを起動します。
 
 ```bash
-java -jar habit-client/target/HabitLinkClient.jar
+java -jar habit-client/target/HabitLink_Client.jar
 ```
 
 ## APIエンドポイント
