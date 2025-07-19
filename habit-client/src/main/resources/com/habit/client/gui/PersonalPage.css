@@ -1,0 +1,69 @@
+.root{
+	-fx-background-color: #e0ffff;
+}
+
+.label{
+    -fx-font-weight: bold;
+}
+
+.my-button{
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+	-fx-background-color: #00bfff;
+    -fx-background-radius: 15;
+	-fx-border-radius: 15;
+	-fx-border-width: 1pt;
+	-fx-border-color: transparent;
+}
+
+.my-button:hover, .my-button:focused {
+    -fx-background-color: #1e90ff;
+	-fx-border-color: #000080;
+}
+
+.scroll-pane{
+    -fx-background-radius: 20;
+    -fx-border-radius: 20;
+    -fx-border-width: 3pt;
+}
+
+.scroll-pane .viewport{
+    -fx-background-color: #f0ffff;
+    -fx-background-radius: 20;
+    -fx-border-width: 1pt;
+    -fx-border-radius: 20;
+    -fx-border-color: gray;
+}
+
+.scroll-pane .scroll-bar {
+    -fx-background-color: transparent;
+}
+
+.scroll-pane .scroll-bar .thumb {
+    -fx-background-color: #87cefa;
+    -fx-background-insets: 2;
+    -fx-background-radius: 10;
+}
+
+.scroll-pane .scroll-bar .track {
+    -fx-background-color: #e0e0e0;
+    -fx-background-insets: 0;
+    -fx-background-radius: 10;
+}
+
+.task-pane .button{
+    -fx-background-radius: 10;
+    -fx-background-color: #87cefa;
+    -fx-border-radius: 10;
+    -fx-border-color: #aaa;
+}
+
+.task-pane .button:hover{
+    -fx-background-color: #1e90ff;
+    -fx-border-color: #000080;
+}
+
+.task-pane .button .context-menu{
+    -fx-border-radius: 0 0 10 10;
+    -fx-background-radius: 0 0 10 10;
+}
