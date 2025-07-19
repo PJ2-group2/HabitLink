@@ -107,6 +107,17 @@
     -fx-fill: #333333; /* 選択時のテキストノードの色を黒に固定 */
 }
 
+.chatList .list-cell {
+    -fx-background-color: #e0f4ff; /* 吹き出しの背景色 */
+    -fx-background-radius: 15; /* 角の丸み */
+    -fx-background-insets: 5;
+    -fx-border-color: #E0E0E0; /* 枠線の色 */
+    -fx-border-width: 1;
+    -fx-border-radius: 15;
+    -fx-padding: 10; /* 内側の余白 */
+    -fx-font-size: 1.1em; /* 文字サイズ */
+}
+
 .btnToChat{
     -fx-background-color: transparent;
     -fx-text-size: 10;
