@@ -1,18 +1,29 @@
 package com.habit.client;
 
-import com.habit.domain.util.Config;
-import javafx.fxml.FXML;
-import javafx.scene.control.*;
-import javafx.scene.layout.TilePane;
-import javafx.scene.Scene;
-import javafx.stage.Stage;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import java.time.*;
-import java.util.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.habit.domain.util.Config;
+
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
+import javafx.scene.layout.TilePane;
+import javafx.stage.Stage;
 
 /**
  * 個人ページのコントローラークラス。
@@ -121,11 +132,11 @@ public class PersonalPageController {
             
             if (isDone) {
                 tileBtn.setText(name + "\n(完了)");
-                tileBtn.setStyle("-fx-border-color: #aaa; -fx-padding: 30; -fx-background-color: #e0e0e0; -fx-min-width: 320px; -fx-min-height: 150px; -fx-alignment: center; -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #888;");
+                tileBtn.setStyle(" -fx-padding: 30;  -fx-min-width: 320px; -fx-min-height: 150px; -fx-alignment: center; -fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #888;");
                 tileBtn.setDisable(true); // 完了済みはクリック不可
             } else {
                 tileBtn.setText(name + (remainStr.isEmpty() ? "" : "\n" + remainStr));
-                tileBtn.setStyle("-fx-border-color: #aaa; -fx-padding: 30; -fx-background-color: #f9f9f9; -fx-min-width: 320px; -fx-min-height: 150px; -fx-alignment: center; -fx-font-size: 22px; -fx-font-weight: bold;");
+                tileBtn.setStyle(" -fx-padding: 30;  -fx-min-width: 320px; -fx-min-height: 150px; -fx-alignment: center; -fx-font-size: 22px; -fx-font-weight: bold;");
                 
                 // --- クリック処理の変更 ---
                 ContextMenu contextMenu = new ContextMenu();
