@@ -1,15 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.TilePane?>
+<?import javafx.scene.layout.VBox?>
 
-<VBox xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
-      fx:controller="com.habit.client.PersonalPageController" spacing="20" alignment="CENTER" prefWidth="900" prefHeight="700">
-    <Label text="個人ページ（タスク管理）" style="-fx-font-size: 24px;" />
-    <ScrollPane fitToWidth="true" prefHeight="500" maxWidth="800">
+<VBox alignment="CENTER" prefHeight="700" prefWidth="900" spacing="20" stylesheets="@PersonalPage.css" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.habit.client.PersonalPageController">
+    <Label style="-fx-font-size: 24px;" text="個人ページ（タスク管理）" />
+    <ScrollPane fitToWidth="true" maxWidth="800" prefHeight="500">
         <content>
-            <TilePane fx:id="taskTilePane" hgap="30" vgap="30" prefColumns="2" alignment="CENTER" prefTileWidth="350" prefTileHeight="180" maxWidth="800" />
+            <TilePane fx:id="taskTilePane" alignment="CENTER" hgap="30" maxWidth="800" prefColumns="2" prefTileHeight="180" prefTileWidth="350" styleClass="task-pane" vgap="30" />
         </content>
     </ScrollPane>
-    <Button fx:id="btnBackToTeam" text="チームトップページに戻る" style="-fx-font-size: 16px;" />
+    <Button fx:id="btnBackToTeam" style="-fx-font-size: 16px;" styleClass="my-button" text="チームトップページに戻る" />
 </VBox>
