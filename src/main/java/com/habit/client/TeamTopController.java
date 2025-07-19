@@ -604,8 +604,8 @@ public class TeamTopController {
             }
           }
         }
-        logger.info("[TeamTopController] Total tasks to display: " +
-                    taskNames.size());
+        // logger.info("[TeamTopController] Total tasks to display: " +
+        // taskNames.size());
         Platform.runLater(() -> {
           Callback<ListView<String>, ListCell<String>> cellFactory = p -> {
             ListCell<String> cell = new ListCell<String>() {
@@ -620,7 +620,7 @@ public class TeamTopController {
                   return;
                 }
 
-                logger.info("[TeamTopController] Total tasks to display: " + taskNames.size());
+                // logger.info("[TeamTopController] Total tasks to display: " + taskNames.size());
                 Platform.runLater(() -> {
                     Callback<ListView<String>,ListCell<String>> cellFactory = p ->
                     {

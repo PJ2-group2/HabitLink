@@ -1,6 +1,9 @@
 package com.habit.client;
 
 import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
@@ -15,6 +18,7 @@ import javafx.scene.text.Font;
 import java.util.List;
 import java.util.ArrayList;
 import java.io.IOException;
+import java.util.Optional;
 
 public class TutorialController {
 
@@ -58,17 +62,23 @@ public class TutorialController {
     @FXML
     public void initialize() {
         updateContent();
-
-        // ラベルをクリックして次のセリフへ
-        speechTextFlow.setOnMouseClicked(this::handleLabelClick);
     }
 
     @FXML
     private void handleSkip() {
-        goToHome();
+        Alert alert = new Alert(AlertType.CONFIRMATION);
+        alert.setTitle("チュートリアルをスキップ");
+        alert.setHeaderText(null);
+        alert.setContentText("チュートリアルをスキップしてもよろしいですか？");
+
+        Optional<ButtonType> result = alert.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            goToHome();
+        }
     }
 
-    private void handleLabelClick(MouseEvent event) {
+    @FXML
+    private void handleNext() {
         currentIndex++;
         if (currentIndex < messages.length) {
             updateContent();
@@ -76,6 +86,7 @@ public class TutorialController {
             goToHome();
         }
     }
+
 
     private void updateContent() {
         speechTextFlow.getChildren().clear(); // 古いテキストをクリア
