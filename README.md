@@ -2,20 +2,45 @@
 
 HabitLink は Java で実装された習慣管理アプリのサンプルです。HTTP サーバと JavaFX ベースのクライアントを備え、チーム単位でタスクを共有できます。
 
-## Obtain the Code:
+このプロジェクトは、`habit-server`、`habit-client`、`habit-domain` の3つのMavenモジュールで構成されています。
+
+- `habit-server`: サーバサイドのアプリケーションロジック
+- `habit-client`: JavaFXベースのクライアントアプリケーション
+- `habit-domain`: サーバとクライアントで共有されるドメインオブジェクト
+
+## 実行方法
+
+### 1. プロジェクトのビルド
+
+まず、プロジェクトのルートディレクトリで以下のコマンドを実行し、すべてのモジュールをビルドしてローカルのMavenリポジトリにインストールします。
 
 ```bash
-git clone https://github.com/PJ2-group2/HabitLink.git
-cd HabitLink/
+mvn clean install
 ```
 
-## Run the Server:
+これにより、`habit-client/target` と `habit-server/target` ディレクトリに、それぞれ実行可能なJARファイル (`HabitLinkClient.jar`, `HabitLinkServer.jar`) が生成されます。
+
+### 2. サーバーの実行
+
+以下のコマンドでサーバーを起動します。
 
 ```bash
-mvn exec:java -Dexec.mainClass=com.habit.server.HabitServer
+java -jar habit-server/target/HabitLinkServer.jar
 ```
 
-サーバは `8080` 番ポートで起動し、HTTP API を提供します。主なエンドポイントは次の通りです。
+サーバーは `8080` 番ポートで起動します。
+
+### 3. クライアントの実行
+
+以下のコマンドでクライアントGUIを起動します。
+
+```bash
+java -jar habit-client/target/HabitLinkClient.jar
+```
+
+## APIエンドポイント
+
+サーバは以下のHTTP APIを提供します。
 
 - `GET /hello` – 動作確認メッセージ
 - `POST /login` – ログインして `SESSION_ID` を取得
@@ -43,27 +68,13 @@ mvn exec:java -Dexec.mainClass=com.habit.server.HabitServer
 
 ユーザー認証が必要な API では、`SESSION_ID` ヘッダにログイン時に得られた値を設定してアクセスします。データは `habit.db` に保存されます。
 
-
-## Run the Clients:
-
-```bash
-mvn exec:java -Dexec.mainClass=com.habit.client.gui.HabitClientGUI
-```
-
-コマンドラインからサーバにアクセスする `HabitClient` クラスも用意されていますが、上記コマンドでは JavaFX を用いた GUI クライアントを起動します。GUI クライアントでは以下の機能が利用できます。
-
-- 個人ページでローカルタスクの追加・完了
-- チームページでチームの作成・参加
-- チームページでチームタスクの追加・取得・削除
-
-## Run the Tests:
+## テストの実行
 
 ```bash
 mvn test
 ```
 
-
-## Generate Class Diagram:
+## クラス図の生成
 
 ```bash
 python tools/diagram.py src out
@@ -71,16 +82,7 @@ python tools/diagram.py src out
 
 `tools/diagram.py` は `javalang` と `graphviz` を利用してクラス図を生成するスクリプトです。上記コマンドでは `src` 以下の Java ソースを解析し、`out.pdf` を生成します。
 
----
-
-### ディレクトリ構成
-
-- `src/main/java/com/habit/server` – サーバ本体とチーム・タスク管理クラス
-- `src/main/java/com/habit/client` – コマンドラインクライアントおよび JavaFX GUI
-- `src/test/java` – JUnit テスト
-- `tools/diagram.py` – クラス図生成スクリプト
-
-### 必要環境
+## 必要環境
 
 - JDK 14 以上
 - Maven
