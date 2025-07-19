@@ -11,10 +11,10 @@
     <version>1.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>habit-common</artifactId>
+  <artifactId>habit-domain</artifactId>
   <packaging>jar</packaging>
 
-  <name>habit-common</name>
+  <name>habit-domain</name>
 
   <dependencies>
     <dependency>

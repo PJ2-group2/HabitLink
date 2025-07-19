@@ -25,7 +25,7 @@
   </properties>
 
   <modules>
-    <module>habit-common</module>
+    <module>habit-domain</module>
     <module>habit-server</module>
     <module>habit-client</module>
   </modules>

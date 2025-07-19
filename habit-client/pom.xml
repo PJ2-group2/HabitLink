@@ -18,7 +18,7 @@
   <dependencies>
     <dependency>
       <groupId>com.habit</groupId>
-      <artifactId>habit-common</artifactId>
+      <artifactId>habit-domain</artifactId>
       <version>${project.version}</version>
     </dependency>
     <!-- JavaFX modules -->
