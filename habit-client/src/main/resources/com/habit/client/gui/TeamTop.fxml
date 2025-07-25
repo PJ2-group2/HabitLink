@@ -11,7 +11,7 @@
             <Button fx:id="btnBackHome" text="ホームに戻る" styleClass="custom-button"/>
             <Button fx:id="btnCreateTask" text="タスク作成" styleClass="custom-button"/>
             <Label fx:id="teamNameLabel" text="チーム名" style="-fx-font-size: 22px; -fx-font-weight: bold;"/>
-            <Button fx:id="btnDebugReset" text="🔄 デバッグリセット" style="-fx-background-color: #ff6b6b; -fx-text-fill: white; -fx-font-weight: bold;"/>
+            
         </HBox>
     </top>
     <center>

@@ -27,7 +27,7 @@ class MessageRepositoryTest {
 
   @Test
   void testSaveAndFindMessages() {
-    // two messages for team "teamA"
+    System.out.println("[テスト開始] testSaveAndFindMessages / メッセージ保存と取得のテスト");
     Message m1 = new Message("id1", new User("u1", "Alice", "pwd"), "teamA",
                              "hello", MessageType.NORMAL);
     Message m2 = new Message("id2", new User("u2", "Bob", "pwd"), "teamA",
@@ -35,12 +35,15 @@ class MessageRepositoryTest {
 
     repo.save(m1);
     repo.save(m2);
+    System.out.println("2件のメッセージを保存しました（teamA）");
 
     List<MessageRepository.MessageEntry> entries =
         repo.findMessagesByteamID("teamA", 10);
+    System.out.println("取得したメッセージ件数: " + entries.size());
     assertEquals(2, entries.size(), "Should retrieve both messages");
 
     MessageRepository.MessageEntry first = entries.get(0);
+    System.out.println("1件目: senderId=" + first.senderId + ", teamId=" + first.teamId + ", content=" + first.content + ", time=" + first.time);
     assertEquals("u1", first.senderId);
     assertEquals("teamA", first.teamId);
     assertEquals("hello", first.content);
@@ -53,6 +56,7 @@ class MessageRepositoryTest {
                 diff1.toMillis()));
 
     MessageRepository.MessageEntry second = entries.get(1);
+    System.out.println("2件目: senderId=" + second.senderId + ", teamId=" + second.teamId + ", content=" + second.content + ", time=" + second.time);
     assertEquals("u2", second.senderId);
     assertEquals("teamA", second.teamId);
     assertEquals("world", second.content);
@@ -63,25 +67,32 @@ class MessageRepositoryTest {
             -> String.format(
                 "Timestamps differ by %d ms, which is more than 1 second",
                 diff2.toMillis()));
+    System.out.println("[成功] testSaveAndFindMessages / メッセージ保存と取得のテスト完了");
   }
 
   @Test
   void testFindWithLimit() {
-    // insert 5 messages for teamB
+    System.out.println("[テスト開始] testFindWithLimit / LIMIT句による取得件数制限テスト");
     for (int i = 1; i <= 5; i++) {
       repo.save(new Message("id" + i, new User("u" + i, "User" + i, "pwd"),
                             "teamB", "msg" + i, MessageType.NORMAL));
     }
+    System.out.println("teamBに5件のメッセージを保存しました");
 
     List<MessageRepository.MessageEntry> limited =
         repo.findMessagesByteamID("teamB", 3);
+    System.out.println("LIMIT=3で取得した件数: " + limited.size());
     assertEquals(3, limited.size(), "Should respect the LIMIT clause");
+    System.out.println("[成功] testFindWithLimit / LIMIT句による取得件数制限テスト完了");
   }
 
   @Test
   void testFindNonexistentTeamReturnsEmpty() {
+    System.out.println("[テスト開始] testFindNonexistentTeamReturnsEmpty / 存在しないチームのメッセージ取得テスト");
     List<MessageRepository.MessageEntry> none =
         repo.findMessagesByteamID("no-such-team", 5);
+    System.out.println("取得件数: " + none.size() + "（期待値: 0）");
     assertTrue(none.isEmpty(), "No messages for unknown team");
+    System.out.println("[成功] testFindNonexistentTeamReturnsEmpty / 存在しないチームのメッセージ取得テスト完了");
   }
 }

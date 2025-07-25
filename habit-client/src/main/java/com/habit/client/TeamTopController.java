@@ -42,8 +42,7 @@ public class TeamTopController {
   @FXML private Button btnToChat;
   /* メインチャットページへ遷移するボタン（新しい大きなボタン） */
   @FXML private Button btnToChatMain;
-  /* デバッグリセットボタン */
-  @FXML private Button btnDebugReset;
+  
   /* チームタスク一覧テーブル（型を汎用化） */
   @FXML private TableView<ObservableList<Object>> taskTable;
   /* 今日のタスクリスト */
@@ -429,138 +428,13 @@ public class TeamTopController {
       }
     });
 
-    final boolean is_debug = Config.getIsDebug();
-    if (is_debug) {
-      // デバッグリセットボタンのアクション設定
-      btnDebugReset.setOnAction(unused -> { executeDebugReset(); });
-    }
-    btnDebugReset.setVisible(is_debug);
-    btnDebugReset.setManaged(is_debug);
+    
 
     // 未消化タスクを横並びにする
     todayTaskList.setOrientation(Orientation.HORIZONTAL);
   }
 
-  /**
-   * デバッグ用リセットボタンが押されたときの処理
-   * サーバーの手動タスクリセットAPIを呼び出し、0時と同じ日付切り替わり処理を実行する
-   */
-  private void executeDebugReset() {
-    new Thread(() -> {
-      try {
-        // 確認ダイアログを表示
-        Platform.runLater(() -> {
-          Alert confirmAlert = new Alert(Alert.AlertType.CONFIRMATION);
-          confirmAlert.setTitle("デバッグリセット確認");
-          confirmAlert.setHeaderText("タスク自動リセットを実行しますか？");
-          confirmAlert.setContentText(
-              "この操作により、0時と同じ日付切り替わり処理が実行されます。\n"
-              + "・未完了タスクはサボりポイントが増加\n"
-              + "・完了タスクはサボりポイントが減少\n"
-              + "・新しい日付のタスクが生成されます");
-
-          Optional<ButtonType> result = confirmAlert.showAndWait();
-          if (result.isPresent() && result.get() == ButtonType.OK) {
-            // 実際のリセット処理を別スレッドで実行
-            new Thread(() -> performDebugReset()).start();
-          }
-        });
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    }).start();
-  }
-
-  /**
-   * 実際のデバッグリセット処理を実行
-   * 1. 通常のタスクリセット処理（昨日の未消化タスク処理）
-   * 2. 今日の未消化タスクのサボり報告送信
-   */
-  private void performDebugReset() {
-    try {
-      HttpClient client = HttpClient.newHttpClient();
-
-      Platform.runLater(() -> {
-        Alert processingAlert = new Alert(Alert.AlertType.INFORMATION);
-        processingAlert.setTitle("処理中");
-        processingAlert.setHeaderText("デバッグリセット実行中...");
-        processingAlert.setContentText(
-            "タスクリセットとサボり報告を実行しています...");
-        processingAlert.show();
-      });
-
-      // 1. 通常のタスクリセット処理を実行
-      String resetUrl = Config.getServerUrl() + "/manualTaskReset";
-      HttpRequest resetRequest = HttpRequest.newBuilder()
-                                     .uri(URI.create(resetUrl))
-                                     .timeout(java.time.Duration.ofSeconds(30))
-                                     .GET()
-                                     .build();
-
-      HttpResponse<String> resetResponse =
-          client.send(resetRequest, HttpResponse.BodyHandlers.ofString());
-
-      // 2. 今日の未消化タスクのサボり報告を実行
-      String sabotageReportUrl = Config.getServerUrl() + ("/debugSabotageRepor" +
-                                                          "t");
-      HttpRequest sabotageRequest =
-          HttpRequest.newBuilder()
-              .uri(URI.create(sabotageReportUrl))
-              .timeout(java.time.Duration.ofSeconds(30))
-              .GET()
-              .build();
-
-      HttpResponse<String> sabotageResponse =
-          client.send(sabotageRequest, HttpResponse.BodyHandlers.ofString());
-
-      Platform.runLater(() -> {
-        Alert resultAlert;
-        if (resetResponse.statusCode() == 200 &&
-            sabotageResponse.statusCode() == 200) {
-          resultAlert = new Alert(Alert.AlertType.INFORMATION);
-          resultAlert.setTitle("デバッグリセット完了");
-          resultAlert.setHeaderText(
-              "タスクリセットとサボり報告が正常に実行されました");
-          resultAlert.setContentText(
-              "タスクリセット結果:\n" + resetResponse.body() +
-              "\n\nサボり報告結果:\n" + sabotageResponse.body());
-
-          // 画面を更新
-          loadTeamTasksAndUserTasks();
-          loadTaskStatusTable();
-          loadSabotageRanking();
-          loadChatLog();
-        } else {
-          resultAlert = new Alert(Alert.AlertType.ERROR);
-          resultAlert.setTitle("デバッグリセット失敗");
-          resultAlert.setHeaderText("処理に失敗しました");
-          String errorContent = "";
-          if (resetResponse.statusCode() != 200) {
-            errorContent += "タスクリセット失敗 (HTTP " +
-                            resetResponse.statusCode() +
-                            "): " + resetResponse.body() + "\n";
-          }
-          if (sabotageResponse.statusCode() != 200) {
-            errorContent += "サボり報告失敗 (HTTP " +
-                            sabotageResponse.statusCode() +
-                            "): " + sabotageResponse.body();
-          }
-          resultAlert.setContentText(errorContent);
-        }
-        resultAlert.showAndWait();
-      });
-
-    } catch (Exception e) {
-      e.printStackTrace();
-      Platform.runLater(() -> {
-        Alert errorAlert = new Alert(Alert.AlertType.ERROR);
-        errorAlert.setTitle("通信エラー");
-        errorAlert.setHeaderText("サーバーとの通信に失敗しました");
-        errorAlert.setContentText("エラー詳細: " + e.getMessage());
-        errorAlert.showAndWait();
-      });
-    }
-  }
+  
 
   /**
    * チームタスク・ユーザタスク取得メソッド
